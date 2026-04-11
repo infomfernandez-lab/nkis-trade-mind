@@ -53,8 +53,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
           <div className="text-xs text-muted-foreground">Sistema 1 v2.0</div>
+          <SignOutButton />
         </div>
       </aside>
 
