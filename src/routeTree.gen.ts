@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as ManualRouteImport } from './routes/manual'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TradesRoute = TradesRouteImport.update({
@@ -41,6 +42,11 @@ const ManualRoute = ManualRouteImport.update({
   path: '/manual',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
   '/reports': typeof ReportsRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
   '/reports': typeof ReportsRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
   '/reports': typeof ReportsRoute
@@ -76,16 +85,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/manual'
     | '/patterns'
     | '/reports'
     | '/settings'
     | '/trades'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/manual' | '/patterns' | '/reports' | '/settings' | '/trades'
+  to:
+    | '/'
+    | '/login'
+    | '/manual'
+    | '/patterns'
+    | '/reports'
+    | '/settings'
+    | '/trades'
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/manual'
     | '/patterns'
     | '/reports'
@@ -95,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   ManualRoute: typeof ManualRoute
   PatternsRoute: typeof PatternsRoute
   ReportsRoute: typeof ReportsRoute
@@ -139,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManualRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -151,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   ManualRoute: ManualRoute,
   PatternsRoute: PatternsRoute,
   ReportsRoute: ReportsRoute,
