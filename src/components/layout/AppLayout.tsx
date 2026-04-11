@@ -136,3 +136,16 @@ function MetricPill({ label, value, positive, neutral }: { label: string; value:
     </div>
   );
 }
+
+function SignOutButton() {
+  const { signOut } = useAuth();
+  return (
+    <button
+      onClick={() => signOut()}
+      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <LogOut className="w-3.5 h-3.5" />
+      Sign Out
+    </button>
+  );
+}
