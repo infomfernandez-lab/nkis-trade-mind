@@ -2,9 +2,10 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, TrendingUp, TrendingDown, Activity, Minus
+  Settings, Menu, X, LogOut
 } from 'lucide-react';
 import { computeStats, formatCurrency, openPositions } from '@/lib/mock-data';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { to: '/' as const, label: 'Dashboard', icon: LayoutDashboard },
@@ -52,8 +53,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
           <div className="text-xs text-muted-foreground">Sistema 1 v2.0</div>
+          <SignOutButton />
         </div>
       </aside>
 
@@ -132,5 +134,18 @@ function MetricPill({ label, value, positive, neutral }: { label: string; value:
         {value}
       </span>
     </div>
+  );
+}
+
+function SignOutButton() {
+  const { signOut } = useAuth();
+  return (
+    <button
+      onClick={() => signOut()}
+      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <LogOut className="w-3.5 h-3.5" />
+      Sign Out
+    </button>
   );
 }
