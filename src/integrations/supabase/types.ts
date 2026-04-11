@@ -14,7 +14,225 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      scanner_sessions: {
+        Row: {
+          correlations_detected: Json | null
+          created_at: string
+          id: string
+          notes: string | null
+          session_date: string
+          top_instruments: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correlations_detected?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          session_date?: string
+          top_instruments?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correlations_detected?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          session_date?: string
+          top_instruments?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          adx_state: string | null
+          adx_value: number | null
+          commission: number | null
+          created_at: string
+          direction: string
+          distance_to_ma50: number | null
+          distance_to_ma50_label: string | null
+          duration_hours: number | null
+          during_trade_notes: string | null
+          ea_comment: string | null
+          emotional_state: string | null
+          entry_date: string
+          entry_price: number
+          exit_date: string | null
+          exit_price: number | null
+          feeling_result: string | null
+          gross_pnl: number | null
+          how_closed: string | null
+          id: string
+          is_open: boolean | null
+          is_win: boolean | null
+          lot_size: number
+          magic_number: number | null
+          managing_wait: string | null
+          manual_intervention: string | null
+          momentum_20d: number | null
+          momentum_aligned: boolean | null
+          net_pnl: number | null
+          post_trade_notes: string | null
+          pre_trade_notes: string | null
+          reason_for_entry: string | null
+          scanner_rank: number | null
+          setup_doubts: string | null
+          sl_price: number | null
+          stochastic_k: number | null
+          swap: number | null
+          symbol: string
+          system_compliance: string | null
+          ticket: number | null
+          tp_price: number | null
+          updated_at: string
+          user_id: string
+          vix_at_entry: number | null
+          what_do_differently: string | null
+        }
+        Insert: {
+          adx_state?: string | null
+          adx_value?: number | null
+          commission?: number | null
+          created_at?: string
+          direction: string
+          distance_to_ma50?: number | null
+          distance_to_ma50_label?: string | null
+          duration_hours?: number | null
+          during_trade_notes?: string | null
+          ea_comment?: string | null
+          emotional_state?: string | null
+          entry_date: string
+          entry_price: number
+          exit_date?: string | null
+          exit_price?: number | null
+          feeling_result?: string | null
+          gross_pnl?: number | null
+          how_closed?: string | null
+          id?: string
+          is_open?: boolean | null
+          is_win?: boolean | null
+          lot_size?: number
+          magic_number?: number | null
+          managing_wait?: string | null
+          manual_intervention?: string | null
+          momentum_20d?: number | null
+          momentum_aligned?: boolean | null
+          net_pnl?: number | null
+          post_trade_notes?: string | null
+          pre_trade_notes?: string | null
+          reason_for_entry?: string | null
+          scanner_rank?: number | null
+          setup_doubts?: string | null
+          sl_price?: number | null
+          stochastic_k?: number | null
+          swap?: number | null
+          symbol: string
+          system_compliance?: string | null
+          ticket?: number | null
+          tp_price?: number | null
+          updated_at?: string
+          user_id: string
+          vix_at_entry?: number | null
+          what_do_differently?: string | null
+        }
+        Update: {
+          adx_state?: string | null
+          adx_value?: number | null
+          commission?: number | null
+          created_at?: string
+          direction?: string
+          distance_to_ma50?: number | null
+          distance_to_ma50_label?: string | null
+          duration_hours?: number | null
+          during_trade_notes?: string | null
+          ea_comment?: string | null
+          emotional_state?: string | null
+          entry_date?: string
+          entry_price?: number
+          exit_date?: string | null
+          exit_price?: number | null
+          feeling_result?: string | null
+          gross_pnl?: number | null
+          how_closed?: string | null
+          id?: string
+          is_open?: boolean | null
+          is_win?: boolean | null
+          lot_size?: number
+          magic_number?: number | null
+          managing_wait?: string | null
+          manual_intervention?: string | null
+          momentum_20d?: number | null
+          momentum_aligned?: boolean | null
+          net_pnl?: number | null
+          post_trade_notes?: string | null
+          pre_trade_notes?: string | null
+          reason_for_entry?: string | null
+          scanner_rank?: number | null
+          setup_doubts?: string | null
+          sl_price?: number | null
+          stochastic_k?: number | null
+          swap?: number | null
+          symbol?: string
+          system_compliance?: string | null
+          ticket?: number | null
+          tp_price?: number | null
+          updated_at?: string
+          user_id?: string
+          vix_at_entry?: number | null
+          what_do_differently?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          account_number: string | null
+          api_key: string | null
+          balance: number | null
+          broker: string | null
+          created_at: string
+          id: string
+          max_open_positions: number | null
+          risk_per_trade: number | null
+          updated_at: string
+          user_id: string
+          vix_block_threshold: number | null
+          vix_caution_threshold: number | null
+        }
+        Insert: {
+          account_number?: string | null
+          api_key?: string | null
+          balance?: number | null
+          broker?: string | null
+          created_at?: string
+          id?: string
+          max_open_positions?: number | null
+          risk_per_trade?: number | null
+          updated_at?: string
+          user_id: string
+          vix_block_threshold?: number | null
+          vix_caution_threshold?: number | null
+        }
+        Update: {
+          account_number?: string | null
+          api_key?: string | null
+          balance?: number | null
+          broker?: string | null
+          created_at?: string
+          id?: string
+          max_open_positions?: number | null
+          risk_per_trade?: number | null
+          updated_at?: string
+          user_id?: string
+          vix_block_threshold?: number | null
+          vix_caution_threshold?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
