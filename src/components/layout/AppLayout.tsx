@@ -2,9 +2,10 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, TrendingUp, TrendingDown, Activity, Minus
+  Settings, Menu, X, LogOut
 } from 'lucide-react';
 import { computeStats, formatCurrency, openPositions } from '@/lib/mock-data';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { to: '/' as const, label: 'Dashboard', icon: LayoutDashboard },
