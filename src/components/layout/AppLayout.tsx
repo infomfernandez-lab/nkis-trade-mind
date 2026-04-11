@@ -4,7 +4,8 @@ import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
   Settings, Menu, X, LogOut
 } from 'lucide-react';
-import { computeStats, formatCurrency, openPositions } from '@/lib/mock-data';
+import { useAllTrades } from '@/hooks/use-trades';
+import { formatCurrency, computeStatsFromTrades } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
@@ -19,10 +20,8 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const stats = computeStats();
-  const vix = 18.5;
-
-  const vixColor = vix < 25 ? 'text-success' : vix < 35 ? 'text-yellow-500' : 'text-destructive';
+  const { closedTrades, openTrades } = useAllTrades();
+  const stats = computeStatsFromTrades(closedTrades, openTrades);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -103,16 +102,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <MetricPill label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} positive={stats.winRate >= 50} />
               <MetricPill label="Profit Factor" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} positive={stats.profitFactor >= 1} />
               <MetricPill label="Open" value={String(stats.openCount)} neutral />
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-xs shrink-0">
-                <span className="text-muted-foreground">Streak</span>
-                <span className={`font-data font-semibold ${stats.streakType === 'W' ? 'text-success' : 'text-destructive'}`}>
-                  {stats.currentStreak}{stats.streakType}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-xs shrink-0">
-                <span className="text-muted-foreground">VIX</span>
-                <span className={`font-data font-semibold ${vixColor}`}>{vix.toFixed(1)}</span>
-              </div>
+              {stats.totalTrades > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-xs shrink-0">
+                  <span className="text-muted-foreground">Streak</span>
+                  <span className={`font-data font-semibold ${stats.streakType === 'W' ? 'text-success' : 'text-destructive'}`}>
+                    {stats.currentStreak}{stats.streakType}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </header>
