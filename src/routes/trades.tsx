@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { closedTrades, formatCurrency, formatDate, getTradeColorStrip, type Trade } from '@/lib/mock-data';
+import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { useClosedTrades } from '@/hooks/use-trades';
+import { formatCurrency, formatDate, getTradeColorStrip, type Trade } from '@/lib/trade-utils';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -15,7 +16,41 @@ export const Route = createFileRoute('/trades')({
 
 function TradeLog() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const trades = [...closedTrades].reverse();
+  const { data: closedTrades, isLoading, error } = useClosedTrades();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading trades...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+        <p className="text-sm text-destructive">Failed to load trades: {error.message}</p>
+      </div>
+    );
+  }
+
+  const trades = [...(closedTrades ?? [])].reverse();
+
+  if (trades.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Trade Log</h1>
+          <p className="text-sm text-muted-foreground mt-1">No closed trades yet</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted-foreground text-sm">Your trade history will appear here once your MT5 sync script sends data.</p>
+          <p className="text-xs text-muted-foreground mt-2">Set up the sync script in Settings → MT5 Sync API Key</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -43,10 +78,7 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden card-hover">
-      {/* Color strip */}
       <div className={`h-1 ${strip}`} />
-
-      {/* Collapsed view */}
       <button onClick={onToggle} className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/20 transition-colors">
         <div className="flex items-center gap-4">
           <div className={`px-2 py-0.5 rounded text-xs font-data font-bold ${trade.direction === 'BUY' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
@@ -64,10 +96,8 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
         </div>
       </button>
 
-      {/* Expanded view */}
       {expanded && (
         <div className="border-t border-border p-4 lg:p-6 space-y-6 text-sm">
-          {/* Trade Data */}
           <Section title="Trade Data">
             <Grid>
               <Field label="Ticket" value={`#${trade.ticket}`} />
@@ -85,7 +115,6 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
             </Grid>
           </Section>
 
-          {/* Indicator Snapshot */}
           <Section title="Indicator Snapshot at Entry">
             <Grid>
               <Field label="ADX" value={`${trade.adxValue} (${trade.adxState})`} mono />
@@ -97,7 +126,6 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
             </Grid>
           </Section>
 
-          {/* Psychological Layer */}
           <Section title="Before Entry">
             <Grid>
               <Field label="Emotional State" value={trade.emotionalState || '—'} />

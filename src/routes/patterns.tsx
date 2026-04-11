@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { Zap, AlertTriangle, TrendingUp } from 'lucide-react';
-import { closedTrades, formatCurrency, type Trade } from '@/lib/mock-data';
+import { Zap, AlertTriangle, Loader2 } from 'lucide-react';
+import { useClosedTrades } from '@/hooks/use-trades';
+import { formatCurrency, type Trade } from '@/lib/trade-utils';
 
 export const Route = createFileRoute('/patterns')({
   component: Patterns,
@@ -24,9 +25,41 @@ function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
 }
 
 function Patterns() {
-  const trades = closedTrades;
+  const { data: closedTrades, isLoading, error } = useClosedTrades();
 
-  // Compliance analysis
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading patterns...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+        <p className="text-sm text-destructive">Failed to load data: {error.message}</p>
+      </div>
+    );
+  }
+
+  const trades = closedTrades ?? [];
+
+  if (trades.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Pattern Intelligence</h1>
+          <p className="text-sm text-muted-foreground mt-1">Not enough data yet</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="text-muted-foreground text-sm">Patterns will emerge once you have closed trades in the system.</p>
+        </div>
+      </div>
+    );
+  }
+
   const byCompliance = groupBy(trades.filter(t => t.systemCompliance), t => t.systemCompliance!);
   const complianceData = Object.entries(byCompliance).map(([key, trades]) => ({
     name: key,
@@ -35,7 +68,6 @@ function Patterns() {
     count: trades.length,
   }));
 
-  // Emotional analysis
   const byEmotion = groupBy(trades.filter(t => t.emotionalState), t => t.emotionalState!);
   const emotionData = Object.entries(byEmotion).map(([key, trades]) => ({
     name: key,
@@ -45,12 +77,10 @@ function Patterns() {
     count: trades.length,
   }));
 
-  // Intervention cost
   const withIntervention = trades.filter(t => t.manualIntervention && t.manualIntervention !== 'None, EA managing');
   const interventionCost = withIntervention.reduce((s, t) => s + t.netPnl, 0);
   const interventionByType = groupBy(withIntervention, t => t.manualIntervention!);
 
-  // ADX analysis
   const adxGroups = [
     { label: 'ADX > 35', trades: trades.filter(t => t.adxValue > 35) },
     { label: 'ADX 25-35', trades: trades.filter(t => t.adxValue >= 25 && t.adxValue <= 35) },
@@ -64,7 +94,6 @@ function Patterns() {
     count: g.trades.length,
   }));
 
-  // Instrument performance
   const bySymbol = groupBy(trades, t => t.symbol);
   const instrumentData = Object.entries(bySymbol).map(([symbol, trades]) => ({
     symbol,
@@ -74,7 +103,6 @@ function Patterns() {
     avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
   })).sort((a, b) => b.totalPnl - a.totalPnl);
 
-  // ADX state analysis
   const byAdxState = groupBy(trades, t => t.adxState);
   const adxStateData = Object.entries(byAdxState).map(([state, trades]) => ({
     name: state,
@@ -83,7 +111,6 @@ function Patterns() {
     avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
   }));
 
-  // Generate insights
   const insights = generateInsights(trades, complianceData, emotionData, interventionCost, withIntervention, adxData);
 
   return (
@@ -93,24 +120,24 @@ function Patterns() {
         <p className="text-sm text-muted-foreground mt-1">Behavioral and performance patterns from {trades.length} trades</p>
       </div>
 
-      {/* Auto-Generated Insights */}
-      <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 lg:p-6 gold-glow">
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-4 h-4 text-primary" />
-          <h2 className="font-display text-sm font-semibold text-primary">Auto-Generated Insights</h2>
+      {insights.length > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 lg:p-6 gold-glow">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-4 h-4 text-primary" />
+            <h2 className="font-display text-sm font-semibold text-primary">Auto-Generated Insights</h2>
+          </div>
+          <div className="space-y-3">
+            {insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-3 text-sm">
+                <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${insight.type === 'positive' ? 'bg-success' : insight.type === 'warning' ? 'bg-yellow-500' : 'bg-destructive'}`} />
+                <p className="text-foreground/90">{insight.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-3">
-          {insights.map((insight, i) => (
-            <div key={i} className="flex items-start gap-3 text-sm">
-              <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${insight.type === 'positive' ? 'bg-success' : insight.type === 'warning' ? 'bg-yellow-500' : 'bg-destructive'}`} />
-              <p className="text-foreground/90">{insight.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Compliance */}
         <ChartCard title="Performance by System Compliance">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -136,7 +163,6 @@ function Patterns() {
           </div>
         </ChartCard>
 
-        {/* Emotional State */}
         <ChartCard title="Emotional State Analysis">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -155,7 +181,6 @@ function Patterns() {
           </div>
         </ChartCard>
 
-        {/* Intervention Cost */}
         <ChartCard title="Cost of Manual Interventions">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -173,8 +198,8 @@ function Patterns() {
                   <span className="text-muted-foreground">{type}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">{trades.length} trades</span>
-                    <span className={`font-data font-semibold ${trades.reduce((s,t)=>s+t.netPnl,0) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      {formatCurrency(trades.reduce((s,t)=>s+t.netPnl,0))}
+                    <span className={`font-data font-semibold ${trades.reduce((s, t) => s + t.netPnl, 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {formatCurrency(trades.reduce((s, t) => s + t.netPnl, 0))}
                     </span>
                   </div>
                 </div>
@@ -183,7 +208,6 @@ function Patterns() {
           </div>
         </ChartCard>
 
-        {/* ADX Analysis */}
         <ChartCard title="Win Rate by ADX Level">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +230,6 @@ function Patterns() {
         </ChartCard>
       </div>
 
-      {/* Instrument Performance */}
       <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
         <h2 className="font-display text-sm font-semibold text-foreground mb-4">Instrument Performance</h2>
         <div className="overflow-x-auto">
@@ -241,7 +264,6 @@ function Patterns() {
         </div>
       </div>
 
-      {/* ADX State */}
       <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
         <h2 className="font-display text-sm font-semibold text-foreground mb-4">Win Rate by ADX State</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -284,7 +306,6 @@ function generateInsights(
   const insights: Insight[] = [];
   const MIN_TRADES = 3;
 
-  // Compliance insight
   const full = complianceData.find(c => c.name === '100%');
   const partial = complianceData.filter(c => c.name !== '100%');
   if (full && full.count >= MIN_TRADES && partial.length > 0) {
@@ -299,7 +320,6 @@ function generateInsights(
     }
   }
 
-  // Emotional insights
   const anxious = emotionData.find(e => e.name === 'Anxious');
   const calm = emotionData.find(e => e.name === 'Calm');
   if (anxious && anxious.count >= MIN_TRADES && anxious.totalPnl < 0) {
@@ -317,7 +337,6 @@ function generateInsights(
     });
   }
 
-  // Intervention insight
   if (withIntervention.length >= 2) {
     insights.push({
       text: `You have intervened manually in ${withIntervention.length} trades, resulting in a net ${formatCurrency(interventionCost)}.`,
@@ -326,7 +345,6 @@ function generateInsights(
     });
   }
 
-  // ADX insight
   const highAdx = adxData.find(a => a.name === 'ADX > 35');
   const lowAdx = adxData.find(a => a.name === 'ADX < 25');
   if (highAdx && lowAdx && highAdx.count >= MIN_TRADES && lowAdx.count >= MIN_TRADES) {

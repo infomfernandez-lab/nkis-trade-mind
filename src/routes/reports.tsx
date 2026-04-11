@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { FileText, Calendar, TrendingUp } from 'lucide-react';
-import { closedTrades, formatCurrency, formatDate, computeStats } from '@/lib/mock-data';
+import { FileText, Calendar, TrendingUp, Loader2 } from 'lucide-react';
+import { useClosedTrades } from '@/hooks/use-trades';
+import { formatCurrency, formatDate, computeStatsFromTrades } from '@/lib/trade-utils';
 
 export const Route = createFileRoute('/reports')({
   component: Reports,
@@ -15,11 +16,43 @@ export const Route = createFileRoute('/reports')({
 
 function Reports() {
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'trade'>('weekly');
-  const stats = computeStats();
-  const lastWeekTrades = closedTrades.slice(-4);
+  const { data: closedTrades, isLoading, error } = useClosedTrades();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading reports...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+        <p className="text-sm text-destructive">Failed to load data: {error.message}</p>
+      </div>
+    );
+  }
+
+  const trades = closedTrades ?? [];
+  const stats = computeStatsFromTrades(trades, []);
+
+  // Last week trades (last 7 days)
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const lastWeekTrades = trades.filter(t => t.exitDate && new Date(t.exitDate) >= oneWeekAgo);
   const weekPnl = lastWeekTrades.reduce((s, t) => s + t.netPnl, 0);
   const weekWins = lastWeekTrades.filter(t => t.isWin).length;
   const fullCompliance = lastWeekTrades.filter(t => t.systemCompliance === '100%').length;
+
+  // Current month
+  const now = new Date();
+  const monthTrades = trades.filter(t => {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const monthStats = computeStatsFromTrades(monthTrades, []);
 
   return (
     <div className="space-y-6">
@@ -28,7 +61,6 @@ function Reports() {
         <p className="text-sm text-muted-foreground mt-1">Performance reports for review and analysis</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-lg bg-secondary w-fit">
         {(['weekly', 'monthly', 'trade'] as const).map(tab => (
           <button
@@ -48,7 +80,7 @@ function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-bold">Weekly Report</h2>
-              <p className="text-xs text-muted-foreground">Week of 07/04/2026 — 11/04/2026</p>
+              <p className="text-xs text-muted-foreground">Last 7 days</p>
             </div>
             <Calendar className="w-5 h-5 text-primary" />
           </div>
@@ -60,20 +92,24 @@ function Reports() {
             <MiniStat label="Compliance" value={`${lastWeekTrades.length > 0 ? ((fullCompliance / lastWeekTrades.length) * 100).toFixed(0) : 0}%`} />
           </div>
 
-          <div>
-            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Trades This Week</h3>
-            <div className="space-y-2">
-              {lastWeekTrades.map(t => (
-                <div key={t.id} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs font-data font-bold ${t.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{t.direction}</span>
-                    <span className="font-medium">{t.symbol}</span>
+          {lastWeekTrades.length > 0 ? (
+            <div>
+              <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Trades This Week</h3>
+              <div className="space-y-2">
+                {lastWeekTrades.map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-data font-bold ${t.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{t.direction}</span>
+                      <span className="font-medium">{t.symbol}</span>
+                    </div>
+                    <span className={`font-data font-semibold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
                   </div>
-                  <span className={`font-data font-semibold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No trades closed this week.</p>
+          )}
 
           <div>
             <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Next Week Outlook</h3>
@@ -90,16 +126,16 @@ function Reports() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-bold">Monthly Report</h2>
-              <p className="text-xs text-muted-foreground">April 2026</p>
+              <p className="text-xs text-muted-foreground">{now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
             </div>
             <TrendingUp className="w-5 h-5 text-primary" />
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <MiniStat label="Total P&L" value={formatCurrency(stats.totalPnl)} positive={stats.totalPnl >= 0} />
-            <MiniStat label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} />
-            <MiniStat label="Profit Factor" value={stats.profitFactor.toFixed(2)} />
-            <MiniStat label="Total Trades" value={String(stats.totalTrades)} />
+            <MiniStat label="Total P&L" value={formatCurrency(monthStats.totalPnl)} positive={monthStats.totalPnl >= 0} />
+            <MiniStat label="Win Rate" value={`${monthStats.winRate.toFixed(1)}%`} />
+            <MiniStat label="Profit Factor" value={monthStats.profitFactor === Infinity ? '∞' : monthStats.profitFactor.toFixed(2)} />
+            <MiniStat label="Total Trades" value={String(monthStats.totalTrades)} />
           </div>
 
           <div>
@@ -115,22 +151,28 @@ function Reports() {
       {activeTab === 'trade' && (
         <div className="rounded-lg border border-border bg-card p-6 space-y-4 max-w-2xl">
           <h2 className="font-display text-lg font-bold">Individual Trade Report</h2>
-          <p className="text-sm text-muted-foreground">Select a trade from the Trade Log to generate a detailed report.</p>
-          <div className="space-y-2">
-            {closedTrades.slice(-5).reverse().map(t => (
-              <div key={t.id} className="flex items-center justify-between p-3 rounded-md bg-secondary border border-border hover:border-primary/30 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-data font-bold ${t.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{t.direction}</span>
-                  <span className="font-medium text-sm">{t.symbol}</span>
-                  <span className="text-xs text-muted-foreground font-data">{formatDate(t.entryDate)}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`font-data font-semibold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                </div>
+          {trades.length > 0 ? (
+            <>
+              <p className="text-sm text-muted-foreground">Select a trade from the Trade Log to generate a detailed report.</p>
+              <div className="space-y-2">
+                {[...trades].reverse().slice(0, 5).map(t => (
+                  <div key={t.id} className="flex items-center justify-between p-3 rounded-md bg-secondary border border-border hover:border-primary/30 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-data font-bold ${t.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{t.direction}</span>
+                      <span className="font-medium text-sm">{t.symbol}</span>
+                      <span className="text-xs text-muted-foreground font-data">{formatDate(t.entryDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`font-data font-semibold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">No trades available for reports yet.</p>
+          )}
         </div>
       )}
     </div>
