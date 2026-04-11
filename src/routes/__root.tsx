@@ -1,6 +1,8 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import AppLayout from "@/components/layout/AppLayout";
 import appCss from "../styles.css?url";
+import { useEffect } from "react";
 
 function NotFoundComponent() {
   return (
@@ -56,6 +58,49 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
+  );
+}
+
+function AuthGate() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isLoginPage = location.pathname === '/login';
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user && !isLoginPage) {
+      navigate({ to: '/login' });
+    }
+    if (user && isLoginPage) {
+      navigate({ to: '/' });
+    }
+  }, [user, loading, isLoginPage, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="font-display text-lg font-bold text-foreground">
+            <span className="text-primary">NKIS</span> Trading
+          </h1>
+          <p className="text-xs text-muted-foreground mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && !isLoginPage) return null;
+
+  if (isLoginPage) {
+    return <Outlet />;
+  }
+
   return (
     <AppLayout>
       <Outlet />
