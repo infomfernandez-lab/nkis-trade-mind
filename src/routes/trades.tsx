@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
 import { BrokerSelector } from '@/components/BrokerSelector';
+import { TradeJournal } from '@/components/TradeJournal';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -85,6 +87,7 @@ function TradeLog() {
 }
 
 function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: boolean; onToggle: () => void }) {
+  const queryClient = useQueryClient();
   const strip = getTradeColorStrip(trade);
 
   return (
@@ -139,31 +142,10 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
             </Grid>
           </Section>
 
-          <Section title="Antes de Entrar">
-            <Grid>
-              <Field label="Estado Emocional" value={trade.emotionalState || '—'} />
-              <Field label="Razón de Entrada" value={trade.reasonForEntry || '—'} />
-              <Field label="Cumplimiento del Sistema" value={trade.systemCompliance || '—'} />
-              <Field label="Dudas" value={trade.setupDoubts || '—'} />
-            </Grid>
-            {trade.preTradeNotes && <NoteBlock text={trade.preTradeNotes} />}
-          </Section>
-
-          <Section title="Durante el Trade">
-            <Grid>
-              <Field label="Gestión de la Espera" value={trade.managingWait || '—'} />
-              <Field label="Intervención Manual" value={trade.manualIntervention || '—'} />
-            </Grid>
-            {trade.duringTradeNotes && <NoteBlock text={trade.duringTradeNotes} />}
-          </Section>
-
-          <Section title="Después del Cierre">
-            <Grid>
-              <Field label="Sensación" value={trade.feelingResult || '—'} />
-              <Field label="Qué Haría Diferente" value={trade.whatDoDifferently || '—'} />
-            </Grid>
-            {trade.postTradeNotes && <NoteBlock text={trade.postTradeNotes} />}
-          </Section>
+          <TradeJournal
+            trade={trade}
+            onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
+          />
         </div>
       )}
     </div>
