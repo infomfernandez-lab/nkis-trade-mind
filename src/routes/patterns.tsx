@@ -1,8 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { Zap, AlertTriangle, Loader2 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+  ScatterChart, Scatter, ZAxis,
+} from 'recharts';
+import { Zap, AlertTriangle, Loader2, Shield, Gauge, TrendingUp, BarChart3 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { formatCurrency, type Trade } from '@/lib/trade-utils';
+import {
+  getPerformanceByAdxState, getPerformanceByMA50, getPerformanceByMomentum,
+  getInterventionCosts, getEmotionalPerformanceMatrix, getMonthlyConsistencyScore,
+  computeMaeMfe, computeRrData, generateEnhancedInsights,
+  type GroupStat, type HeatmapCell,
+} from '@/lib/analytics';
+import { useSettings } from '@/hooks/use-settings';
 
 export const Route = createFileRoute('/patterns')({
   component: Patterns,
@@ -26,6 +36,7 @@ function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
 
 function Patterns() {
   const { data: closedTrades, isLoading, error } = useClosedTrades();
+  const { data: settings } = useSettings();
 
   if (isLoading) {
     return (
@@ -60,58 +71,43 @@ function Patterns() {
     );
   }
 
+  const startingBalance = Number(settings?.balance ?? 10000);
+  const insights = generateEnhancedInsights(trades, startingBalance);
+
   const byCompliance = groupBy(trades.filter(t => t.systemCompliance), t => t.systemCompliance!);
-  const complianceData = Object.entries(byCompliance).map(([key, trades]) => ({
+  const complianceData = Object.entries(byCompliance).map(([key, g]) => ({
     name: key,
-    avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
-    winRate: (trades.filter(t => t.isWin).length / trades.length) * 100,
-    count: trades.length,
+    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
+    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
+    count: g.length,
   }));
 
   const byEmotion = groupBy(trades.filter(t => t.emotionalState), t => t.emotionalState!);
-  const emotionData = Object.entries(byEmotion).map(([key, trades]) => ({
+  const emotionData = Object.entries(byEmotion).map(([key, g]) => ({
     name: key,
-    avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
-    totalPnl: trades.reduce((s, t) => s + t.netPnl, 0),
-    winRate: (trades.filter(t => t.isWin).length / trades.length) * 100,
-    count: trades.length,
-  }));
-
-  const withIntervention = trades.filter(t => t.manualIntervention && t.manualIntervention !== 'None, EA managing');
-  const interventionCost = withIntervention.reduce((s, t) => s + t.netPnl, 0);
-  const interventionByType = groupBy(withIntervention, t => t.manualIntervention!);
-
-  const adxGroups = [
-    { label: 'ADX > 35', trades: trades.filter(t => t.adxValue > 35) },
-    { label: 'ADX 25-35', trades: trades.filter(t => t.adxValue >= 25 && t.adxValue <= 35) },
-    { label: 'ADX < 25', trades: trades.filter(t => t.adxValue < 25) },
-  ].filter(g => g.trades.length > 0);
-
-  const adxData = adxGroups.map(g => ({
-    name: g.label,
-    winRate: (g.trades.filter(t => t.isWin).length / g.trades.length) * 100,
-    avgPnl: g.trades.reduce((s, t) => s + t.netPnl, 0) / g.trades.length,
-    count: g.trades.length,
+    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
+    totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
+    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
+    count: g.length,
   }));
 
   const bySymbol = groupBy(trades, t => t.symbol);
-  const instrumentData = Object.entries(bySymbol).map(([symbol, trades]) => ({
+  const instrumentData = Object.entries(bySymbol).map(([symbol, g]) => ({
     symbol,
-    totalPnl: trades.reduce((s, t) => s + t.netPnl, 0),
-    winRate: (trades.filter(t => t.isWin).length / trades.length) * 100,
-    count: trades.length,
-    avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
+    totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
+    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
+    count: g.length,
+    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
   })).sort((a, b) => b.totalPnl - a.totalPnl);
 
-  const byAdxState = groupBy(trades, t => t.adxState);
-  const adxStateData = Object.entries(byAdxState).map(([state, trades]) => ({
-    name: state,
-    winRate: (trades.filter(t => t.isWin).length / trades.length) * 100,
-    count: trades.length,
-    avgPnl: trades.reduce((s, t) => s + t.netPnl, 0) / trades.length,
-  }));
-
-  const insights = generateInsights(trades, complianceData, emotionData, interventionCost, withIntervention, adxData);
+  const adxStateData = getPerformanceByAdxState(trades);
+  const ma50Data = getPerformanceByMA50(trades);
+  const momentumData = getPerformanceByMomentum(trades);
+  const interventions = getInterventionCosts(trades);
+  const emotionalMatrix = getEmotionalPerformanceMatrix(trades);
+  const consistency = getMonthlyConsistencyScore(trades);
+  const maeMfe = computeMaeMfe(trades);
+  const rrData = computeRrData(trades);
 
   return (
     <div className="space-y-6">
@@ -135,6 +131,222 @@ function Patterns() {
             ))}
           </div>
         </div>
+      )}
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <ChartCard title="Monthly Consistency">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-primary" />
+            <div>
+              <div className={`text-3xl font-data font-bold ${consistency.score >= 80 ? 'text-success' : consistency.score >= 50 ? 'text-primary' : 'text-destructive'}`}>
+                {consistency.score.toFixed(0)}%
+              </div>
+              <div className="text-xs text-muted-foreground">{consistency.compliantMonths}/{consistency.totalMonths} months at 100% compliance</div>
+            </div>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="MAE Analysis (SL Placement)">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Avg MAE Winners</span>
+              <span className="font-data text-sm text-success">{maeMfe.avgMaeWinners.toFixed(3)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Avg MAE Losers</span>
+              <span className="font-data text-sm text-destructive">{maeMfe.avgMaeLosers.toFixed(3)}%</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              {maeMfe.avgMaeLosers <= maeMfe.avgMaeWinners * 1.3
+                ? '✅ SL appears correctly placed'
+                : '⚠️ SL may be too wide on losers'}
+            </div>
+          </div>
+        </ChartCard>
+
+        <ChartCard title="MFE Analysis (Profit Captured)">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">Avg MFE Winners</span>
+              <span className="font-data text-sm text-success">{maeMfe.avgMfeWinners.toFixed(3)}%</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">MFE Captured</span>
+              <span className={`font-data text-sm font-semibold ${maeMfe.avgMfeCapturedPct >= 70 ? 'text-success' : 'text-primary'}`}>
+                {maeMfe.avgMfeCapturedPct.toFixed(0)}%
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              {maeMfe.avgMfeCapturedPct >= 80
+                ? '✅ Good profit capture'
+                : `⚠️ Leaving ${(100 - maeMfe.avgMfeCapturedPct).toFixed(0)}% on the table`}
+            </div>
+          </div>
+        </ChartCard>
+      </div>
+
+      {rrData.length > 0 && (
+        <ChartCard title="RR Real vs Theoretical">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" />
+                <XAxis type="number" dataKey="theoreticalRR" name="Theoretical RR" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} label={{ value: 'Theoretical RR', position: 'bottom', offset: -5, style: { fontSize: 10, fill: '#475569' } }} />
+                <YAxis type="number" dataKey="actualRR" name="Actual RR" tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} label={{ value: 'Actual RR', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#475569' } }} />
+                <ZAxis range={[40, 40]} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }}
+                  formatter={(value: number, name: string) => [value.toFixed(2), name]}
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.symbol ?? ''}
+                />
+                <Scatter data={rrData.filter(r => r.isWin)} fill="#34d399" name="Winners" />
+                <Scatter data={rrData.filter(r => !r.isWin)} fill="#f87171" name="Losers" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+            <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Winners</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-destructive mr-1" />Losers</span>
+            <span className="ml-auto">Points above diagonal = captured more than expected</span>
+          </div>
+        </ChartCard>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {adxStateData.length > 0 && (
+          <ChartCard title="Performance by ADX State">
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={adxStateData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
+                  <Bar dataKey="winRate" radius={[3, 3, 0, 0]} fill="#c8a951" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <StatSummary data={adxStateData} />
+          </ChartCard>
+        )}
+
+        {ma50Data.length > 0 && (
+          <ChartCard title="Performance by MA50 Distance">
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ma50Data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
+                  <Bar dataKey="winRate" radius={[3, 3, 0, 0]} fill="#60a5fa" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <StatSummary data={ma50Data} />
+          </ChartCard>
+        )}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {momentumData.length > 0 && (
+          <ChartCard title="Performance by Momentum Alignment">
+            <div className="grid grid-cols-2 gap-4">
+              {momentumData.map(d => (
+                <div key={d.name} className="p-4 rounded-md bg-secondary border border-border text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{d.name}</div>
+                  <div className={`text-2xl font-data font-bold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>
+                    {d.winRate.toFixed(0)}%
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">{d.count} trades</div>
+                  <div className={`text-sm font-data font-semibold mt-1 ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    Avg {formatCurrency(d.avgPnl)}
+                  </div>
+                  <div className={`text-xs font-data ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    Total: €{d.totalPnl.toFixed(0)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        )}
+
+        <ChartCard title="Cost of Manual Interventions">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className={`w-5 h-5 ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`} />
+              <div>
+                <div className={`text-2xl font-data font-bold ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`}>
+                  €{interventions.total.toFixed(0)}
+                </div>
+                <div className="text-xs text-muted-foreground">Total from {interventions.totalCount} interventions</div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {interventions.byType.map(it => (
+                <div key={it.type} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+                  <span className="text-muted-foreground">{it.type}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">{it.count} trades</span>
+                    <span className={`font-data font-semibold ${it.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      €{it.totalPnl.toFixed(0)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {interventions.byType.length === 0 && (
+                <div className="text-center py-4 text-xs text-muted-foreground">No interventions recorded</div>
+              )}
+            </div>
+          </div>
+        </ChartCard>
+      </div>
+
+      {emotionalMatrix.length > 0 && (
+        <ChartCard title="Emotional × Compliance Matrix (Avg P&L)">
+          <div className="overflow-x-auto">
+            {(() => {
+              const emotions = [...new Set(emotionalMatrix.map(c => c.emotion))];
+              const compliances = [...new Set(emotionalMatrix.map(c => c.compliance))];
+              const lookup = (e: string, c: string) => emotionalMatrix.find(cell => cell.emotion === e && cell.compliance === c);
+              return (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Emotion \ Compliance</th>
+                      {compliances.map(c => (
+                        <th key={c} className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {emotions.map(e => (
+                      <tr key={e} className="border-b border-border/50">
+                        <td className="py-2.5 px-3 font-medium text-sm">{e}</td>
+                        {compliances.map(c => {
+                          const cell = lookup(e, c);
+                          if (!cell) return <td key={c} className="py-2.5 px-3 text-center text-xs text-muted-foreground">—</td>;
+                          const intensity = Math.min(Math.abs(cell.avgPnl) / 50, 1);
+                          const bg = cell.avgPnl >= 0
+                            ? `rgba(52, 211, 153, ${intensity * 0.3})`
+                            : `rgba(248, 113, 113, ${intensity * 0.3})`;
+                          return (
+                            <td key={c} className="py-2.5 px-3 text-center" style={{ backgroundColor: bg }}>
+                              <div className={`font-data font-semibold text-sm ${cell.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                €{cell.avgPnl.toFixed(0)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{cell.count} trades</div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
+          </div>
+        </ChartCard>
       )}
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -180,58 +392,9 @@ function Patterns() {
             </ResponsiveContainer>
           </div>
         </ChartCard>
-
-        <ChartCard title="Cost of Manual Interventions">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className={`w-5 h-5 ${interventionCost < 0 ? 'text-destructive' : 'text-success'}`} />
-              <div>
-                <div className={`text-2xl font-data font-bold ${interventionCost < 0 ? 'text-destructive' : 'text-success'}`}>
-                  {formatCurrency(interventionCost)}
-                </div>
-                <div className="text-xs text-muted-foreground">Total cost of {withIntervention.length} interventions</div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {Object.entries(interventionByType).map(([type, trades]) => (
-                <div key={type} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
-                  <span className="text-muted-foreground">{type}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{trades.length} trades</span>
-                    <span className={`font-data font-semibold ${trades.reduce((s, t) => s + t.netPnl, 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      {formatCurrency(trades.reduce((s, t) => s + t.netPnl, 0))}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ChartCard>
-
-        <ChartCard title="Win Rate by ADX Level">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={adxData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
-                <Bar dataKey="winRate" radius={[3, 3, 0, 0]} fill="#c8a951" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {adxData.map(d => (
-              <div key={d.name} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{d.name}</span>: Avg {formatCurrency(d.avgPnl)} ({d.count} trades)
-              </div>
-            ))}
-          </div>
-        </ChartCard>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-        <h2 className="font-display text-sm font-semibold text-foreground mb-4">Instrument Performance</h2>
+      <ChartCard title="Instrument Performance">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -262,20 +425,7 @@ function Patterns() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-        <h2 className="font-display text-sm font-semibold text-foreground mb-4">Win Rate by ADX State</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {adxStateData.map(d => (
-            <div key={d.name} className="p-3 rounded-md bg-secondary border border-border text-center">
-              <div className="text-xs text-muted-foreground mb-1">{d.name}</div>
-              <div className={`text-xl font-data font-bold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{d.winRate.toFixed(0)}%</div>
-              <div className="text-xs text-muted-foreground mt-1">{d.count} trades • Avg {formatCurrency(d.avgPnl)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </ChartCard>
     </div>
   );
 }
@@ -289,71 +439,14 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-interface Insight {
-  text: string;
-  type: 'positive' | 'warning' | 'negative';
-  impact: number;
-}
-
-function generateInsights(
-  trades: Trade[],
-  complianceData: { name: string; avgPnl: number; winRate: number; count: number }[],
-  emotionData: { name: string; avgPnl: number; totalPnl: number; winRate: number; count: number }[],
-  interventionCost: number,
-  withIntervention: Trade[],
-  adxData: { name: string; winRate: number; avgPnl: number; count: number }[],
-): Insight[] {
-  const insights: Insight[] = [];
-  const MIN_TRADES = 3;
-
-  const full = complianceData.find(c => c.name === '100%');
-  const partial = complianceData.filter(c => c.name !== '100%');
-  if (full && full.count >= MIN_TRADES && partial.length > 0) {
-    const partialAvg = partial.reduce((s, c) => s + c.avgPnl * c.count, 0) / partial.reduce((s, c) => s + c.count, 0);
-    if (full.avgPnl > partialAvg) {
-      const diff = ((full.avgPnl - partialAvg) / Math.abs(partialAvg) * 100);
-      insights.push({
-        text: `You are ${Math.abs(diff).toFixed(0)}% more profitable when you follow the system exactly. Full compliance win rate: ${full.winRate.toFixed(0)}%.`,
-        type: 'positive',
-        impact: Math.abs(diff),
-      });
-    }
-  }
-
-  const anxious = emotionData.find(e => e.name === 'Anxious');
-  const calm = emotionData.find(e => e.name === 'Calm');
-  if (anxious && anxious.count >= MIN_TRADES && anxious.totalPnl < 0) {
-    insights.push({
-      text: `Trading while anxious has cost you ${formatCurrency(Math.abs(anxious.totalPnl)).replace('+', '')} in realized losses across ${anxious.count} trades.`,
-      type: 'negative',
-      impact: Math.abs(anxious.totalPnl),
-    });
-  }
-  if (calm && calm.count >= MIN_TRADES) {
-    insights.push({
-      text: `When calm, your win rate is ${calm.winRate.toFixed(0)}% with an average P&L of ${formatCurrency(calm.avgPnl)} per trade.`,
-      type: 'positive',
-      impact: calm.avgPnl,
-    });
-  }
-
-  if (withIntervention.length >= 2) {
-    insights.push({
-      text: `You have intervened manually in ${withIntervention.length} trades, resulting in a net ${formatCurrency(interventionCost)}.`,
-      type: interventionCost < 0 ? 'negative' : 'warning',
-      impact: Math.abs(interventionCost),
-    });
-  }
-
-  const highAdx = adxData.find(a => a.name === 'ADX > 35');
-  const lowAdx = adxData.find(a => a.name === 'ADX < 25');
-  if (highAdx && lowAdx && highAdx.count >= MIN_TRADES && lowAdx.count >= MIN_TRADES) {
-    insights.push({
-      text: `Your win rate with ADX > 35 is ${highAdx.winRate.toFixed(0)}% vs ${lowAdx.winRate.toFixed(0)}% with ADX < 25. Strong trends produce better results.`,
-      type: 'positive',
-      impact: highAdx.winRate - lowAdx.winRate,
-    });
-  }
-
-  return insights.sort((a, b) => b.impact - a.impact);
+function StatSummary({ data }: { data: GroupStat[] }) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-3">
+      {data.map(d => (
+        <div key={d.name} className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{d.name}</span>: {d.winRate.toFixed(0)}% WR • Avg {formatCurrency(d.avgPnl)} • €{d.totalPnl.toFixed(0)} total ({d.count})
+        </div>
+      ))}
+    </div>
+  );
 }
