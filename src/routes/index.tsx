@@ -105,6 +105,10 @@ function Dashboard() {
         <KpiCard icon={<Timer className="w-4 h-4 text-destructive" />} label="Duración Media (L)" value={`${kpis.avgDurationLosers.toFixed(1)}h`} />
       </div>
 
+
+      {/* Advanced Metrics */}
+      <AdvancedMetricsSection m={advMetrics} />
+
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
