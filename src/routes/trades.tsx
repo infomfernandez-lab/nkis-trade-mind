@@ -2,7 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { formatCurrency, formatDate, getTradeColorStrip, type Trade } from '@/lib/trade-utils';
+import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
+import { BrokerSelector } from '@/components/BrokerSelector';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -16,6 +17,7 @@ export const Route = createFileRoute('/trades')({
 
 function TradeLog() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [broker, setBroker] = useState<BrokerFilter>('all');
   const { data: closedTrades, isLoading, error } = useClosedTrades();
 
   if (isLoading) {
@@ -35,9 +37,10 @@ function TradeLog() {
     );
   }
 
-  const trades = [...(closedTrades ?? [])].reverse();
+  const filtered = filterByBroker(closedTrades ?? [], broker);
+  const trades = [...filtered].reverse();
 
-  if (trades.length === 0) {
+  if ((closedTrades ?? []).length === 0) {
     return (
       <div className="space-y-6">
         <div>
@@ -54,9 +57,12 @@ function TradeLog() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades</h1>
-        <p className="text-sm text-muted-foreground mt-1">{trades.length} trades cerrados — expande para ver el detalle</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades</h1>
+          <p className="text-sm text-muted-foreground mt-1">{trades.length} trades cerrados — expande para ver el detalle</p>
+        </div>
+        <BrokerSelector value={broker} onChange={setBroker} />
       </div>
 
       <div className="space-y-3">
@@ -68,6 +74,11 @@ function TradeLog() {
             onToggle={() => setExpandedId(expandedId === trade.id ? null : trade.id)}
           />
         ))}
+        {trades.length === 0 && (
+          <div className="rounded-lg border border-border bg-card p-12 text-center">
+            <p className="text-muted-foreground text-sm">No hay trades de {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}.</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -86,6 +97,7 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
           </div>
           <div className="font-semibold text-sm">{trade.symbol}</div>
           <div className="text-xs text-muted-foreground font-data">{formatDate(trade.entryDate)}</div>
+          <div className="text-xs text-muted-foreground capitalize">{trade.broker}</div>
         </div>
         <div className="flex items-center gap-4">
           <div className={`font-data font-bold text-sm ${trade.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
@@ -101,6 +113,7 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
           <Section title="Datos del Trade">
             <Grid>
               <Field label="Ticket" value={`#${trade.ticket}`} />
+              <Field label="Broker" value={trade.broker} />
               <Field label="Precio Entrada" value={String(trade.entryPrice)} mono />
               <Field label="Precio Salida" value={String(trade.exitPrice)} mono />
               <Field label="SL" value={String(trade.slPrice)} mono />

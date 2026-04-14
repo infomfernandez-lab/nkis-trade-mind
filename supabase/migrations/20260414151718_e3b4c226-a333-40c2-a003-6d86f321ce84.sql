@@ -1,0 +1,1 @@
+ALTER TABLE public.trades ADD COLUMN broker text NOT NULL DEFAULT 'darwinex';

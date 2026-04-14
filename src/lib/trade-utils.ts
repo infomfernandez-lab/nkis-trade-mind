@@ -5,6 +5,8 @@ export type TradeRow = Tables<'trades'>;
 export type UserSettingsRow = Tables<'user_settings'>;
 export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
+export type BrokerFilter = 'all' | 'darwinex' | 'fxpro';
+
 // Legacy Trade interface for compatibility with UI components
 export interface Trade {
   id: string;
@@ -48,6 +50,7 @@ export interface Trade {
   postTradeNotes: string | null;
   status: 'open' | 'closed';
   isWin: boolean;
+  broker: string;
 }
 
 /** Convert a Supabase trade row to the UI Trade shape */
@@ -94,7 +97,14 @@ export function rowToTrade(row: TradeRow): Trade {
     postTradeNotes: row.post_trade_notes,
     status: row.is_open ? 'open' : 'closed',
     isWin: row.is_win ?? false,
+    broker: (row as any).broker ?? 'darwinex',
   };
+}
+
+/** Filter trades by broker */
+export function filterByBroker(trades: Trade[], broker: BrokerFilter): Trade[] {
+  if (broker === 'all') return trades;
+  return trades.filter(t => t.broker === broker);
 }
 
 export interface EquityPoint {
