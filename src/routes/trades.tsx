@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
 import { BrokerSelector } from '@/components/BrokerSelector';
+import { TradeJournal } from '@/components/TradeJournal';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
