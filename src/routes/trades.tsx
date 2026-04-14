@@ -87,6 +87,7 @@ function TradeLog() {
 }
 
 function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: boolean; onToggle: () => void }) {
+  const queryClient = useQueryClient();
   const strip = getTradeColorStrip(trade);
 
   return (
