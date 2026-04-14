@@ -23,7 +23,7 @@ export function BrokerSelector({
           onClick={() => onChange(opt.value)}
           className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
             value === opt.value
-              ? 'bg-card text-foreground shadow-sm'
+              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
           } ${compact ? 'px-2 py-0.5' : ''}`}
         >
