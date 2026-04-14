@@ -16,6 +16,30 @@ export interface DashboardKpis {
   avgDurationLosers: number;
 }
 
+export interface AdvancedMetrics {
+  // Row 1 — Core
+  expectancy: number;
+  payoffRatio: number;
+  recoveryFactor: number;
+  ulcerIndex: number;
+  // Row 2 — Risk
+  avgMaeWinnersEur: number;
+  avgMaeLosersEur: number;
+  avgMfeWinnersEur: number;
+  avgPnlWinnersEur: number;
+  avgRrReal: number;
+  avgRrTheoretical: number;
+  interventionCost: number;
+  // Row 3 — Consistency
+  bestMonth: number;
+  bestMonthLabel: string;
+  worstMonth: number;
+  worstMonthLabel: string;
+  positiveMonthsPct: number;
+  maxConsecutiveWins: number;
+  maxConsecutiveLosses: number;
+}
+
 export function computeDashboardKpis(closed: Trade[], startingBalance: number): DashboardKpis {
   const wins = closed.filter(t => t.isWin);
   const losses = closed.filter(t => !t.isWin);
