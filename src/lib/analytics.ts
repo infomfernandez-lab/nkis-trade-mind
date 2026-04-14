@@ -1,0 +1,348 @@
+import type { Trade } from './trade-utils';
+
+const MIN_TRADES = 3;
+
+/* ── Dashboard KPIs ── */
+
+export interface DashboardKpis {
+  expectancy: number;
+  recoveryFactor: number;
+  profitFactor: number;
+  maxConsecutiveWins: number;
+  maxConsecutiveLosses: number;
+  currentDrawdown: number;
+  currentDrawdownPct: number;
+  avgDurationWinners: number;
+  avgDurationLosers: number;
+}
+
+export function computeDashboardKpis(closed: Trade[], startingBalance: number): DashboardKpis {
+  const wins = closed.filter(t => t.isWin);
+  const losses = closed.filter(t => !t.isWin);
+  const winRate = closed.length > 0 ? wins.length / closed.length : 0;
+  const lossRate = 1 - winRate;
+  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0;
+  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + t.netPnl, 0) / losses.length) : 0;
+  const expectancy = (winRate * avgWin) - (lossRate * avgLoss);
+
+  const grossProfit = wins.reduce((s, t) => s + t.netPnl, 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.netPnl, 0));
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
+  const totalPnl = grossProfit - grossLoss;
+
+  // Max drawdown & current drawdown
+  let peak = startingBalance;
+  let maxDD = 0;
+  let equity = startingBalance;
+  for (const t of closed) {
+    equity += t.netPnl;
+    if (equity > peak) peak = equity;
+    const dd = peak - equity;
+    if (dd > maxDD) maxDD = dd;
+  }
+  const currentDrawdown = peak - equity;
+  const currentDrawdownPct = peak > 0 ? (currentDrawdown / peak) * 100 : 0;
+  const recoveryFactor = maxDD > 0 ? totalPnl / maxDD : totalPnl > 0 ? Infinity : 0;
+
+  // Max consecutive wins/losses
+  let maxW = 0, maxL = 0, cw = 0, cl = 0;
+  for (const t of closed) {
+    if (t.isWin) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
+    else { cl++; cw = 0; if (cl > maxL) maxL = cl; }
+  }
+
+  const avgDurationWinners = wins.length > 0 ? wins.reduce((s, t) => s + t.durationHours, 0) / wins.length : 0;
+  const avgDurationLosers = losses.length > 0 ? losses.reduce((s, t) => s + t.durationHours, 0) / losses.length : 0;
+
+  return {
+    expectancy,
+    recoveryFactor,
+    profitFactor,
+    maxConsecutiveWins: maxW,
+    maxConsecutiveLosses: maxL,
+    currentDrawdown,
+    currentDrawdownPct,
+    avgDurationWinners,
+    avgDurationLosers,
+  };
+}
+
+/* ── Pattern Analytics ── */
+
+function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
+  const result: Record<string, T[]> = {};
+  for (const item of arr) {
+    const key = fn(item);
+    if (!result[key]) result[key] = [];
+    result[key].push(item);
+  }
+  return result;
+}
+
+export interface GroupStat {
+  name: string;
+  winRate: number;
+  avgPnl: number;
+  totalPnl: number;
+  count: number;
+}
+
+function toGroupStat(name: string, trades: Trade[]): GroupStat {
+  return {
+    name,
+    winRate: trades.length > 0 ? (trades.filter(t => t.isWin).length / trades.length) * 100 : 0,
+    avgPnl: trades.length > 0 ? trades.reduce((s, t) => s + t.netPnl, 0) / trades.length : 0,
+    totalPnl: trades.reduce((s, t) => s + t.netPnl, 0),
+    count: trades.length,
+  };
+}
+
+export function getPerformanceByAdxState(trades: Trade[]): GroupStat[] {
+  const groups = groupBy(trades.filter(t => t.adxState), t => t.adxState);
+  return Object.entries(groups)
+    .filter(([, g]) => g.length >= MIN_TRADES)
+    .map(([name, g]) => toGroupStat(name, g));
+}
+
+export function getPerformanceByMA50(trades: Trade[]): GroupStat[] {
+  const groups = groupBy(trades.filter(t => t.distanceToMA50Label), t => t.distanceToMA50Label);
+  return Object.entries(groups)
+    .filter(([, g]) => g.length >= MIN_TRADES)
+    .map(([name, g]) => toGroupStat(name, g));
+}
+
+export function getPerformanceByMomentum(trades: Trade[]): GroupStat[] {
+  const aligned = trades.filter(t => t.momentumAligned);
+  const notAligned = trades.filter(t => !t.momentumAligned);
+  const result: GroupStat[] = [];
+  if (aligned.length >= MIN_TRADES) result.push(toGroupStat('Aligned', aligned));
+  if (notAligned.length >= MIN_TRADES) result.push(toGroupStat('Not Aligned', notAligned));
+  return result;
+}
+
+export interface InterventionStat {
+  type: string;
+  count: number;
+  totalPnl: number;
+}
+
+export function getInterventionCosts(trades: Trade[]): { total: number; byType: InterventionStat[]; totalCount: number } {
+  const intervened = trades.filter(t => t.manualIntervention && t.manualIntervention !== 'None, EA managing');
+  const groups = groupBy(intervened, t => t.manualIntervention!);
+  return {
+    total: intervened.reduce((s, t) => s + t.netPnl, 0),
+    totalCount: intervened.length,
+    byType: Object.entries(groups).map(([type, g]) => ({
+      type,
+      count: g.length,
+      totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
+    })),
+  };
+}
+
+export interface HeatmapCell {
+  emotion: string;
+  compliance: string;
+  avgPnl: number;
+  count: number;
+}
+
+export function getEmotionalPerformanceMatrix(trades: Trade[]): HeatmapCell[] {
+  const filtered = trades.filter(t => t.emotionalState && t.systemCompliance);
+  const groups = groupBy(filtered, t => `${t.emotionalState}|${t.systemCompliance}`);
+  return Object.entries(groups)
+    .filter(([, g]) => g.length >= 2)
+    .map(([key, g]) => {
+      const [emotion, compliance] = key.split('|');
+      return {
+        emotion,
+        compliance,
+        avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
+        count: g.length,
+      };
+    });
+}
+
+export function getMonthlyConsistencyScore(trades: Trade[]): { score: number; compliantMonths: number; totalMonths: number } {
+  const byMonth = groupBy(trades.filter(t => t.systemCompliance), t => {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  let compliant = 0;
+  const months = Object.values(byMonth);
+  for (const monthTrades of months) {
+    if (monthTrades.every(t => t.systemCompliance === '100%')) compliant++;
+  }
+  return {
+    score: months.length > 0 ? (compliant / months.length) * 100 : 0,
+    compliantMonths: compliant,
+    totalMonths: months.length,
+  };
+}
+
+/* ── MAE / MFE (approximated from SL/TP/entry/exit) ── */
+
+export interface MaeMfeStats {
+  avgMaeWinners: number;
+  avgMaeLosers: number;
+  avgMfeWinners: number;
+  avgMfeLosers: number;
+  avgMfeCapturedPct: number;
+}
+
+export function computeMaeMfe(trades: Trade[]): MaeMfeStats {
+  const wins = trades.filter(t => t.isWin && t.slPrice > 0 && t.tpPrice > 0 && t.exitPrice != null);
+  const losses = trades.filter(t => !t.isWin && t.slPrice > 0 && t.exitPrice != null);
+
+  // MAE = distance from entry to SL (in currency terms via netPnl proxy)
+  // We approximate MAE as |entry - SL| * lotSize * pointValue, but since we don't have pointValue,
+  // we use the ratio approach: MAE ≈ |netPnl| * (|entry-SL| / |entry-exit|) for losers
+  // Simpler: use raw price distances normalised by entry
+  const maeWin = wins.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100);
+  const maeLoss = losses.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100);
+
+  const mfeWin = wins.map(t => Math.abs(t.tpPrice - t.entryPrice) / t.entryPrice * 100);
+  const mfeLoss = losses.map(t => t.tpPrice > 0 ? Math.abs(t.tpPrice - t.entryPrice) / t.entryPrice * 100 : 0);
+
+  // MFE captured: how much of the TP distance was actually captured
+  const mfeCaptured = wins.map(t => {
+    const tpDist = Math.abs(t.tpPrice - t.entryPrice);
+    const actualDist = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
+    return tpDist > 0 ? (actualDist / tpDist) * 100 : 100;
+  });
+
+  const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+  return {
+    avgMaeWinners: avg(maeWin),
+    avgMaeLosers: avg(maeLoss),
+    avgMfeWinners: avg(mfeWin),
+    avgMfeLosers: avg(mfeLoss),
+    avgMfeCapturedPct: avg(mfeCaptured),
+  };
+}
+
+/* ── RR Analysis ── */
+export interface RrPoint {
+  ticket: number;
+  symbol: string;
+  theoreticalRR: number;
+  actualRR: number;
+  isWin: boolean;
+}
+
+export function computeRrData(trades: Trade[]): RrPoint[] {
+  return trades
+    .filter(t => t.slPrice > 0 && t.tpPrice > 0 && t.exitPrice != null)
+    .map(t => {
+      const risk = Math.abs(t.entryPrice - t.slPrice);
+      const theoreticalReward = Math.abs(t.tpPrice - t.entryPrice);
+      const actualReward = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
+      const theoreticalRR = risk > 0 ? theoreticalReward / risk : 0;
+      const actualRR = risk > 0 ? (t.isWin ? actualReward / risk : -(actualReward / risk || 1)) : 0;
+      return { ticket: t.ticket, symbol: t.symbol, theoreticalRR, actualRR, isWin: t.isWin };
+    });
+}
+
+/* ── Enhanced Insights ── */
+
+export interface Insight {
+  text: string;
+  type: 'positive' | 'warning' | 'negative';
+  impact: number;
+}
+
+export function generateEnhancedInsights(trades: Trade[], startingBalance: number): Insight[] {
+  const insights: Insight[] = [];
+  if (trades.length < MIN_TRADES) return insights;
+
+  const wins = trades.filter(t => t.isWin);
+  const losses = trades.filter(t => !t.isWin);
+
+  // ADX state comparison
+  const adxStates = getPerformanceByAdxState(trades);
+  const accel = adxStates.find(s => s.name === 'ACELERANDO');
+  const exhaust = adxStates.find(s => s.name === 'AGOTANDO');
+  if (accel && exhaust) {
+    insights.push({
+      text: `Your win rate with ADX ACELERANDO is ${accel.winRate.toFixed(0)}% vs ${exhaust.winRate.toFixed(0)}% with AGOTANDO. Financial impact: ${accel.avgPnl >= 0 ? '+' : ''}€${accel.totalPnl.toFixed(0)} vs €${exhaust.totalPnl.toFixed(0)}.`,
+      type: accel.winRate > exhaust.winRate ? 'positive' : 'warning',
+      impact: Math.abs(accel.totalPnl - exhaust.totalPnl),
+    });
+  }
+
+  // Emotional cost
+  const byEmotion = groupBy(trades.filter(t => t.emotionalState), t => t.emotionalState!);
+  const anxious = byEmotion['Anxious'];
+  if (anxious && anxious.length >= MIN_TRADES) {
+    const cost = anxious.reduce((s, t) => s + t.netPnl, 0);
+    if (cost < 0) {
+      insights.push({
+        text: `Trading while anxious has cost you €${Math.abs(cost).toFixed(0)} in realized losses across ${anxious.length} trades.`,
+        type: 'negative',
+        impact: Math.abs(cost),
+      });
+    }
+  }
+
+  // MFE capture
+  const maeMfe = computeMaeMfe(trades);
+  if (wins.length >= MIN_TRADES && maeMfe.avgMfeCapturedPct < 80) {
+    insights.push({
+      text: `You capture only ${maeMfe.avgMfeCapturedPct.toFixed(0)}% of MFE — consider adjusting TP placement to capture more of the move.`,
+      type: 'warning',
+      impact: 100 - maeMfe.avgMfeCapturedPct,
+    });
+  }
+
+  // MAE SL placement
+  if (losses.length >= MIN_TRADES && wins.length >= MIN_TRADES) {
+    const slCorrect = maeMfe.avgMaeLosers <= maeMfe.avgMaeWinners * 1.3;
+    insights.push({
+      text: `Your MAE on losing trades (${maeMfe.avgMaeLosers.toFixed(2)}%) ${slCorrect ? 'is consistent with winners — SL appears correctly placed' : `exceeds winners (${maeMfe.avgMaeWinners.toFixed(2)}%) — SL may be too wide on losers`}.`,
+      type: slCorrect ? 'positive' : 'warning',
+      impact: Math.abs(maeMfe.avgMaeLosers - maeMfe.avgMaeWinners) * 10,
+    });
+  }
+
+  // System compliance impact
+  const byCompliance = groupBy(trades.filter(t => t.systemCompliance), t => t.systemCompliance!);
+  const full = byCompliance['100%'];
+  const partial = Object.entries(byCompliance).filter(([k]) => k !== '100%').flatMap(([, g]) => g);
+  if (full && full.length >= MIN_TRADES && partial.length >= MIN_TRADES) {
+    const fullPnl = full.reduce((s, t) => s + t.netPnl, 0) / full.length;
+    const partialPnl = partial.reduce((s, t) => s + t.netPnl, 0) / partial.length;
+    if (fullPnl > partialPnl) {
+      const pctDiff = partialPnl !== 0 ? ((fullPnl - partialPnl) / Math.abs(partialPnl)) * 100 : 100;
+      insights.push({
+        text: `Following the system exactly improves P&L by ${pctDiff.toFixed(0)}% vs partial compliance (€${fullPnl.toFixed(0)} avg vs €${partialPnl.toFixed(0)} avg per trade).`,
+        type: 'positive',
+        impact: Math.abs(fullPnl - partialPnl) * full.length,
+      });
+    }
+  }
+
+  // Momentum alignment
+  const momentum = getPerformanceByMomentum(trades);
+  const aligned = momentum.find(m => m.name === 'Aligned');
+  const notAligned = momentum.find(m => m.name === 'Not Aligned');
+  if (aligned && notAligned) {
+    insights.push({
+      text: `Momentum-aligned trades win ${aligned.winRate.toFixed(0)}% vs ${notAligned.winRate.toFixed(0)}% when not aligned. Impact: €${aligned.totalPnl.toFixed(0)} vs €${notAligned.totalPnl.toFixed(0)}.`,
+      type: aligned.winRate > notAligned.winRate ? 'positive' : 'warning',
+      impact: Math.abs(aligned.totalPnl - notAligned.totalPnl),
+    });
+  }
+
+  // Intervention cost
+  const interventions = getInterventionCosts(trades);
+  if (interventions.totalCount >= 2) {
+    insights.push({
+      text: `Manual interventions across ${interventions.totalCount} trades resulted in €${interventions.total.toFixed(0)} net impact.`,
+      type: interventions.total < 0 ? 'negative' : 'warning',
+      impact: Math.abs(interventions.total),
+    });
+  }
+
+  return insights.sort((a, b) => b.impact - a.impact);
+}
