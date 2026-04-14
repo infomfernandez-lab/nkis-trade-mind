@@ -9,12 +9,12 @@ import { formatCurrency, computeStatsFromTrades } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
-  { to: '/' as const, label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/trades' as const, label: 'Trade Log', icon: BookOpen },
-  { to: '/patterns' as const, label: 'Patterns', icon: Brain },
+  { to: '/' as const, label: 'Panel', icon: LayoutDashboard },
+  { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
+  { to: '/patterns' as const, label: 'Patrones', icon: Brain },
   { to: '/manual' as const, label: 'Manual', icon: BookMarked },
-  { to: '/reports' as const, label: 'Reports', icon: FileText },
-  { to: '/settings' as const, label: 'Settings', icon: Settings },
+  { to: '/reports' as const, label: 'Informes', icon: FileText },
+  { to: '/settings' as const, label: 'Ajustes', icon: Settings },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +29,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-sidebar shrink-0">
         <div className="p-5 border-b border-border">
           <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
-            <span className="text-primary">NKIS</span> Trading
+            <span className="text-primary">CAP</span> Trading
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Intelligence Platform</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Sistema 1 — Trend Following</p>
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
           {navItems.map(item => {
@@ -64,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-border p-4">
             <div className="flex items-center justify-between mb-6">
-              <h1 className="font-display text-lg font-bold"><span className="text-primary">NKIS</span> Trading</h1>
+              <h1 className="font-display text-lg font-bold"><span className="text-primary">CAP</span> Trading</h1>
               <button onClick={() => setMobileOpen(false)} className="text-muted-foreground"><X className="w-5 h-5" /></button>
             </div>
             <nav className="space-y-1">
@@ -98,13 +98,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide flex-1">
-              <MetricPill label="Total P&L" value={formatCurrency(stats.totalPnl)} positive={stats.totalPnl >= 0} />
+              <MetricPill label="P&L Total" value={formatCurrency(stats.totalPnl)} positive={stats.totalPnl >= 0} />
               <MetricPill label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} positive={stats.winRate >= 50} />
               <MetricPill label="Profit Factor" value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)} positive={stats.profitFactor >= 1} />
-              <MetricPill label="Open" value={String(stats.openCount)} neutral />
+              <MetricPill label="Abiertas" value={String(stats.openCount)} neutral />
               {stats.totalTrades > 0 && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-xs shrink-0">
-                  <span className="text-muted-foreground">Streak</span>
+                  <span className="text-muted-foreground">Racha</span>
                   <span className={`font-data font-semibold ${stats.streakType === 'W' ? 'text-success' : 'text-destructive'}`}>
                     {stats.currentStreak}{stats.streakType}
                   </span>
@@ -142,7 +142,7 @@ function SignOutButton() {
       className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
     >
       <LogOut className="w-3.5 h-3.5" />
-      Sign Out
+      Cerrar Sesión
     </button>
   );
 }

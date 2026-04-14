@@ -18,8 +18,8 @@ export const Route = createFileRoute('/patterns')({
   component: Patterns,
   head: () => ({
     meta: [
-      { title: 'Pattern Intelligence — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Behavioral and performance pattern analysis.' },
+      { title: 'Inteligencia de Patrones — CAP Trading' },
+      { name: 'description', content: 'Análisis de patrones de comportamiento y rendimiento.' },
     ],
   }),
 });
@@ -42,7 +42,7 @@ function Patterns() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading patterns...</span>
+        <span className="ml-2 text-sm text-muted-foreground">Cargando patrones...</span>
       </div>
     );
   }
@@ -50,7 +50,7 @@ function Patterns() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">Failed to load data: {error.message}</p>
+        <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
       </div>
     );
   }
@@ -61,11 +61,11 @@ function Patterns() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Pattern Intelligence</h1>
-          <p className="text-sm text-muted-foreground mt-1">Not enough data yet</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
+          <p className="text-sm text-muted-foreground mt-1">Datos insuficientes aún</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground text-sm">Patterns will emerge once you have closed trades in the system.</p>
+          <p className="text-muted-foreground text-sm">Los patrones aparecerán cuando tengas trades cerrados en el sistema.</p>
         </div>
       </div>
     );
@@ -112,15 +112,15 @@ function Patterns() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Pattern Intelligence</h1>
-        <p className="text-sm text-muted-foreground mt-1">Behavioral and performance patterns from {trades.length} trades</p>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
+        <p className="text-sm text-muted-foreground mt-1">Patrones de comportamiento y rendimiento de {trades.length} trades</p>
       </div>
 
       {insights.length > 0 && (
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 lg:p-6 gold-glow">
           <div className="flex items-center gap-2 mb-4">
             <Zap className="w-4 h-4 text-primary" />
-            <h2 className="font-display text-sm font-semibold text-primary">Auto-Generated Insights</h2>
+            <h2 className="font-display text-sm font-semibold text-primary">Insights Automáticos</h2>
           </div>
           <div className="space-y-3">
             {insights.map((insight, i) => (
@@ -134,87 +134,87 @@ function Patterns() {
       )}
 
       <div className="grid lg:grid-cols-3 gap-4">
-        <ChartCard title="Monthly Consistency">
+        <ChartCard title="Consistencia Mensual">
           <div className="flex items-center gap-3">
             <Shield className="w-8 h-8 text-primary" />
             <div>
               <div className={`text-3xl font-data font-bold ${consistency.score >= 80 ? 'text-success' : consistency.score >= 50 ? 'text-primary' : 'text-destructive'}`}>
                 {consistency.score.toFixed(0)}%
               </div>
-              <div className="text-xs text-muted-foreground">{consistency.compliantMonths}/{consistency.totalMonths} months at 100% compliance</div>
+              <div className="text-xs text-muted-foreground">{consistency.compliantMonths}/{consistency.totalMonths} meses al 100% de cumplimiento</div>
             </div>
           </div>
         </ChartCard>
 
-        <ChartCard title="MAE Analysis (SL Placement)">
+        <ChartCard title="Análisis MAE (Colocación SL)">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Avg MAE Winners</span>
+              <span className="text-xs text-muted-foreground">MAE Medio Ganadores</span>
               <span className="font-data text-sm text-success">{maeMfe.avgMaeWinners.toFixed(3)}%</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Avg MAE Losers</span>
+              <span className="text-xs text-muted-foreground">MAE Medio Perdedores</span>
               <span className="font-data text-sm text-destructive">{maeMfe.avgMaeLosers.toFixed(3)}%</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
               {maeMfe.avgMaeLosers <= maeMfe.avgMaeWinners * 1.3
-                ? '✅ SL appears correctly placed'
-                : '⚠️ SL may be too wide on losers'}
+                ? '✅ El SL parece bien colocado'
+                : '⚠️ El SL puede ser demasiado amplio en perdedores'}
             </div>
           </div>
         </ChartCard>
 
-        <ChartCard title="MFE Analysis (Profit Captured)">
+        <ChartCard title="Análisis MFE (Beneficio Capturado)">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Avg MFE Winners</span>
+              <span className="text-xs text-muted-foreground">MFE Medio Ganadores</span>
               <span className="font-data text-sm text-success">{maeMfe.avgMfeWinners.toFixed(3)}%</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">MFE Captured</span>
+              <span className="text-xs text-muted-foreground">MFE Capturado</span>
               <span className={`font-data text-sm font-semibold ${maeMfe.avgMfeCapturedPct >= 70 ? 'text-success' : 'text-primary'}`}>
                 {maeMfe.avgMfeCapturedPct.toFixed(0)}%
               </span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
               {maeMfe.avgMfeCapturedPct >= 80
-                ? '✅ Good profit capture'
-                : `⚠️ Leaving ${(100 - maeMfe.avgMfeCapturedPct).toFixed(0)}% on the table`}
+                ? '✅ Buena captura de beneficio'
+                : `⚠️ Dejando ${(100 - maeMfe.avgMfeCapturedPct).toFixed(0)}% sobre la mesa`}
             </div>
           </div>
         </ChartCard>
       </div>
 
       {rrData.length > 0 && (
-        <ChartCard title="RR Real vs Theoretical">
+        <ChartCard title="RR Real vs Teórico">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" />
-                <XAxis type="number" dataKey="theoreticalRR" name="Theoretical RR" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} label={{ value: 'Theoretical RR', position: 'bottom', offset: -5, style: { fontSize: 10, fill: '#475569' } }} />
-                <YAxis type="number" dataKey="actualRR" name="Actual RR" tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} label={{ value: 'Actual RR', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#475569' } }} />
+                <XAxis type="number" dataKey="theoreticalRR" name="RR Teórico" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} label={{ value: 'RR Teórico', position: 'bottom', offset: -5, style: { fontSize: 10, fill: '#475569' } }} />
+                <YAxis type="number" dataKey="actualRR" name="RR Real" tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} label={{ value: 'RR Real', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#475569' } }} />
                 <ZAxis range={[40, 40]} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }}
                   formatter={(value: number, name: string) => [value.toFixed(2), name]}
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.symbol ?? ''}
                 />
-                <Scatter data={rrData.filter(r => r.isWin)} fill="#34d399" name="Winners" />
-                <Scatter data={rrData.filter(r => !r.isWin)} fill="#f87171" name="Losers" />
+                <Scatter data={rrData.filter(r => r.isWin)} fill="#34d399" name="Ganadores" />
+                <Scatter data={rrData.filter(r => !r.isWin)} fill="#f87171" name="Perdedores" />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-            <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Winners</span>
-            <span><span className="inline-block w-2 h-2 rounded-full bg-destructive mr-1" />Losers</span>
-            <span className="ml-auto">Points above diagonal = captured more than expected</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Ganadores</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-destructive mr-1" />Perdedores</span>
+            <span className="ml-auto">Puntos sobre la diagonal = capturó más de lo esperado</span>
           </div>
         </ChartCard>
       )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {adxStateData.length > 0 && (
-          <ChartCard title="Performance by ADX State">
+          <ChartCard title="Rendimiento por Estado ADX">
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={adxStateData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -231,7 +231,7 @@ function Patterns() {
         )}
 
         {ma50Data.length > 0 && (
-          <ChartCard title="Performance by MA50 Distance">
+          <ChartCard title="Rendimiento por Distancia MA50">
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={ma50Data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -250,17 +250,17 @@ function Patterns() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {momentumData.length > 0 && (
-          <ChartCard title="Performance by Momentum Alignment">
+          <ChartCard title="Rendimiento por Alineación de Momentum">
             <div className="grid grid-cols-2 gap-4">
               {momentumData.map(d => (
                 <div key={d.name} className="p-4 rounded-md bg-secondary border border-border text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{d.name}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{d.name === 'Aligned' ? 'Alineado' : 'No Alineado'}</div>
                   <div className={`text-2xl font-data font-bold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>
                     {d.winRate.toFixed(0)}%
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">{d.count} trades</div>
                   <div className={`text-sm font-data font-semibold mt-1 ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    Avg {formatCurrency(d.avgPnl)}
+                    Media {formatCurrency(d.avgPnl)}
                   </div>
                   <div className={`text-xs font-data ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
                     Total: €{d.totalPnl.toFixed(0)}
@@ -271,7 +271,7 @@ function Patterns() {
           </ChartCard>
         )}
 
-        <ChartCard title="Cost of Manual Interventions">
+        <ChartCard title="Coste de Intervenciones Manuales">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className={`w-5 h-5 ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`} />
@@ -279,7 +279,7 @@ function Patterns() {
                 <div className={`text-2xl font-data font-bold ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`}>
                   €{interventions.total.toFixed(0)}
                 </div>
-                <div className="text-xs text-muted-foreground">Total from {interventions.totalCount} interventions</div>
+                <div className="text-xs text-muted-foreground">Total de {interventions.totalCount} intervenciones</div>
               </div>
             </div>
             <div className="space-y-2">
@@ -295,7 +295,7 @@ function Patterns() {
                 </div>
               ))}
               {interventions.byType.length === 0 && (
-                <div className="text-center py-4 text-xs text-muted-foreground">No interventions recorded</div>
+                <div className="text-center py-4 text-xs text-muted-foreground">Sin intervenciones registradas</div>
               )}
             </div>
           </div>
@@ -303,7 +303,7 @@ function Patterns() {
       </div>
 
       {emotionalMatrix.length > 0 && (
-        <ChartCard title="Emotional × Compliance Matrix (Avg P&L)">
+        <ChartCard title="Matriz Emocional × Cumplimiento (P&L Medio)">
           <div className="overflow-x-auto">
             {(() => {
               const emotions = [...new Set(emotionalMatrix.map(c => c.emotion))];
@@ -313,7 +313,7 @@ function Patterns() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Emotion \ Compliance</th>
+                      <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Emoción \ Cumplimiento</th>
                       {compliances.map(c => (
                         <th key={c} className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">{c}</th>
                       ))}
@@ -350,14 +350,14 @@ function Patterns() {
       )}
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <ChartCard title="Performance by System Compliance">
+        <ChartCard title="Rendimiento por Cumplimiento del Sistema">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={complianceData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'Avg P&L']} />
+                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'P&L Medio']} />
                 <Bar dataKey="avgPnl" radius={[3, 3, 0, 0]}>
                   {complianceData.map((d, i) => (
                     <Cell key={i} fill={d.avgPnl >= 0 ? '#34d399' : '#f87171'} />
@@ -375,14 +375,14 @@ function Patterns() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Emotional State Analysis">
+        <ChartCard title="Análisis por Estado Emocional">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={emotionData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'Avg P&L']} />
+                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'P&L Medio']} />
                 <Bar dataKey="avgPnl" radius={[3, 3, 0, 0]}>
                   {emotionData.map((d, i) => (
                     <Cell key={i} fill={d.avgPnl >= 0 ? '#34d399' : '#f87171'} />
@@ -394,15 +394,15 @@ function Patterns() {
         </ChartCard>
       </div>
 
-      <ChartCard title="Instrument Performance">
+      <ChartCard title="Rendimiento por Instrumento">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Symbol</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Total P&L</th>
+                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Símbolo</th>
+                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">P&L Total</th>
                 <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Win Rate</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Avg P&L</th>
+                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">P&L Medio</th>
                 <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Trades</th>
               </tr>
             </thead>
@@ -444,7 +444,7 @@ function StatSummary({ data }: { data: GroupStat[] }) {
     <div className="mt-3 flex flex-wrap gap-3">
       {data.map(d => (
         <div key={d.name} className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{d.name}</span>: {d.winRate.toFixed(0)}% WR • Avg {formatCurrency(d.avgPnl)} • €{d.totalPnl.toFixed(0)} total ({d.count})
+          <span className="font-medium text-foreground">{d.name}</span>: {d.winRate.toFixed(0)}% WR • Media {formatCurrency(d.avgPnl)} • €{d.totalPnl.toFixed(0)} total ({d.count})
         </div>
       ))}
     </div>

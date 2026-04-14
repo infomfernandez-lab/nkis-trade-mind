@@ -8,8 +8,8 @@ export const Route = createFileRoute('/reports')({
   component: Reports,
   head: () => ({
     meta: [
-      { title: 'Reports — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Generate weekly, monthly, and individual trade reports.' },
+      { title: 'Informes — CAP Trading' },
+      { name: 'description', content: 'Genera informes semanales, mensuales e individuales de trades.' },
     ],
   }),
 });
@@ -22,7 +22,7 @@ function Reports() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading reports...</span>
+        <span className="ml-2 text-sm text-muted-foreground">Cargando informes...</span>
       </div>
     );
   }
@@ -30,7 +30,7 @@ function Reports() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">Failed to load data: {error.message}</p>
+        <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
       </div>
     );
   }
@@ -38,7 +38,6 @@ function Reports() {
   const trades = closedTrades ?? [];
   const stats = computeStatsFromTrades(trades, []);
 
-  // Last week trades (last 7 days)
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   const lastWeekTrades = trades.filter(t => t.exitDate && new Date(t.exitDate) >= oneWeekAgo);
@@ -46,7 +45,6 @@ function Reports() {
   const weekWins = lastWeekTrades.filter(t => t.isWin).length;
   const fullCompliance = lastWeekTrades.filter(t => t.systemCompliance === '100%').length;
 
-  // Current month
   const now = new Date();
   const monthTrades = trades.filter(t => {
     const d = new Date(t.exitDate ?? t.entryDate);
@@ -54,11 +52,13 @@ function Reports() {
   });
   const monthStats = computeStatsFromTrades(monthTrades, []);
 
+  const tabLabels: Record<string, string> = { weekly: 'Semanal', monthly: 'Mensual', trade: 'Por Trade' };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Reports</h1>
-        <p className="text-sm text-muted-foreground mt-1">Performance reports for review and analysis</p>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Informes</h1>
+        <p className="text-sm text-muted-foreground mt-1">Informes de rendimiento para revisión y análisis</p>
       </div>
 
       <div className="flex gap-1 p-1 rounded-lg bg-secondary w-fit">
@@ -66,11 +66,11 @@ function Reports() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors capitalize ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {tab}
+            {tabLabels[tab]}
           </button>
         ))}
       </div>
@@ -79,8 +79,8 @@ function Reports() {
         <div className="rounded-lg border border-border bg-card p-6 space-y-6 max-w-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-bold">Weekly Report</h2>
-              <p className="text-xs text-muted-foreground">Last 7 days</p>
+              <h2 className="font-display text-lg font-bold">Informe Semanal</h2>
+              <p className="text-xs text-muted-foreground">Últimos 7 días</p>
             </div>
             <Calendar className="w-5 h-5 text-primary" />
           </div>
@@ -89,12 +89,12 @@ function Reports() {
             <MiniStat label="Trades" value={String(lastWeekTrades.length)} />
             <MiniStat label="P&L" value={formatCurrency(weekPnl)} positive={weekPnl >= 0} />
             <MiniStat label="Win Rate" value={`${lastWeekTrades.length > 0 ? ((weekWins / lastWeekTrades.length) * 100).toFixed(0) : 0}%`} />
-            <MiniStat label="Compliance" value={`${lastWeekTrades.length > 0 ? ((fullCompliance / lastWeekTrades.length) * 100).toFixed(0) : 0}%`} />
+            <MiniStat label="Cumplimiento" value={`${lastWeekTrades.length > 0 ? ((fullCompliance / lastWeekTrades.length) * 100).toFixed(0) : 0}%`} />
           </div>
 
           {lastWeekTrades.length > 0 ? (
             <div>
-              <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Trades This Week</h3>
+              <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Trades de Esta Semana</h3>
               <div className="space-y-2">
                 {lastWeekTrades.map(t => (
                   <div key={t.id} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
@@ -108,14 +108,14 @@ function Reports() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">No trades closed this week.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No se cerraron trades esta semana.</p>
           )}
 
           <div>
-            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Next Week Outlook</h3>
+            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Perspectiva Próxima Semana</h3>
             <textarea
               className="w-full h-20 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Write your outlook for next week..."
+              placeholder="Escribe tu perspectiva para la próxima semana..."
             />
           </div>
         </div>
@@ -125,24 +125,24 @@ function Reports() {
         <div className="rounded-lg border border-border bg-card p-6 space-y-6 max-w-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-bold">Monthly Report</h2>
-              <p className="text-xs text-muted-foreground">{now.toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
+              <h2 className="font-display text-lg font-bold">Informe Mensual</h2>
+              <p className="text-xs text-muted-foreground">{now.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}</p>
             </div>
             <TrendingUp className="w-5 h-5 text-primary" />
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <MiniStat label="Total P&L" value={formatCurrency(monthStats.totalPnl)} positive={monthStats.totalPnl >= 0} />
+            <MiniStat label="P&L Total" value={formatCurrency(monthStats.totalPnl)} positive={monthStats.totalPnl >= 0} />
             <MiniStat label="Win Rate" value={`${monthStats.winRate.toFixed(1)}%`} />
             <MiniStat label="Profit Factor" value={monthStats.profitFactor === Infinity ? '∞' : monthStats.profitFactor.toFixed(2)} />
             <MiniStat label="Total Trades" value={String(monthStats.totalTrades)} />
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Self-Assessment</h3>
+            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Autoevaluación</h3>
             <textarea
               className="w-full h-24 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="How do you assess your performance this month?"
+              placeholder="¿Cómo evalúas tu rendimiento este mes?"
             />
           </div>
         </div>
@@ -150,10 +150,10 @@ function Reports() {
 
       {activeTab === 'trade' && (
         <div className="rounded-lg border border-border bg-card p-6 space-y-4 max-w-2xl">
-          <h2 className="font-display text-lg font-bold">Individual Trade Report</h2>
+          <h2 className="font-display text-lg font-bold">Informe Individual de Trade</h2>
           {trades.length > 0 ? (
             <>
-              <p className="text-sm text-muted-foreground">Select a trade from the Trade Log to generate a detailed report.</p>
+              <p className="text-sm text-muted-foreground">Selecciona un trade del Registro para generar un informe detallado.</p>
               <div className="space-y-2">
                 {[...trades].reverse().slice(0, 5).map(t => (
                   <div key={t.id} className="flex items-center justify-between p-3 rounded-md bg-secondary border border-border hover:border-primary/30 transition-colors cursor-pointer">
@@ -171,7 +171,7 @@ function Reports() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No trades available for reports yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Aún no hay trades disponibles para informes.</p>
           )}
         </div>
       )}
