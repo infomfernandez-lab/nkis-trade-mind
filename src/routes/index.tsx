@@ -10,8 +10,9 @@ import {
   formatCurrency, formatDate, computeStatsFromTrades,
   buildEquityCurve, buildMonthlyPnl, filterByBroker
 } from '@/lib/trade-utils';
-import { computeDashboardKpis } from '@/lib/analytics';
+import { computeDashboardKpis, computeAdvancedMetrics } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
+import { AdvancedMetricsSection } from '@/components/AdvancedMetrics';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
