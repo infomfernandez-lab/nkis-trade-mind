@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           adx_state: string | null
           adx_value: number | null
+          broker: string
           commission: number | null
           created_at: string
           direction: string
@@ -97,6 +98,7 @@ export type Database = {
         Insert: {
           adx_state?: string | null
           adx_value?: number | null
+          broker?: string
           commission?: number | null
           created_at?: string
           direction: string
@@ -143,6 +145,7 @@ export type Database = {
         Update: {
           adx_state?: string | null
           adx_value?: number | null
+          broker?: string
           commission?: number | null
           created_at?: string
           direction?: string
