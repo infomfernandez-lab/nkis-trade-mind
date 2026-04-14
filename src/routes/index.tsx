@@ -3,13 +3,14 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
 } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Target, Activity, Timer, ArrowDown } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import {
   formatCurrency, formatDate, computeStatsFromTrades,
   buildEquityCurve, buildMonthlyPnl
 } from '@/lib/trade-utils';
+import { computeDashboardKpis } from '@/lib/analytics';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -42,8 +43,9 @@ function Dashboard() {
     );
   }
 
-  const stats = computeStatsFromTrades(closedTrades, openTrades);
   const startingBalance = Number(settings?.balance ?? 10000);
+  const stats = computeStatsFromTrades(closedTrades, openTrades);
+  const kpis = computeDashboardKpis(closedTrades, startingBalance);
   const equityCurve = buildEquityCurve(closedTrades, startingBalance);
   const monthlyPnl = buildMonthlyPnl(closedTrades);
   const recentTrades = [...closedTrades].reverse().slice(0, 8);
@@ -72,12 +74,27 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground mt-1">Mission control — Sistema 1</p>
       </div>
 
-      {/* Summary cards */}
+      {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Trades" value={String(stats.totalTrades)} sub={`${stats.wins}W / ${stats.losses}L`} />
         <StatCard label="Avg Win" value={formatCurrency(wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0)} positive />
         <StatCard label="Avg Loss" value={formatCurrency(losses.length > 0 ? losses.reduce((s, t) => s + t.netPnl, 0) / losses.length : 0)} />
         <StatCard label="Best Trade" value={formatCurrency(closedTrades.length > 0 ? Math.max(...closedTrades.map(t => t.netPnl)) : 0)} positive />
+      </div>
+
+      {/* Advanced KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard icon={<Target className="w-4 h-4 text-primary" />} label="Expectancy" value={`€${kpis.expectancy.toFixed(2)}`} positive={kpis.expectancy >= 0} tooltip="(WinRate × AvgWin) - (LossRate × AvgLoss)" />
+        <KpiCard icon={<TrendingUp className="w-4 h-4 text-success" />} label="Profit Factor" value={kpis.profitFactor === Infinity ? '∞' : kpis.profitFactor.toFixed(2)} positive={kpis.profitFactor >= 1} tooltip="Gross Profit / Gross Loss" />
+        <KpiCard icon={<Activity className="w-4 h-4 text-primary" />} label="Recovery Factor" value={kpis.recoveryFactor === Infinity ? '∞' : kpis.recoveryFactor.toFixed(2)} positive={kpis.recoveryFactor >= 1} tooltip="Net P&L / Max Drawdown" />
+        <KpiCard icon={<ArrowDown className="w-4 h-4 text-destructive" />} label="Current Drawdown" value={`€${kpis.currentDrawdown.toFixed(0)}`} sub={`${kpis.currentDrawdownPct.toFixed(1)}% from peak`} positive={kpis.currentDrawdown === 0} />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Max Win Streak" value={String(kpis.maxConsecutiveWins)} sub="consecutive" positive />
+        <StatCard label="Max Loss Streak" value={String(kpis.maxConsecutiveLosses)} sub="consecutive" />
+        <KpiCard icon={<Timer className="w-4 h-4 text-success" />} label="Avg Duration (W)" value={`${kpis.avgDurationWinners.toFixed(1)}h`} />
+        <KpiCard icon={<Timer className="w-4 h-4 text-destructive" />} label="Avg Duration (L)" value={`${kpis.avgDurationLosers.toFixed(1)}h`} />
       </div>
 
       {/* Equity Curve */}
@@ -207,6 +224,23 @@ function StatCard({ label, value, sub, positive }: { label: string; value: strin
   return (
     <div className="rounded-lg border border-border bg-card p-4 card-hover">
       <div className="text-xs text-muted-foreground mb-1">{label}</div>
+      <div className={`text-xl font-data font-bold ${positive === undefined ? 'text-foreground' : positive ? 'text-success' : 'text-destructive'}`}>
+        {value}
+      </div>
+      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function KpiCard({ icon, label, value, sub, positive, tooltip }: {
+  icon?: React.ReactNode; label: string; value: string; sub?: string; positive?: boolean; tooltip?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 card-hover" title={tooltip}>
+      <div className="flex items-center gap-1.5 mb-1">
+        {icon}
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
       <div className={`text-xl font-data font-bold ${positive === undefined ? 'text-foreground' : positive ? 'text-success' : 'text-destructive'}`}>
         {value}
       </div>
