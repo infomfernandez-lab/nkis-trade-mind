@@ -118,6 +118,33 @@ export function getPerformanceByMomentum(trades: Trade[]): GroupStat[] {
   return result;
 }
 
+export interface BrokerStat {
+  name: string;
+  winRate: number;
+  profitFactor: number;
+  avgPnl: number;
+  totalPnl: number;
+  count: number;
+}
+
+export function getPerformanceByBroker(trades: Trade[]): BrokerStat[] {
+  const groups = groupBy(trades, t => t.broker);
+  return Object.entries(groups).map(([name, g]) => {
+    const wins = g.filter(t => t.isWin);
+    const losses = g.filter(t => !t.isWin);
+    const grossProfit = wins.reduce((s, t) => s + t.netPnl, 0);
+    const grossLoss = Math.abs(losses.reduce((s, t) => s + t.netPnl, 0));
+    return {
+      name,
+      winRate: g.length > 0 ? (wins.length / g.length) * 100 : 0,
+      profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0,
+      avgPnl: g.length > 0 ? g.reduce((s, t) => s + t.netPnl, 0) / g.length : 0,
+      totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
+      count: g.length,
+    };
+  });
+}
+
 export interface InterventionStat {
   type: string;
   count: number;
