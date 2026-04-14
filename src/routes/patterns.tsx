@@ -9,7 +9,7 @@ import { formatCurrency, type Trade } from '@/lib/trade-utils';
 import {
   getPerformanceByAdxState, getPerformanceByMA50, getPerformanceByMomentum,
   getInterventionCosts, getEmotionalPerformanceMatrix, getMonthlyConsistencyScore,
-  computeMaeMfe, computeRrData, generateEnhancedInsights,
+  computeMaeMfe, computeRrData, generateEnhancedInsights, getPerformanceByBroker,
   type GroupStat, type HeatmapCell,
 } from '@/lib/analytics';
 import { useSettings } from '@/hooks/use-settings';
@@ -108,6 +108,7 @@ function Patterns() {
   const consistency = getMonthlyConsistencyScore(trades);
   const maeMfe = computeMaeMfe(trades);
   const rrData = computeRrData(trades);
+  const brokerData = getPerformanceByBroker(trades);
 
   return (
     <div className="space-y-6">
@@ -131,6 +132,41 @@ function Patterns() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Broker Performance */}
+      {brokerData.length > 1 && (
+        <ChartCard title="Rendimiento por Broker">
+          <div className="grid grid-cols-2 gap-4">
+            {brokerData.map(d => (
+              <div key={d.name} className="p-4 rounded-md bg-secondary border border-border">
+                <div className="text-sm font-semibold text-foreground capitalize mb-3">{d.name}</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground">Win Rate</span>
+                    <span className={`font-data text-sm font-semibold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{d.winRate.toFixed(0)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground">Profit Factor</span>
+                    <span className="font-data text-sm font-semibold text-foreground">{d.profitFactor === Infinity ? '∞' : d.profitFactor.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground">P&L Medio</span>
+                    <span className={`font-data text-sm font-semibold ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.avgPnl)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground">P&L Total</span>
+                    <span className={`font-data text-sm font-semibold ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>€{d.totalPnl.toFixed(0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-muted-foreground">Trades</span>
+                    <span className="font-data text-sm text-muted-foreground">{d.count}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
       )}
 
       <div className="grid lg:grid-cols-3 gap-4">
@@ -254,7 +290,7 @@ function Patterns() {
             <div className="grid grid-cols-2 gap-4">
               {momentumData.map(d => (
                 <div key={d.name} className="p-4 rounded-md bg-secondary border border-border text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{d.name === 'Aligned' ? 'Alineado' : 'No Alineado'}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{d.name}</div>
                   <div className={`text-2xl font-data font-bold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>
                     {d.winRate.toFixed(0)}%
                   </div>

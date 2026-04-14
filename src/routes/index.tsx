@@ -8,9 +8,10 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import {
   formatCurrency, formatDate, computeStatsFromTrades,
-  buildEquityCurve, buildMonthlyPnl
+  buildEquityCurve, buildMonthlyPnl, filterByBroker
 } from '@/lib/trade-utils';
 import { computeDashboardKpis } from '@/lib/analytics';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -23,8 +24,9 @@ export const Route = createFileRoute('/')({
 });
 
 function Dashboard() {
-  const { closedTrades, openTrades, isLoading, error } = useAllTrades();
+  const { closedTrades: allClosed, openTrades: allOpen, isLoading, error } = useAllTrades();
   const { data: settings } = useSettings();
+  const { broker } = useBrokerFilter();
 
   if (isLoading) {
     return (
@@ -43,6 +45,8 @@ function Dashboard() {
     );
   }
 
+  const closedTrades = filterByBroker(allClosed, broker);
+  const openTrades = filterByBroker(allOpen, broker);
   const startingBalance = Number(settings?.balance ?? 10000);
   const stats = computeStatsFromTrades(closedTrades, openTrades);
   const kpis = computeDashboardKpis(closedTrades, startingBalance);
@@ -52,15 +56,17 @@ function Dashboard() {
   const wins = closedTrades.filter(t => t.isWin);
   const losses = closedTrades.filter(t => !t.isWin);
 
+  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`;
+
   if (closedTrades.length === 0 && openTrades.length === 0) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Panel</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Panel{brokerLabel}</h1>
           <p className="text-sm text-muted-foreground mt-1">Centro de control — Sistema 1</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground text-sm">Aún no hay trades. Conecta tu script de sincronización MT5 para empezar.</p>
+          <p className="text-muted-foreground text-sm">Aún no hay trades{broker !== 'all' ? ` de ${broker === 'darwinex' ? 'Darwinex' : 'FXPro'}` : ''}. Conecta tu script de sincronización MT5 para empezar.</p>
           <p className="text-xs text-muted-foreground mt-2">Ve a Ajustes para obtener tu clave API para el script de sincronización.</p>
         </div>
       </div>
@@ -70,7 +76,7 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Panel</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Panel{brokerLabel}</h1>
         <p className="text-sm text-muted-foreground mt-1">Centro de control — Sistema 1</p>
       </div>
 
@@ -160,7 +166,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{trade.symbol}</div>
-                    <div className="text-xs text-muted-foreground font-data">{trade.lotSize} lotes</div>
+                    <div className="text-xs text-muted-foreground font-data">{trade.lotSize} lotes • {trade.broker}</div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -187,6 +193,7 @@ function Dashboard() {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Símbolo</th>
+                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Broker</th>
                   <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Dir</th>
                   <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Entrada</th>
                   <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L</th>
@@ -198,6 +205,7 @@ function Dashboard() {
                 {recentTrades.map(trade => (
                   <tr key={trade.id} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
                     <td className="py-2.5 px-2 font-semibold">{trade.symbol}</td>
+                    <td className="py-2.5 px-2 text-xs text-muted-foreground capitalize">{trade.broker}</td>
                     <td className="py-2.5 px-2">
                       <span className={`text-xs font-data font-semibold ${trade.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>
                         {trade.direction}
