@@ -31,15 +31,17 @@ export const Route = createFileRoute('/api/sync-scanner')({
             }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
           }
 
+          const row = {
+            user_id: userId,
+            session_date: parsed.data.session_date ?? new Date().toISOString(),
+            top_instruments: (parsed.data.top_instruments ?? []) as unknown as import('@/integrations/supabase/types').Json,
+            correlations_detected: (parsed.data.correlations_detected ?? []) as unknown as import('@/integrations/supabase/types').Json,
+            notes: parsed.data.notes ?? null,
+          };
+
           const { data, error } = await supabaseAdmin
             .from('scanner_sessions')
-            .insert({
-              user_id: userId,
-              session_date: parsed.data.session_date ?? new Date().toISOString(),
-              top_instruments: parsed.data.top_instruments ?? [],
-              correlations_detected: parsed.data.correlations_detected ?? [],
-              notes: parsed.data.notes ?? null,
-            })
+            .insert(row)
             .select('id, session_date')
             .single();
 
