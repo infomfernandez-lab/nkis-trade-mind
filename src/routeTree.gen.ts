@@ -16,6 +16,8 @@ import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
+import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
 
 const TradesRoute = TradesRouteImport.update({
   id: '/trades',
@@ -52,6 +54,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSyncTradesRoute = ApiSyncTradesRouteImport.update({
+  id: '/api/sync-trades',
+  path: '/api/sync-trades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSyncScannerRoute = ApiSyncScannerRouteImport.update({
+  id: '/api/sync-scanner',
+  path: '/api/sync-scanner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +73,8 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/api/sync-scanner': typeof ApiSyncScannerRoute
+  '/api/sync-trades': typeof ApiSyncTradesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +84,8 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/api/sync-scanner': typeof ApiSyncScannerRoute
+  '/api/sync-trades': typeof ApiSyncTradesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +96,8 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/api/sync-scanner': typeof ApiSyncScannerRoute
+  '/api/sync-trades': typeof ApiSyncTradesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +109,8 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/api/sync-scanner'
+    | '/api/sync-trades'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +120,8 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/api/sync-scanner'
+    | '/api/sync-trades'
   id:
     | '__root__'
     | '/'
@@ -109,6 +131,8 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/api/sync-scanner'
+    | '/api/sync-trades'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +143,8 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TradesRoute: typeof TradesRoute
+  ApiSyncScannerRoute: typeof ApiSyncScannerRoute
+  ApiSyncTradesRoute: typeof ApiSyncTradesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +198,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sync-trades': {
+      id: '/api/sync-trades'
+      path: '/api/sync-trades'
+      fullPath: '/api/sync-trades'
+      preLoaderRoute: typeof ApiSyncTradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sync-scanner': {
+      id: '/api/sync-scanner'
+      path: '/api/sync-scanner'
+      fullPath: '/api/sync-scanner'
+      preLoaderRoute: typeof ApiSyncScannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +223,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TradesRoute: TradesRoute,
+  ApiSyncScannerRoute: ApiSyncScannerRoute,
+  ApiSyncTradesRoute: ApiSyncTradesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
