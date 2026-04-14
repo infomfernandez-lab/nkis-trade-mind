@@ -71,7 +71,114 @@ export function computeDashboardKpis(closed: Trade[], startingBalance: number): 
   for (const t of closed) {
     if (t.isWin) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
     else { cl++; cw = 0; if (cl > maxL) maxL = cl; }
+}
+
+export function computeAdvancedMetrics(closed: Trade[], startingBalance: number): AdvancedMetrics {
+  const wins = closed.filter(t => t.isWin);
+  const losses = closed.filter(t => !t.isWin);
+  const winRate = closed.length > 0 ? wins.length / closed.length : 0;
+  const lossRate = 1 - winRate;
+  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0;
+  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + t.netPnl, 0) / losses.length) : 0;
+  const expectancy = (winRate * avgWin) - (lossRate * avgLoss);
+  const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? Infinity : 0;
+
+  // Max drawdown & recovery factor
+  let peak = startingBalance, maxDD = 0, equity = startingBalance;
+  const equities: number[] = [];
+  for (const t of closed) {
+    equity += t.netPnl;
+    equities.push(equity);
+    if (equity > peak) peak = equity;
+    const dd = peak - equity;
+    if (dd > maxDD) maxDD = dd;
   }
+  const totalPnl = equity - startingBalance;
+  const recoveryFactor = maxDD > 0 ? totalPnl / maxDD : totalPnl > 0 ? Infinity : 0;
+
+  // Ulcer Index — RMS of percentage drawdowns
+  let ulcerIndex = 0;
+  if (equities.length > 0) {
+    let uPeak = startingBalance;
+    let sumSq = 0;
+    for (const eq of equities) {
+      if (eq > uPeak) uPeak = eq;
+      const pctDD = uPeak > 0 ? ((uPeak - eq) / uPeak) * 100 : 0;
+      sumSq += pctDD * pctDD;
+    }
+    ulcerIndex = Math.sqrt(sumSq / equities.length);
+  }
+
+  // MAE/MFE in euros
+  const maeWinEur = wins.filter(t => t.slPrice > 0).map(t => {
+    const risk = Math.abs(t.entryPrice - t.slPrice);
+    return risk * t.lotSize * 100000 * (t.entryPrice > 10 ? 0.01 : 1); // approximate
+  });
+  const maeLossEur = losses.filter(t => t.slPrice > 0).map(t => {
+    const risk = Math.abs(t.entryPrice - t.slPrice);
+    return risk * t.lotSize * 100000 * (t.entryPrice > 10 ? 0.01 : 1);
+  });
+  // Simpler: use actual P&L as proxy for MAE/MFE in euros
+  const avgMaeWinnersEur = wins.length > 0 ? wins.filter(t => t.slPrice > 0).reduce((s, t) => s + Math.abs(t.netPnl * (Math.abs(t.entryPrice - t.slPrice) / Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice || 1))), 0) / wins.filter(t => t.slPrice > 0).length || 0 : 0;
+  const avgMaeLosersEur = losses.length > 0 ? losses.reduce((s, t) => s + Math.abs(t.netPnl), 0) / losses.length : 0;
+  const avgMfeWinnersEur = wins.length > 0 ? wins.filter(t => t.tpPrice > 0 && t.exitPrice != null).map(t => {
+    const tpDist = Math.abs(t.tpPrice - t.entryPrice);
+    const actualDist = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
+    return tpDist > 0 ? (t.netPnl / actualDist) * tpDist : t.netPnl;
+  }).reduce((a, b) => a + b, 0) / wins.filter(t => t.tpPrice > 0).length || 0 : 0;
+  const avgPnlWinnersEur = wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0;
+
+  // RR
+  const tradesWithRR = closed.filter(t => t.slPrice > 0 && t.tpPrice > 0 && t.exitPrice != null);
+  let avgRrReal = 0, avgRrTheoretical = 0;
+  if (tradesWithRR.length > 0) {
+    avgRrTheoretical = tradesWithRR.reduce((s, t) => {
+      const risk = Math.abs(t.entryPrice - t.slPrice);
+      return s + (risk > 0 ? Math.abs(t.tpPrice - t.entryPrice) / risk : 0);
+    }, 0) / tradesWithRR.length;
+    avgRrReal = tradesWithRR.reduce((s, t) => {
+      const risk = Math.abs(t.entryPrice - t.slPrice);
+      const actual = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
+      return s + (risk > 0 ? (t.isWin ? actual / risk : -(actual / risk || 1)) : 0);
+    }, 0) / tradesWithRR.length;
+  }
+
+  // Intervention cost
+  const intervened = closed.filter(t => t.manualIntervention && t.manualIntervention !== 'None, EA managing' && t.manualIntervention !== 'No EA gestionando solo');
+  const interventionCost = intervened.reduce((s, t) => s + t.netPnl, 0);
+
+  // Monthly stats
+  const byMonth: Record<string, { pnl: number; label: string }> = {};
+  for (const t of closed) {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${d.toLocaleString('es-ES', { month: 'short' })} ${d.getFullYear()}`;
+    if (!byMonth[key]) byMonth[key] = { pnl: 0, label };
+    byMonth[key].pnl += t.netPnl;
+  }
+  const months = Object.values(byMonth);
+  let bestMonth = 0, worstMonth = 0, bestMonthLabel = '—', worstMonthLabel = '—';
+  for (const m of months) {
+    if (m.pnl > bestMonth || bestMonthLabel === '—') { bestMonth = m.pnl; bestMonthLabel = m.label; }
+    if (m.pnl < worstMonth || worstMonthLabel === '—') { worstMonth = m.pnl; worstMonthLabel = m.label; }
+  }
+  const positiveMonthsPct = months.length > 0 ? (months.filter(m => m.pnl > 0).length / months.length) * 100 : 0;
+
+  // Streaks
+  let maxW = 0, maxL = 0, cw = 0, cl = 0;
+  for (const t of closed) {
+    if (t.isWin) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
+    else { cl++; cw = 0; if (cl > maxL) maxL = cl; }
+  }
+
+  return {
+    expectancy, payoffRatio, recoveryFactor, ulcerIndex,
+    avgMaeWinnersEur, avgMaeLosersEur, avgMfeWinnersEur, avgPnlWinnersEur,
+    avgRrReal, avgRrTheoretical, interventionCost,
+    bestMonth, bestMonthLabel, worstMonth, worstMonthLabel, positiveMonthsPct,
+    maxConsecutiveWins: maxW, maxConsecutiveLosses: maxL,
+  };
+}
 
   const avgDurationWinners = wins.length > 0 ? wins.reduce((s, t) => s + t.durationHours, 0) / wins.length : 0;
   const avgDurationLosers = losses.length > 0 ? losses.reduce((s, t) => s + t.durationHours, 0) / losses.length : 0;
