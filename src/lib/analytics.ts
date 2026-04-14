@@ -196,22 +196,6 @@ export function computeAdvancedMetrics(closed: Trade[], startingBalance: number)
   };
 }
 
-  const avgDurationWinners = wins.length > 0 ? wins.reduce((s, t) => s + t.durationHours, 0) / wins.length : 0;
-  const avgDurationLosers = losses.length > 0 ? losses.reduce((s, t) => s + t.durationHours, 0) / losses.length : 0;
-
-  return {
-    expectancy,
-    recoveryFactor,
-    profitFactor,
-    maxConsecutiveWins: maxW,
-    maxConsecutiveLosses: maxL,
-    currentDrawdown,
-    currentDrawdownPct,
-    avgDurationWinners,
-    avgDurationLosers,
-  };
-}
-
 /* ── Pattern Analytics ── */
 
 function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
