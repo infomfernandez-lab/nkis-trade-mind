@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_trades_user_ticket ON public.trades (user_id, ticket);
