@@ -71,6 +71,22 @@ export function computeDashboardKpis(closed: Trade[], startingBalance: number): 
   for (const t of closed) {
     if (t.isWin) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
     else { cl++; cw = 0; if (cl > maxL) maxL = cl; }
+  }
+
+  const avgDurationWinners = wins.length > 0 ? wins.reduce((s, t) => s + t.durationHours, 0) / wins.length : 0;
+  const avgDurationLosers = losses.length > 0 ? losses.reduce((s, t) => s + t.durationHours, 0) / losses.length : 0;
+
+  return {
+    expectancy,
+    recoveryFactor,
+    profitFactor,
+    maxConsecutiveWins: maxW,
+    maxConsecutiveLosses: maxL,
+    currentDrawdown,
+    currentDrawdownPct,
+    avgDurationWinners,
+    avgDurationLosers,
+  };
 }
 
 export function computeAdvancedMetrics(closed: Trade[], startingBalance: number): AdvancedMetrics {
