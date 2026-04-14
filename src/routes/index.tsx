@@ -10,8 +10,9 @@ import {
   formatCurrency, formatDate, computeStatsFromTrades,
   buildEquityCurve, buildMonthlyPnl, filterByBroker
 } from '@/lib/trade-utils';
-import { computeDashboardKpis } from '@/lib/analytics';
+import { computeDashboardKpis, computeAdvancedMetrics } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
+import { AdvancedMetricsSection } from '@/components/AdvancedMetrics';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -50,6 +51,7 @@ function Dashboard() {
   const startingBalance = Number(settings?.balance ?? 10000);
   const stats = computeStatsFromTrades(closedTrades, openTrades);
   const kpis = computeDashboardKpis(closedTrades, startingBalance);
+  const advMetrics = computeAdvancedMetrics(closedTrades, startingBalance);
   const equityCurve = buildEquityCurve(closedTrades, startingBalance);
   const monthlyPnl = buildMonthlyPnl(closedTrades);
   const recentTrades = [...closedTrades].reverse().slice(0, 8);
@@ -102,6 +104,10 @@ function Dashboard() {
         <KpiCard icon={<Timer className="w-4 h-4 text-success" />} label="Duración Media (W)" value={`${kpis.avgDurationWinners.toFixed(1)}h`} />
         <KpiCard icon={<Timer className="w-4 h-4 text-destructive" />} label="Duración Media (L)" value={`${kpis.avgDurationLosers.toFixed(1)}h`} />
       </div>
+
+
+      {/* Advanced Metrics */}
+      <AdvancedMetricsSection m={advMetrics} />
 
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
