@@ -51,6 +51,7 @@ function Dashboard() {
   const startingBalance = Number(settings?.balance ?? 10000);
   const stats = computeStatsFromTrades(closedTrades, openTrades);
   const kpis = computeDashboardKpis(closedTrades, startingBalance);
+  const advMetrics = computeAdvancedMetrics(closedTrades, startingBalance);
   const equityCurve = buildEquityCurve(closedTrades, startingBalance);
   const monthlyPnl = buildMonthlyPnl(closedTrades);
   const recentTrades = [...closedTrades].reverse().slice(0, 8);
