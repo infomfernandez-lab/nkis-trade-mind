@@ -30,7 +30,6 @@ export function computeDashboardKpis(closed: Trade[], startingBalance: number): 
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
   const totalPnl = grossProfit - grossLoss;
 
-  // Max drawdown & current drawdown
   let peak = startingBalance;
   let maxDD = 0;
   let equity = startingBalance;
@@ -44,7 +43,6 @@ export function computeDashboardKpis(closed: Trade[], startingBalance: number): 
   const currentDrawdownPct = peak > 0 ? (currentDrawdown / peak) * 100 : 0;
   const recoveryFactor = maxDD > 0 ? totalPnl / maxDD : totalPnl > 0 ? Infinity : 0;
 
-  // Max consecutive wins/losses
   let maxW = 0, maxL = 0, cw = 0, cl = 0;
   for (const t of closed) {
     if (t.isWin) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
@@ -115,8 +113,8 @@ export function getPerformanceByMomentum(trades: Trade[]): GroupStat[] {
   const aligned = trades.filter(t => t.momentumAligned);
   const notAligned = trades.filter(t => !t.momentumAligned);
   const result: GroupStat[] = [];
-  if (aligned.length >= MIN_TRADES) result.push(toGroupStat('Aligned', aligned));
-  if (notAligned.length >= MIN_TRADES) result.push(toGroupStat('Not Aligned', notAligned));
+  if (aligned.length >= MIN_TRADES) result.push(toGroupStat('Alineado', aligned));
+  if (notAligned.length >= MIN_TRADES) result.push(toGroupStat('No Alineado', notAligned));
   return result;
 }
 
@@ -180,7 +178,7 @@ export function getMonthlyConsistencyScore(trades: Trade[]): { score: number; co
   };
 }
 
-/* ── MAE / MFE (approximated from SL/TP/entry/exit) ── */
+/* ── MAE / MFE ── */
 
 export interface MaeMfeStats {
   avgMaeWinners: number;
@@ -194,17 +192,12 @@ export function computeMaeMfe(trades: Trade[]): MaeMfeStats {
   const wins = trades.filter(t => t.isWin && t.slPrice > 0 && t.tpPrice > 0 && t.exitPrice != null);
   const losses = trades.filter(t => !t.isWin && t.slPrice > 0 && t.exitPrice != null);
 
-  // MAE = distance from entry to SL (in currency terms via netPnl proxy)
-  // We approximate MAE as |entry - SL| * lotSize * pointValue, but since we don't have pointValue,
-  // we use the ratio approach: MAE ≈ |netPnl| * (|entry-SL| / |entry-exit|) for losers
-  // Simpler: use raw price distances normalised by entry
   const maeWin = wins.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100);
   const maeLoss = losses.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100);
 
   const mfeWin = wins.map(t => Math.abs(t.tpPrice - t.entryPrice) / t.entryPrice * 100);
   const mfeLoss = losses.map(t => t.tpPrice > 0 ? Math.abs(t.tpPrice - t.entryPrice) / t.entryPrice * 100 : 0);
 
-  // MFE captured: how much of the TP distance was actually captured
   const mfeCaptured = wins.map(t => {
     const tpDist = Math.abs(t.tpPrice - t.entryPrice);
     const actualDist = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
@@ -265,7 +258,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
   const exhaust = adxStates.find(s => s.name === 'AGOTANDO');
   if (accel && exhaust) {
     insights.push({
-      text: `Your win rate with ADX ACELERANDO is ${accel.winRate.toFixed(0)}% vs ${exhaust.winRate.toFixed(0)}% with AGOTANDO. Financial impact: ${accel.avgPnl >= 0 ? '+' : ''}€${accel.totalPnl.toFixed(0)} vs €${exhaust.totalPnl.toFixed(0)}.`,
+      text: `Tu Win Rate con ADX ACELERANDO es ${accel.winRate.toFixed(0)}% vs ${exhaust.winRate.toFixed(0)}% con AGOTANDO. Impacto financiero: ${accel.avgPnl >= 0 ? '+' : ''}€${accel.totalPnl.toFixed(0)} vs €${exhaust.totalPnl.toFixed(0)}.`,
       type: accel.winRate > exhaust.winRate ? 'positive' : 'warning',
       impact: Math.abs(accel.totalPnl - exhaust.totalPnl),
     });
@@ -278,7 +271,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
     const cost = anxious.reduce((s, t) => s + t.netPnl, 0);
     if (cost < 0) {
       insights.push({
-        text: `Trading while anxious has cost you €${Math.abs(cost).toFixed(0)} in realized losses across ${anxious.length} trades.`,
+        text: `Operar con ansiedad te ha costado €${Math.abs(cost).toFixed(0)} en pérdidas realizadas en ${anxious.length} trades.`,
         type: 'negative',
         impact: Math.abs(cost),
       });
@@ -289,7 +282,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
   const maeMfe = computeMaeMfe(trades);
   if (wins.length >= MIN_TRADES && maeMfe.avgMfeCapturedPct < 80) {
     insights.push({
-      text: `You capture only ${maeMfe.avgMfeCapturedPct.toFixed(0)}% of MFE — consider adjusting TP placement to capture more of the move.`,
+      text: `Solo capturas el ${maeMfe.avgMfeCapturedPct.toFixed(0)}% del MFE — considera ajustar la colocación del TP para capturar más del movimiento.`,
       type: 'warning',
       impact: 100 - maeMfe.avgMfeCapturedPct,
     });
@@ -299,7 +292,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
   if (losses.length >= MIN_TRADES && wins.length >= MIN_TRADES) {
     const slCorrect = maeMfe.avgMaeLosers <= maeMfe.avgMaeWinners * 1.3;
     insights.push({
-      text: `Your MAE on losing trades (${maeMfe.avgMaeLosers.toFixed(2)}%) ${slCorrect ? 'is consistent with winners — SL appears correctly placed' : `exceeds winners (${maeMfe.avgMaeWinners.toFixed(2)}%) — SL may be too wide on losers`}.`,
+      text: `Tu MAE en trades perdedores (${maeMfe.avgMaeLosers.toFixed(2)}%) ${slCorrect ? 'es consistente con los ganadores — el SL parece bien colocado' : `excede a los ganadores (${maeMfe.avgMaeWinners.toFixed(2)}%) — el SL puede estar demasiado amplio en perdedores`}.`,
       type: slCorrect ? 'positive' : 'warning',
       impact: Math.abs(maeMfe.avgMaeLosers - maeMfe.avgMaeWinners) * 10,
     });
@@ -315,7 +308,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
     if (fullPnl > partialPnl) {
       const pctDiff = partialPnl !== 0 ? ((fullPnl - partialPnl) / Math.abs(partialPnl)) * 100 : 100;
       insights.push({
-        text: `Following the system exactly improves P&L by ${pctDiff.toFixed(0)}% vs partial compliance (€${fullPnl.toFixed(0)} avg vs €${partialPnl.toFixed(0)} avg per trade).`,
+        text: `Seguir el sistema al 100% mejora el P&L un ${pctDiff.toFixed(0)}% vs cumplimiento parcial (€${fullPnl.toFixed(0)} media vs €${partialPnl.toFixed(0)} media por trade).`,
         type: 'positive',
         impact: Math.abs(fullPnl - partialPnl) * full.length,
       });
@@ -324,11 +317,11 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
 
   // Momentum alignment
   const momentum = getPerformanceByMomentum(trades);
-  const aligned = momentum.find(m => m.name === 'Aligned');
-  const notAligned = momentum.find(m => m.name === 'Not Aligned');
+  const aligned = momentum.find(m => m.name === 'Alineado');
+  const notAligned = momentum.find(m => m.name === 'No Alineado');
   if (aligned && notAligned) {
     insights.push({
-      text: `Momentum-aligned trades win ${aligned.winRate.toFixed(0)}% vs ${notAligned.winRate.toFixed(0)}% when not aligned. Impact: €${aligned.totalPnl.toFixed(0)} vs €${notAligned.totalPnl.toFixed(0)}.`,
+      text: `Los trades con momentum alineado ganan ${aligned.winRate.toFixed(0)}% vs ${notAligned.winRate.toFixed(0)}% cuando no está alineado. Impacto: €${aligned.totalPnl.toFixed(0)} vs €${notAligned.totalPnl.toFixed(0)}.`,
       type: aligned.winRate > notAligned.winRate ? 'positive' : 'warning',
       impact: Math.abs(aligned.totalPnl - notAligned.totalPnl),
     });
@@ -338,7 +331,7 @@ export function generateEnhancedInsights(trades: Trade[], startingBalance: numbe
   const interventions = getInterventionCosts(trades);
   if (interventions.totalCount >= 2) {
     insights.push({
-      text: `Manual interventions across ${interventions.totalCount} trades resulted in €${interventions.total.toFixed(0)} net impact.`,
+      text: `Las intervenciones manuales en ${interventions.totalCount} trades resultaron en un impacto neto de €${interventions.total.toFixed(0)}.`,
       type: interventions.total < 0 ? 'negative' : 'warning',
       impact: Math.abs(interventions.total),
     });

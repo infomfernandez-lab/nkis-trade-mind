@@ -5,8 +5,8 @@ export const Route = createFileRoute('/manual')({
   component: Manual,
   head: () => ({
     meta: [
-      { title: 'Sistema 1 Manual — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Complete reference guide for the Sistema 1 trading system.' },
+      { title: 'Manual Sistema 1 — CAP Trading' },
+      { name: 'description', content: 'Guía de referencia completa del sistema de trading Sistema 1.' },
     ],
   }),
 });
@@ -16,91 +16,91 @@ function Manual() {
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Sistema 1</h1>
-        <p className="text-muted-foreground mt-2">Systematic Trend-Following Trading System — Complete Reference</p>
+        <p className="text-muted-foreground mt-2">Sistema de Trading Sistemático Trend-Following — Referencia Completa</p>
       </div>
 
       <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 text-sm">
         <p className="text-foreground/90 italic font-medium">
-          "The scanner finds WHERE. The EA decides WHEN. You decide to FOLLOW."
+          "El scanner encuentra DÓNDE. El EA decide CUÁNDO. Tú decides SEGUIR."
         </p>
       </div>
 
       {/* The Scanner */}
-      <ManualSection icon={Eye} title="The Scanner (Radar)">
+      <ManualSection icon={Eye} title="El Scanner (Radar)">
         <p className="text-muted-foreground mb-4">
-          The scanner identifies the instruments with the strongest trends across your universe. It runs locally on your PC as a Python script connected to MT5.
+          El scanner identifica los instrumentos con las tendencias más fuertes de tu universo. Se ejecuta localmente en tu PC como un script Python conectado a MT5.
         </p>
-        <h4 className="text-sm font-semibold text-foreground mb-2">Indicators Analyzed</h4>
+        <h4 className="text-sm font-semibold text-foreground mb-2">Indicadores Analizados</h4>
         <ul className="space-y-1.5 mb-4">
-          <Li>MA50/200 alignment and slope direction</Li>
-          <Li>ADX (14) value and slope over 5 bars</Li>
-          <Li>Price distance to MA50 (%)</Li>
-          <Li>20-day momentum direction</Li>
-          <Li>Correlation filter (avoid correlated positions)</Li>
+          <Li>Alineación y pendiente de MA50/200</Li>
+          <Li>Valor de ADX (14) y pendiente en 5 barras</Li>
+          <Li>Distancia del precio a MA50 (%)</Li>
+          <Li>Dirección del momentum a 20 días</Li>
+          <Li>Filtro de correlación (evitar posiciones correlacionadas)</Li>
         </ul>
-        <h4 className="text-sm font-semibold text-foreground mb-2">Scoring</h4>
+        <h4 className="text-sm font-semibold text-foreground mb-2">Puntuación</h4>
         <p className="text-muted-foreground mb-2">
-          Each instrument receives a score from 0 to 100 based on a weighted combination of all indicators. Higher scores indicate stronger, cleaner trends.
+          Cada instrumento recibe una puntuación de 0 a 100 basada en la combinación ponderada de todos los indicadores. Puntuaciones más altas indican tendencias más fuertes y limpias.
         </p>
-        <Rule>Always trade the top-ranked instrument. Lower ranks mean weaker setups.</Rule>
+        <Rule>Siempre opera el instrumento mejor clasificado. Rankings más bajos significan setups más débiles.</Rule>
       </ManualSection>
 
       {/* The EA */}
-      <ManualSection icon={Zap} title="The EA (Entry Executor)">
+      <ManualSection icon={Zap} title="El EA (Ejecutor de Entradas)">
         <p className="text-muted-foreground mb-4">
-          The Expert Advisor handles entry, exit, and trade management. Once activated, do not intervene.
+          El Expert Advisor gestiona la entrada, salida y gestión del trade. Una vez activado, no intervengas.
         </p>
         <div className="space-y-3">
-          <DetailRow label="Entry Signal" value="Stochastic (5,2,2) crosses 30 upward (BUY) or 70 downward (SELL) at D1 candle close" />
-          <DetailRow label="Stop Loss" value="Lowest low of last 10 candles (BUY) / Highest high of last 10 candles (SELL)" />
-          <DetailRow label="Take Profit" value="Previous relevant swing high/low — 30 candle lookback" />
-          <DetailRow label="Breakeven" value="Activated when price reaches 75% of TP distance" />
-          <DetailRow label="Risk" value="1% of account balance per trade" />
-          <DetailRow label="Timeframe" value="D1 (Daily)" />
+          <DetailRow label="Señal de Entrada" value="Stochastic (5,2,2) cruza 30 hacia arriba (BUY) o 70 hacia abajo (SELL) al cierre de vela D1" />
+          <DetailRow label="Stop Loss" value="Mínimo más bajo de las últimas 10 velas (BUY) / Máximo más alto de las últimas 10 velas (SELL)" />
+          <DetailRow label="Take Profit" value="Swing high/low relevante anterior — lookback de 30 velas" />
+          <DetailRow label="Breakeven" value="Se activa cuando el precio alcanza el 75% de la distancia al TP" />
+          <DetailRow label="Riesgo" value="1% del balance de la cuenta por trade" />
+          <DetailRow label="Temporalidad" value="D1 (Diario)" />
         </div>
       </ManualSection>
 
       {/* Operating Rules */}
-      <ManualSection icon={Shield} title="Operating Rules">
+      <ManualSection icon={Shield} title="Reglas Operativas">
         <div className="space-y-3">
-          <Rule critical>Check VIX before anything. If VIX &gt; 45, do NOT trade. Period.</Rule>
-          <Rule>VIX 35-45: Reduce position size by 50%.</Rule>
-          <Rule>VIX 25-35: Proceed with caution. Only top-ranked instruments.</Rule>
-          <Rule>Run the scanner every night after market close.</Rule>
-          <Rule>Select the top-ranked instrument from the scanner.</Rule>
-          <Rule>Activate the EA on the D1 chart. Do not touch it.</Rule>
-          <Rule>Review the dashboard every Friday.</Rule>
-          <Rule>Maximum 2 open positions at any time.</Rule>
-          <Rule>Never move a stop loss further away. Never.</Rule>
-          <Rule>If you doubt the setup, do not enter. There will always be another trade.</Rule>
+          <Rule critical>Revisa el VIX antes de todo. Si VIX &gt; 45, NO operes. Punto.</Rule>
+          <Rule>VIX 35-45: Reduce el tamaño de posición un 50%.</Rule>
+          <Rule>VIX 25-35: Procede con cautela. Solo instrumentos mejor clasificados.</Rule>
+          <Rule>Ejecuta el scanner cada noche después del cierre del mercado.</Rule>
+          <Rule>Selecciona el instrumento mejor clasificado del scanner.</Rule>
+          <Rule>Activa el EA en el gráfico D1. No lo toques.</Rule>
+          <Rule>Revisa el panel cada viernes.</Rule>
+          <Rule>Máximo 2 posiciones abiertas en cualquier momento.</Rule>
+          <Rule>Nunca muevas un Stop Loss más lejos. Nunca.</Rule>
+          <Rule>Si dudas del setup, no entres. Siempre habrá otro trade.</Rule>
         </div>
       </ManualSection>
 
       {/* Philosophy */}
-      <ManualSection icon={BookOpen} title="Philosophy">
+      <ManualSection icon={BookOpen} title="Filosofía">
         <div className="space-y-4 text-muted-foreground">
           <p>
-            This system is designed around a simple truth: <span className="text-foreground font-medium">50% win rate + winning more than you lose = profitable system</span>.
+            Este sistema está diseñado alrededor de una verdad simple: <span className="text-foreground font-medium">50% Win Rate + ganar más de lo que pierdes = sistema rentable</span>.
           </p>
           <p>
-            The scanner ensures you're always positioned in the strongest trend. The EA ensures you enter with discipline and manage risk mechanically. Your only job is to <span className="text-foreground font-medium">not interfere</span>.
+            El scanner asegura que siempre estés posicionado en la tendencia más fuerte. El EA asegura que entres con disciplina y gestiones el riesgo mecánicamente. Tu único trabajo es <span className="text-foreground font-medium">no interferir</span>.
           </p>
           <p>
-            Every manual intervention is a vote against your own system. The data on the Pattern Intelligence page proves this — interventions cost money.
+            Cada intervención manual es un voto contra tu propio sistema. Los datos en la página de Inteligencia de Patrones lo demuestran — las intervenciones cuestan dinero.
           </p>
           <p className="text-primary font-medium italic">
-            Discipline in execution beats intelligence in analysis.
+            La disciplina en la ejecución supera a la inteligencia en el análisis.
           </p>
         </div>
       </ManualSection>
 
       {/* VIX Reference */}
-      <ManualSection icon={BarChart3} title="VIX Reference Table">
+      <ManualSection icon={BarChart3} title="Tabla de Referencia VIX">
         <div className="space-y-2">
-          <VixRow range="< 25" status="Normal" color="text-success" action="Trade normally. Full position size." />
-          <VixRow range="25 — 35" status="Elevated" color="text-yellow-500" action="Caution. Only top-ranked instruments." />
-          <VixRow range="35 — 45" status="High" color="text-orange-500" action="Reduce size by 50%. Extra selectivity." />
-          <VixRow range="> 45" status="Extreme" color="text-destructive" action="NO TRADING. Wait for conditions to normalize." />
+          <VixRow range="< 25" status="Normal" color="text-success" action="Opera normalmente. Tamaño de posición completo." />
+          <VixRow range="25 — 35" status="Elevado" color="text-yellow-500" action="Cautela. Solo instrumentos mejor clasificados." />
+          <VixRow range="35 — 45" status="Alto" color="text-orange-500" action="Reduce tamaño un 50%. Selectividad extra." />
+          <VixRow range="> 45" status="Extremo" color="text-destructive" action="NO OPERAR. Espera a que las condiciones se normalicen." />
         </div>
       </ManualSection>
     </div>

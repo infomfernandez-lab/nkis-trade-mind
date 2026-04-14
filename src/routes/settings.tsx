@@ -8,8 +8,8 @@ export const Route = createFileRoute('/settings')({
   component: SettingsPage,
   head: () => ({
     meta: [
-      { title: 'Settings — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Account and system configuration.' },
+      { title: 'Ajustes — CAP Trading' },
+      { name: 'description', content: 'Configuración de cuenta y sistema.' },
     ],
   }),
 });
@@ -43,7 +43,7 @@ function SettingsPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading settings...</span>
+        <span className="ml-2 text-sm text-muted-foreground">Cargando ajustes...</span>
       </div>
     );
   }
@@ -51,7 +51,7 @@ function SettingsPage() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">Failed to load settings: {error.message}</p>
+        <p className="text-sm text-destructive">Error al cargar ajustes: {error.message}</p>
       </div>
     );
   }
@@ -66,8 +66,8 @@ function SettingsPage() {
       vix_block_threshold: parseFloat(vixBlock) || 45,
       vix_caution_threshold: parseFloat(vixCaution) || 25,
     }, {
-      onSuccess: () => toast.success('Settings saved'),
-      onError: (e) => toast.error(`Failed to save: ${e.message}`),
+      onSuccess: () => toast.success('Ajustes guardados'),
+      onError: (e) => toast.error(`Error al guardar: ${e.message}`),
     });
   };
 
@@ -75,8 +75,8 @@ function SettingsPage() {
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Account and system configuration</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Ajustes</h1>
+          <p className="text-sm text-muted-foreground mt-1">Configuración de cuenta y sistema</p>
         </div>
         <button
           onClick={handleSave}
@@ -84,30 +84,30 @@ function SettingsPage() {
           className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           {updateSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Save Changes
+          Guardar Cambios
         </button>
       </div>
 
-      <SettingsCard title="Account" icon={SettingsIcon}>
+      <SettingsCard title="Cuenta" icon={SettingsIcon}>
         <FieldGroup>
           <InputField label="Broker" value={broker} onChange={setBroker} />
-          <InputField label="Account Number" value={accountNumber} onChange={setAccountNumber} />
+          <InputField label="Número de Cuenta" value={accountNumber} onChange={setAccountNumber} />
           <InputField label="Balance" value={balance} onChange={setBalance} />
         </FieldGroup>
       </SettingsCard>
 
-      <SettingsCard title="Risk Configuration" icon={SettingsIcon}>
+      <SettingsCard title="Configuración de Riesgo" icon={SettingsIcon}>
         <FieldGroup>
-          <InputField label="Risk Per Trade (%)" value={riskPerTrade} onChange={setRiskPerTrade} />
-          <InputField label="Max Open Positions" value={maxOpenPositions} onChange={setMaxOpenPositions} />
-          <InputField label="VIX Block Threshold" value={vixBlock} onChange={setVixBlock} />
-          <InputField label="VIX Caution Threshold" value={vixCaution} onChange={setVixCaution} />
+          <InputField label="Riesgo por Trade (%)" value={riskPerTrade} onChange={setRiskPerTrade} />
+          <InputField label="Máx. Posiciones Abiertas" value={maxOpenPositions} onChange={setMaxOpenPositions} />
+          <InputField label="Umbral VIX Bloqueo" value={vixBlock} onChange={setVixBlock} />
+          <InputField label="Umbral VIX Precaución" value={vixCaution} onChange={setVixCaution} />
         </FieldGroup>
       </SettingsCard>
 
-      <SettingsCard title="MT5 Sync API Key" icon={Key}>
+      <SettingsCard title="Clave API Sincronización MT5" icon={Key}>
         <p className="text-sm text-muted-foreground mb-3">
-          Use this key in your Python sync script as the Authorization header.
+          Usa esta clave en tu script Python de sincronización como header de Authorization.
         </p>
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-input border border-border rounded-md px-3 py-2 font-data text-sm text-foreground/80 overflow-hidden">
@@ -117,20 +117,20 @@ function SettingsPage() {
             onClick={() => setShowKey(!showKey)}
             className="px-3 py-2 rounded-md bg-secondary text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            {showKey ? 'Hide' : 'Show'}
+            {showKey ? 'Ocultar' : 'Mostrar'}
           </button>
         </div>
       </SettingsCard>
 
-      <SettingsCard title="Data Management" icon={Download}>
+      <SettingsCard title="Gestión de Datos" icon={Download}>
         <div className="flex flex-wrap gap-3">
           <button className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
             <Download className="w-4 h-4" />
-            Export All Data (JSON)
+            Exportar Datos (JSON)
           </button>
           <button className="flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-foreground text-sm font-medium hover:bg-accent transition-colors">
             <Upload className="w-4 h-4" />
-            Import Backup
+            Importar Backup
           </button>
         </div>
       </SettingsCard>

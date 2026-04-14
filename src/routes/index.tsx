@@ -16,8 +16,8 @@ export const Route = createFileRoute('/')({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: 'Dashboard — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Real-time trading overview and performance metrics.' },
+      { title: 'Panel — CAP Trading' },
+      { name: 'description', content: 'Resumen en tiempo real de rendimiento y métricas de trading.' },
     ],
   }),
 });
@@ -30,7 +30,7 @@ function Dashboard() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Loading dashboard...</span>
+        <span className="ml-2 text-sm text-muted-foreground">Cargando panel...</span>
       </div>
     );
   }
@@ -38,7 +38,7 @@ function Dashboard() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">Failed to load data: {error.message}</p>
+        <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
       </div>
     );
   }
@@ -56,12 +56,12 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Mission control — Sistema 1</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Panel</h1>
+          <p className="text-sm text-muted-foreground mt-1">Centro de control — Sistema 1</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground text-sm">No trades yet. Connect your MT5 sync script to start tracking.</p>
-          <p className="text-xs text-muted-foreground mt-2">Go to Settings to get your API key for the sync script.</p>
+          <p className="text-muted-foreground text-sm">Aún no hay trades. Conecta tu script de sincronización MT5 para empezar.</p>
+          <p className="text-xs text-muted-foreground mt-2">Ve a Ajustes para obtener tu clave API para el script de sincronización.</p>
         </div>
       </div>
     );
@@ -70,37 +70,37 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Mission control — Sistema 1</p>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Panel</h1>
+        <p className="text-sm text-muted-foreground mt-1">Centro de control — Sistema 1</p>
       </div>
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Trades" value={String(stats.totalTrades)} sub={`${stats.wins}W / ${stats.losses}L`} />
-        <StatCard label="Avg Win" value={formatCurrency(wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0)} positive />
-        <StatCard label="Avg Loss" value={formatCurrency(losses.length > 0 ? losses.reduce((s, t) => s + t.netPnl, 0) / losses.length : 0)} />
-        <StatCard label="Best Trade" value={formatCurrency(closedTrades.length > 0 ? Math.max(...closedTrades.map(t => t.netPnl)) : 0)} positive />
+        <StatCard label="Ganancia Media" value={formatCurrency(wins.length > 0 ? wins.reduce((s, t) => s + t.netPnl, 0) / wins.length : 0)} positive />
+        <StatCard label="Pérdida Media" value={formatCurrency(losses.length > 0 ? losses.reduce((s, t) => s + t.netPnl, 0) / losses.length : 0)} />
+        <StatCard label="Mejor Trade" value={formatCurrency(closedTrades.length > 0 ? Math.max(...closedTrades.map(t => t.netPnl)) : 0)} positive />
       </div>
 
       {/* Advanced KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={<Target className="w-4 h-4 text-primary" />} label="Expectancy" value={`€${kpis.expectancy.toFixed(2)}`} positive={kpis.expectancy >= 0} tooltip="(WinRate × AvgWin) - (LossRate × AvgLoss)" />
-        <KpiCard icon={<TrendingUp className="w-4 h-4 text-success" />} label="Profit Factor" value={kpis.profitFactor === Infinity ? '∞' : kpis.profitFactor.toFixed(2)} positive={kpis.profitFactor >= 1} tooltip="Gross Profit / Gross Loss" />
-        <KpiCard icon={<Activity className="w-4 h-4 text-primary" />} label="Recovery Factor" value={kpis.recoveryFactor === Infinity ? '∞' : kpis.recoveryFactor.toFixed(2)} positive={kpis.recoveryFactor >= 1} tooltip="Net P&L / Max Drawdown" />
-        <KpiCard icon={<ArrowDown className="w-4 h-4 text-destructive" />} label="Current Drawdown" value={`€${kpis.currentDrawdown.toFixed(0)}`} sub={`${kpis.currentDrawdownPct.toFixed(1)}% from peak`} positive={kpis.currentDrawdown === 0} />
+        <KpiCard icon={<Target className="w-4 h-4 text-primary" />} label="Esperanza" value={`€${kpis.expectancy.toFixed(2)}`} positive={kpis.expectancy >= 0} tooltip="(WinRate × AvgWin) - (LossRate × AvgLoss)" />
+        <KpiCard icon={<TrendingUp className="w-4 h-4 text-success" />} label="Profit Factor" value={kpis.profitFactor === Infinity ? '∞' : kpis.profitFactor.toFixed(2)} positive={kpis.profitFactor >= 1} tooltip="Beneficio Bruto / Pérdida Bruta" />
+        <KpiCard icon={<Activity className="w-4 h-4 text-primary" />} label="Recovery Factor" value={kpis.recoveryFactor === Infinity ? '∞' : kpis.recoveryFactor.toFixed(2)} positive={kpis.recoveryFactor >= 1} tooltip="P&L Neto / Max Drawdown" />
+        <KpiCard icon={<ArrowDown className="w-4 h-4 text-destructive" />} label="Drawdown Actual" value={`€${kpis.currentDrawdown.toFixed(0)}`} sub={`${kpis.currentDrawdownPct.toFixed(1)}% desde máximo`} positive={kpis.currentDrawdown === 0} />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Max Win Streak" value={String(kpis.maxConsecutiveWins)} sub="consecutive" positive />
-        <StatCard label="Max Loss Streak" value={String(kpis.maxConsecutiveLosses)} sub="consecutive" />
-        <KpiCard icon={<Timer className="w-4 h-4 text-success" />} label="Avg Duration (W)" value={`${kpis.avgDurationWinners.toFixed(1)}h`} />
-        <KpiCard icon={<Timer className="w-4 h-4 text-destructive" />} label="Avg Duration (L)" value={`${kpis.avgDurationLosers.toFixed(1)}h`} />
+        <StatCard label="Racha Máx. Victorias" value={String(kpis.maxConsecutiveWins)} sub="consecutivas" positive />
+        <StatCard label="Racha Máx. Pérdidas" value={String(kpis.maxConsecutiveLosses)} sub="consecutivas" />
+        <KpiCard icon={<Timer className="w-4 h-4 text-success" />} label="Duración Media (W)" value={`${kpis.avgDurationWinners.toFixed(1)}h`} />
+        <KpiCard icon={<Timer className="w-4 h-4 text-destructive" />} label="Duración Media (L)" value={`${kpis.avgDurationLosers.toFixed(1)}h`} />
       </div>
 
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-          <h2 className="font-display text-sm font-semibold text-foreground mb-4">Equity Curve</h2>
+          <h2 className="font-display text-sm font-semibold text-foreground mb-4">Curva de Equity</h2>
           <div className="h-64 lg:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityCurve} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -129,7 +129,7 @@ function Dashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
         {monthlyPnl.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-            <h2 className="font-display text-sm font-semibold text-foreground mb-4">Monthly P&L</h2>
+            <h2 className="font-display text-sm font-semibold text-foreground mb-4">P&L Mensual</h2>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyPnl} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -149,7 +149,7 @@ function Dashboard() {
 
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
           <h2 className="font-display text-sm font-semibold text-foreground mb-4">
-            Open Positions <span className="text-muted-foreground font-normal">({openTrades.length})</span>
+            Posiciones Abiertas <span className="text-muted-foreground font-normal">({openTrades.length})</span>
           </h2>
           <div className="space-y-3">
             {openTrades.map(trade => (
@@ -160,7 +160,7 @@ function Dashboard() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{trade.symbol}</div>
-                    <div className="text-xs text-muted-foreground font-data">{trade.lotSize} lots</div>
+                    <div className="text-xs text-muted-foreground font-data">{trade.lotSize} lotes</div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -172,7 +172,7 @@ function Dashboard() {
               </div>
             ))}
             {openTrades.length === 0 && (
-              <div className="text-center py-8 text-sm text-muted-foreground">No open positions</div>
+              <div className="text-center py-8 text-sm text-muted-foreground">Sin posiciones abiertas</div>
             )}
           </div>
         </div>
@@ -181,17 +181,17 @@ function Dashboard() {
       {/* Recent Closed Trades */}
       {recentTrades.length > 0 && (
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-          <h2 className="font-display text-sm font-semibold text-foreground mb-4">Recent Trades</h2>
+          <h2 className="font-display text-sm font-semibold text-foreground mb-4">Trades Recientes</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Symbol</th>
+                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Símbolo</th>
                   <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Dir</th>
-                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Entry</th>
+                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Entrada</th>
                   <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L</th>
-                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Duration</th>
-                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Close</th>
+                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Duración</th>
+                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Cierre</th>
                 </tr>
               </thead>
               <tbody>

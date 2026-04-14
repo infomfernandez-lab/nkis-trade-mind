@@ -6,8 +6,8 @@ export const Route = createFileRoute('/login')({
   component: LoginPage,
   head: () => ({
     meta: [
-      { title: 'Sign In — NKIS Trading Intelligence' },
-      { name: 'description', content: 'Sign in to your trading intelligence platform.' },
+      { title: 'Iniciar Sesión — CAP Trading' },
+      { name: 'description', content: 'Accede a tu plataforma de inteligencia de trading.' },
     ],
   }),
 });
@@ -33,7 +33,7 @@ function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess('Account created. Check your email to confirm, then sign in.');
+        setSuccess('Cuenta creada. Revisa tu email para confirmar y luego inicia sesión.');
       }
     } else {
       const { error } = await signIn(email, password);
@@ -51,14 +51,14 @@ function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-            <span className="text-primary">NKIS</span> Trading
+            <span className="text-primary">CAP</span> Trading
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Intelligence Platform</p>
+          <p className="text-sm text-muted-foreground mt-1">Sistema 1 — Trend Following</p>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-6">
           <h2 className="font-display text-lg font-semibold mb-4">
-            {isSignUp ? 'Create Account' : 'Sign In'}
+            {isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,11 +70,11 @@ function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="trader@example.com"
+                placeholder="trader@ejemplo.com"
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Password</label>
+              <label className="text-xs text-muted-foreground mb-1 block">Contraseña</label>
               <input
                 type="password"
                 required
@@ -102,7 +102,7 @@ function LoginPage() {
               disabled={loading}
               className="w-full rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? 'Cargando...' : isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
             </button>
           </form>
 
@@ -111,7 +111,7 @@ function LoginPage() {
               onClick={() => { setIsSignUp(!isSignUp); setError(''); setSuccess(''); }}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Crea una'}
             </button>
           </div>
         </div>

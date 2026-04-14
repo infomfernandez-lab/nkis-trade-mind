@@ -10,11 +10,11 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold font-display text-primary">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">The page you're looking for doesn't exist.</p>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página no encontrada</h2>
+        <p className="mt-2 text-sm text-muted-foreground">La página que buscas no existe.</p>
         <div className="mt-6">
           <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-            Go home
+            Ir al inicio
           </Link>
         </div>
       </div>
@@ -31,12 +31,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NKIS Trading Intelligence" },
-      { name: "description", content: "Professional trading journal and analytics for systematic trend-following." },
-      { property: "og:title", content: "NKIS Trading Intelligence" },
-      { name: "twitter:title", content: "NKIS Trading Intelligence" },
-      { property: "og:description", content: "Professional trading journal and analytics for systematic trend-following." },
-      { name: "twitter:description", content: "Professional trading journal and analytics for systematic trend-following." },
+      { title: "CAP Trading — Sistema 1" },
+      { name: "description", content: "Diario de trading profesional y analítica para trend-following sistemático." },
+      { property: "og:title", content: "CAP Trading — Sistema 1" },
+      { name: "twitter:title", content: "CAP Trading — Sistema 1" },
+      { property: "og:description", content: "Diario de trading profesional y analítica para trend-following sistemático." },
+      { name: "twitter:description", content: "Diario de trading profesional y analítica para trend-following sistemático." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8d012a60-1ca9-4518-859d-f03c2b405e2f/id-preview-d977ba01--8a5c77a3-8d12-4dcf-b21a-f46bcb0616f9.lovable.app-1775921562718.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8d012a60-1ca9-4518-859d-f03c2b405e2f/id-preview-d977ba01--8a5c77a3-8d12-4dcf-b21a-f46bcb0616f9.lovable.app-1775921562718.png" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -55,7 +55,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head><HeadContent /></head>
       <body>{children}<Scripts /></body>
     </html>
@@ -95,9 +95,9 @@ function AuthGate() {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="font-display text-lg font-bold text-foreground">
-            <span className="text-primary">NKIS</span> Trading
+            <span className="text-primary">CAP</span> Trading
           </h1>
-          <p className="text-xs text-muted-foreground mt-2">Loading...</p>
+          <p className="text-xs text-muted-foreground mt-2">Cargando...</p>
         </div>
       </div>
     );
