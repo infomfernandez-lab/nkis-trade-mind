@@ -95,10 +95,12 @@ function useScannerSessions() {
       const { data, error } = await supabase
         .from('scanner_sessions')
         .select('*')
-        .order('session_date', { ascending: false });
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data as ScannerSession[];
     },
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 }
 
