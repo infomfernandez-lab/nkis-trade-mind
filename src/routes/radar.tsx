@@ -68,23 +68,30 @@ function useScannerSessions() {
   });
 }
 
+function matchesBroker(session: ScannerSession, broker: string): boolean {
+  const val = (session.broker ?? '').toLowerCase();
+  if (broker === 'fxpro') return val.includes('fxpro') || val === '';
+  // darwinex matches 'darwinex' or empty/missing broker
+  return val.includes('darwinex') || val === '';
+}
+
 function getLatestForBroker(sessions: ScannerSession[], broker: string): ScannerSession | null {
-  const withBroker = sessions.filter(s => (s as any).broker === broker);
-  if (withBroker.length > 0) return withBroker[0];
-  if (broker === 'darwinex') {
-    const withoutBroker = sessions.filter(s => !(s as any).broker);
-    return withoutBroker[0] || null;
-  }
-  return null;
+  // For darwinex, empty broker matches; for fxpro only explicit matches unless broker is empty
+  const matching = sessions.filter(s => {
+    const val = (s.broker ?? '').toLowerCase();
+    if (broker === 'fxpro') return val.includes('fxpro');
+    return val.includes('darwinex') || val === '';
+  });
+  return matching[0] || null;
 }
 
 function getHistoryForBroker(sessions: ScannerSession[], broker: string): ScannerSession[] {
-  const withBroker = sessions.filter(s => (s as any).broker === broker);
-  if (withBroker.length > 0) return withBroker;
-  if (broker === 'darwinex') {
-    return sessions.filter(s => !(s as any).broker);
-  }
-  return [];
+  const matching = sessions.filter(s => {
+    const val = (s.broker ?? '').toLowerCase();
+    if (broker === 'fxpro') return val.includes('fxpro');
+    return val.includes('darwinex') || val === '';
+  });
+  return matching;
 }
 
 const ADX_STATE_STYLES: Record<string, string> = {
