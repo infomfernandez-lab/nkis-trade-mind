@@ -330,11 +330,15 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChar
   };
 
   return (
-    <div className={`
-      ${isEven ? 'bg-card' : 'bg-muted/20'}
-      ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
-      hover:bg-accent/50 transition-colors
-    `}>
+    <div
+      onClick={onClickChart}
+      className={`
+        cursor-pointer
+        ${isEven ? 'bg-card' : 'bg-muted/20'}
+        ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
+        hover:bg-accent/50 transition-colors
+      `}
+    >
       {/* Desktop row */}
       <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2.5">
         {/* Rank */}
