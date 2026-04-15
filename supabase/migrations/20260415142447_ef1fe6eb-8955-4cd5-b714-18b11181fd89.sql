@@ -1,0 +1,1 @@
+ALTER TABLE public.scanner_sessions ADD COLUMN broker text NOT NULL DEFAULT 'darwinex';
