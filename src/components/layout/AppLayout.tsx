@@ -2,7 +2,7 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Eye
+  Settings, Menu, X, LogOut, Eye, Radar
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
