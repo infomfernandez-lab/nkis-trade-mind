@@ -13,6 +13,9 @@ import {
 import { computeDashboardKpis, computeAdvancedMetrics } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { AdvancedMetricsSection } from '@/components/AdvancedMetrics';
+import { ScannerSessionPanel } from '@/components/ScannerSessionPanel';
+import { useAddToWatchlist } from '@/hooks/use-watchlist';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
