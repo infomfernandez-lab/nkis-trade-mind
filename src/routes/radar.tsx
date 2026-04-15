@@ -213,7 +213,7 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   }
 
   const instruments: ScannerInstrument[] = Array.isArray(activeSession.top_instruments)
-    ? (activeSession.top_instruments as unknown as ScannerInstrument[]).slice(0, 20)
+    ? (activeSession.top_instruments as unknown as ScannerInstrumentRaw[]).slice(0, 20).map((raw, i) => normalizeInstrument(raw, i))
     : [];
 
   const correlations: Correlation[] = Array.isArray(activeSession.correlations_detected)
