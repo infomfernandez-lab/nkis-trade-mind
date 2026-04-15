@@ -13,6 +13,7 @@ import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RadarRouteImport } from './routes/radar'
 import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as LoginRouteImport } from './routes/login'
@@ -38,6 +39,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RadarRoute = RadarRouteImport.update({
+  id: '/radar',
+  path: '/radar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatternsRoute = PatternsRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/radar'
     | '/reports'
     | '/settings'
     | '/trades'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/radar'
     | '/reports'
     | '/settings'
     | '/trades'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/radar'
     | '/reports'
     | '/settings'
     | '/trades'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManualRoute: typeof ManualRoute
   PatternsRoute: typeof PatternsRoute
+  RadarRoute: typeof RadarRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TradesRoute: typeof TradesRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/radar': {
+      id: '/radar'
+      path: '/radar'
+      fullPath: '/radar'
+      preLoaderRoute: typeof RadarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patterns': {
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManualRoute: ManualRoute,
   PatternsRoute: PatternsRoute,
+  RadarRoute: RadarRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TradesRoute: TradesRoute,
