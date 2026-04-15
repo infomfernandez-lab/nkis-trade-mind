@@ -132,6 +132,9 @@ function Dashboard() {
       {/* Advanced Metrics */}
       <AdvancedMetricsSection m={advMetrics} />
 
+      {/* Scanner Session */}
+      <ScannerSessionPanel onWatch={handleWatchFromScanner} />
+
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
