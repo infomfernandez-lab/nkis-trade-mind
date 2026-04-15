@@ -101,6 +101,7 @@ function useScannerSessions() {
     },
     refetchOnWindowFocus: true,
     staleTime: 0,
+    gcTime: 0,
   });
 }
 
