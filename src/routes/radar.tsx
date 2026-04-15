@@ -3,13 +3,14 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Radar, Eye, TrendingUp, TrendingDown, AlertTriangle,
-  ChevronDown, ChevronUp, Clock
+  Radar, Eye, AlertTriangle,
+  ChevronDown, ChevronUp, Clock, Check
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { useAddToWatchlist } from '@/hooks/use-watchlist';
+import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
+import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/trade-utils';
@@ -68,10 +69,8 @@ function useScannerSessions() {
 }
 
 function getLatestForBroker(sessions: ScannerSession[], broker: string): ScannerSession | null {
-  // Try matching broker field first, then fallback to first session if no broker field exists
   const withBroker = sessions.filter(s => (s as any).broker === broker);
   if (withBroker.length > 0) return withBroker[0];
-  // If no sessions have broker field, show all for 'darwinex' tab as default
   if (broker === 'darwinex') {
     const withoutBroker = sessions.filter(s => !(s as any).broker);
     return withoutBroker[0] || null;
@@ -88,23 +87,28 @@ function getHistoryForBroker(sessions: ScannerSession[], broker: string): Scanne
   return [];
 }
 
-const ADX_COLORS: Record<string, string> = {
-  'ACELERANDO': 'text-success',
-  'SUBIENDO': 'text-emerald-400',
-  'ESTABLE': 'text-yellow-400',
-  'AGOTANDO': 'text-destructive',
+const ADX_STATE_STYLES: Record<string, string> = {
+  'ACELERANDO': 'bg-success/20 text-success',
+  'SUBIENDO': 'bg-emerald-400/20 text-emerald-400',
+  'ESTABLE': 'bg-yellow-400/20 text-yellow-400',
+  'AGOTANDO': 'bg-destructive/20 text-destructive',
 };
 
-const MA50_COLORS: Record<string, string> = {
-  'MUY CERCA': 'text-success',
-  'CERCA': 'text-emerald-400',
-  'ALEJADO': 'text-yellow-400',
-  'SOBREEXTEND': 'text-destructive',
+const MA50_STYLES: Record<string, string> = {
+  'MUY CERCA': 'bg-success/20 text-success',
+  'CERCA': 'bg-yellow-400/20 text-yellow-400',
+  'ALEJADO': 'bg-orange-400/20 text-orange-400',
+  'SOBREEXTEND': 'bg-destructive/20 text-destructive',
 };
 
 function RadarPage() {
   const { data: sessions, isLoading } = useScannerSessions();
+  const { data: watchlistItems } = useWatchlist();
+  const { openTrades } = useAllTrades();
   const [broker, setBroker] = useState('darwinex');
+
+  const openSymbols = new Set((openTrades || []).map(t => t.symbol));
+  const watchlistSymbols = new Set((watchlistItems || []).map(w => w.symbol));
 
   if (isLoading) {
     return (
@@ -132,17 +136,22 @@ function RadarPage() {
         </TabsList>
 
         <TabsContent value="darwinex">
-          <BrokerScanView sessions={allSessions} broker="darwinex" />
+          <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
         </TabsContent>
         <TabsContent value="fxpro">
-          <BrokerScanView sessions={allSessions} broker="fxpro" />
+          <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function BrokerScanView({ sessions, broker }: { sessions: ScannerSession[]; broker: string }) {
+function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
+  sessions: ScannerSession[];
+  broker: string;
+  openSymbols: Set<string>;
+  watchlistSymbols: Set<string>;
+}) {
   const latest = getLatestForBroker(sessions, broker);
   const history = getHistoryForBroker(sessions, broker);
   const [selectedSession, setSelectedSession] = useState<ScannerSession | null>(null);
@@ -177,10 +186,7 @@ function BrokerScanView({ sessions, broker }: { sessions: ScannerSession[]; brok
         <Clock className="w-4 h-4" />
         <span>Última sesión: <span className="font-data font-semibold text-foreground">{formatDate(activeSession.session_date)}</span></span>
         {selectedSession && (
-          <button
-            onClick={() => setSelectedSession(null)}
-            className="ml-2 text-xs text-primary hover:underline"
-          >
+          <button onClick={() => setSelectedSession(null)} className="ml-2 text-xs text-primary hover:underline">
             ← Volver a la última
           </button>
         )}
@@ -201,16 +207,34 @@ function BrokerScanView({ sessions, broker }: { sessions: ScannerSession[]; brok
         </div>
       )}
 
-      {/* Instruments grid */}
+      {/* Table header */}
       {instruments.length === 0 ? (
-        <div className="text-center py-10 text-sm text-muted-foreground">
-          Sin instrumentos en esta sesión.
-        </div>
+        <div className="text-center py-10 text-sm text-muted-foreground">Sin instrumentos en esta sesión.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {instruments.map((inst, i) => (
-            <InstrumentCard key={`${inst.symbol}-${i}`} instrument={inst} />
-          ))}
+        <div className="rounded-lg border border-border overflow-hidden">
+          <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2 bg-muted/50 text-xs text-muted-foreground font-medium border-b border-border">
+            <span>#</span>
+            <span>Símbolo</span>
+            <span>Dir.</span>
+            <span>Score</span>
+            <span>ADX</span>
+            <span>Dist MA50</span>
+            <span>Mom.</span>
+            <span>Pend.</span>
+            <span>Estado</span>
+            <span className="text-right">Acción</span>
+          </div>
+          <div className="divide-y divide-border">
+            {instruments.map((inst, i) => (
+              <InstrumentRow
+                key={`${inst.symbol}-${i}`}
+                instrument={inst}
+                index={i}
+                isOpen={openSymbols.has(inst.symbol)}
+                isWatched={watchlistSymbols.has(inst.symbol)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -254,12 +278,18 @@ function BrokerScanView({ sessions, broker }: { sessions: ScannerSession[]; brok
   );
 }
 
-function InstrumentCard({ instrument: inst }: { instrument: ScannerInstrument }) {
+function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
+  instrument: ScannerInstrument;
+  index: number;
+  isOpen: boolean;
+  isWatched: boolean;
+}) {
   const addToWatchlist = useAddToWatchlist();
   const { user } = useAuth();
   const isAlcista = inst.direction?.toLowerCase() === 'alcista' || inst.direction?.toLowerCase() === 'buy';
-  const adxColor = ADX_COLORS[inst.adx_state?.toUpperCase() || ''] || 'text-muted-foreground';
-  const ma50Color = MA50_COLORS[inst.distance_to_ma50_label?.toUpperCase() || ''] || 'text-muted-foreground';
+  const adxStyle = ADX_STATE_STYLES[inst.adx_state?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
+  const ma50Style = MA50_STYLES[inst.distance_to_ma50_label?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
+  const isEven = index % 2 === 0;
 
   const handleWatch = () => {
     if (!user) return;
@@ -282,73 +312,157 @@ function InstrumentCard({ instrument: inst }: { instrument: ScannerInstrument })
   };
 
   return (
-    <div className={`rounded-lg border p-3 transition-colors ${
-      isAlcista ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'
-    }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-data text-muted-foreground">#{inst.rank}</span>
-        <Badge className={`text-[10px] px-1.5 py-0 ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
-          {isAlcista ? 'ALCISTA' : 'BAJISTA'}
-        </Badge>
-      </div>
+    <div className={`
+      ${isEven ? 'bg-card' : 'bg-muted/20'}
+      ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
+      hover:bg-accent/50 transition-colors
+    `}>
+      {/* Desktop row */}
+      <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2.5">
+        {/* Rank */}
+        <span className="font-mono font-bold text-sm text-yellow-400">#{inst.rank}</span>
 
-      {/* Symbol */}
-      <div className="font-semibold text-base mb-1">{inst.symbol}</div>
+        {/* Symbol */}
+        <span className="font-semibold text-sm text-foreground">{inst.symbol}</span>
 
-      {/* Score */}
-      <div className="text-2xl font-bold font-data text-yellow-400 mb-3">
-        {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
-      </div>
+        {/* Direction */}
+        <span>
+          <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
+            {isAlcista ? 'ALCISTA' : 'BAJISTA'}
+          </Badge>
+        </span>
 
-      {/* Metrics */}
-      <div className="space-y-1.5 text-xs">
-        {inst.adx_value != null && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">ADX</span>
-            <span className={`font-data font-semibold ${adxColor}`}>
-              {inst.adx_value} {inst.adx_state && <span className="text-[10px]">({inst.adx_state})</span>}
-            </span>
-          </div>
-        )}
-        {inst.distance_to_ma50 != null && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Dist MA50</span>
-            <span className={`font-data ${ma50Color}`}>
-              {inst.distance_to_ma50}% {inst.distance_to_ma50_label && <span className="text-[10px]">({inst.distance_to_ma50_label})</span>}
-            </span>
-          </div>
-        )}
-        {inst.momentum_20d != null && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Momentum 20d</span>
-            <span className="font-data">
+        {/* Score */}
+        <span className="font-data font-bold text-base text-yellow-400">
+          {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
+        </span>
+
+        {/* ADX */}
+        <span className="flex items-center gap-1.5 text-xs">
+          {inst.adx_value != null ? (
+            <>
+              <span className="font-data font-semibold text-foreground">{inst.adx_value}</span>
+              {inst.adx_state && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${adxStyle}`}>
+                  {inst.adx_state}
+                </span>
+              )}
+            </>
+          ) : <span className="text-muted-foreground">—</span>}
+        </span>
+
+        {/* Dist MA50 */}
+        <span className="flex items-center gap-1.5 text-xs">
+          {inst.distance_to_ma50 != null ? (
+            <>
+              <span className="font-data text-foreground">{inst.distance_to_ma50}%</span>
+              {inst.distance_to_ma50_label && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${ma50Style}`}>
+                  {inst.distance_to_ma50_label}
+                </span>
+              )}
+            </>
+          ) : <span className="text-muted-foreground">—</span>}
+        </span>
+
+        {/* Momentum */}
+        <span className="text-xs font-data">
+          {inst.momentum_20d != null ? (
+            <>
               {inst.momentum_20d}%{' '}
               <span className={inst.momentum_aligned ? 'text-success' : 'text-destructive'}>
                 {inst.momentum_aligned ? '✓' : '✗'}
               </span>
+            </>
+          ) : <span className="text-muted-foreground">—</span>}
+        </span>
+
+        {/* Pendiente */}
+        <span className="text-xs text-muted-foreground">
+          {inst.pendiente_medias || '—'}
+        </span>
+
+        {/* Status badges */}
+        <span>
+          {isOpen && (
+            <Badge className="text-[10px] px-1.5 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">
+              EN POSICIÓN
+            </Badge>
+          )}
+        </span>
+
+        {/* Action */}
+        <span className="text-right">
+          {isWatched ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
+              <Check className="w-3 h-3" /> Vigilando
             </span>
-          </div>
-        )}
-        {inst.pendiente_medias && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Pendiente</span>
-            <span className={`font-data ${inst.pendiente_medias === 'AMBAS' ? 'text-success' : inst.pendiente_medias === 'UNA' ? 'text-yellow-400' : 'text-destructive'}`}>
-              {inst.pendiente_medias}
-            </span>
-          </div>
-        )}
+          ) : (
+            <button
+              onClick={handleWatch}
+              disabled={addToWatchlist.isPending}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-50"
+            >
+              <Eye className="w-3 h-3" />
+              Vigilar +
+            </button>
+          )}
+        </span>
       </div>
 
-      {/* Watch button */}
-      <button
-        onClick={handleWatch}
-        disabled={addToWatchlist.isPending}
-        className="mt-3 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-      >
-        <Eye className="w-3 h-3" />
-        Vigilar +
-      </button>
+      {/* Mobile row */}
+      <div className="lg:hidden px-3 py-3 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="font-mono font-bold text-sm text-yellow-400 w-8">#{inst.rank}</span>
+          <span className="font-semibold text-sm text-foreground flex-1">{inst.symbol}</span>
+          <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
+            {isAlcista ? 'ALCISTA' : 'BAJISTA'}
+          </Badge>
+          <span className="font-data font-bold text-base text-yellow-400">
+            {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap text-xs">
+          {inst.adx_value != null && (
+            <span className="flex items-center gap-1">
+              <span className="text-muted-foreground">ADX</span>
+              <span className="font-data font-semibold">{inst.adx_value}</span>
+              {inst.adx_state && <span className={`px-1 py-0.5 rounded text-[10px] font-semibold ${adxStyle}`}>{inst.adx_state}</span>}
+            </span>
+          )}
+          {inst.distance_to_ma50 != null && (
+            <span className="flex items-center gap-1">
+              <span className="text-muted-foreground">MA50</span>
+              <span className="font-data">{inst.distance_to_ma50}%</span>
+              {inst.distance_to_ma50_label && <span className={`px-1 py-0.5 rounded text-[10px] font-semibold ${ma50Style}`}>{inst.distance_to_ma50_label}</span>}
+            </span>
+          )}
+          {inst.momentum_20d != null && (
+            <span className="font-data">
+              Mom {inst.momentum_20d}% <span className={inst.momentum_aligned ? 'text-success' : 'text-destructive'}>{inst.momentum_aligned ? '✓' : '✗'}</span>
+            </span>
+          )}
+          {inst.pendiente_medias && <span className="text-muted-foreground">{inst.pendiente_medias}</span>}
+          {isOpen && (
+            <Badge className="text-[10px] px-1.5 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">EN POSICIÓN</Badge>
+          )}
+        </div>
+        <div className="flex justify-end">
+          {isWatched ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
+              <Check className="w-3 h-3" /> Vigilando
+            </span>
+          ) : (
+            <button
+              onClick={handleWatch}
+              disabled={addToWatchlist.isPending}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-50"
+            >
+              <Eye className="w-3 h-3" /> Vigilar +
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
