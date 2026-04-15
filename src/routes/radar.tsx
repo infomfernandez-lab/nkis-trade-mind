@@ -284,6 +284,13 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
           </CollapsibleContent>
         </Collapsible>
       )}
+
+      <TradingViewChartDialog
+        open={!!chartInstrument}
+        onOpenChange={(open) => { if (!open) setChartInstrument(null); }}
+        instrument={chartInstrument}
+        broker={broker}
+      />
     </div>
   );
 }
