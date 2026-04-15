@@ -25,6 +25,24 @@ export const Route = createFileRoute('/radar')({
   }),
 });
 
+interface ScannerInstrumentRaw {
+  rank?: number;
+  symbol: string;
+  direction: string;
+  score: number;
+  adx?: number;
+  adx_value?: number;
+  adx_state?: string;
+  dist_ma50?: number;
+  distance_to_ma50?: number;
+  distance_to_ma50_label?: string;
+  momentum?: number;
+  momentum_20d?: number;
+  momentum_aligned?: boolean;
+  pendiente?: string;
+  pendiente_medias?: string;
+}
+
 interface ScannerInstrument {
   rank: number;
   symbol: string;
@@ -37,6 +55,22 @@ interface ScannerInstrument {
   momentum_20d?: number;
   momentum_aligned?: boolean;
   pendiente_medias?: string;
+}
+
+function normalizeInstrument(raw: ScannerInstrumentRaw, index: number): ScannerInstrument {
+  return {
+    rank: raw.rank ?? index + 1,
+    symbol: raw.symbol,
+    direction: raw.direction,
+    score: raw.score,
+    adx_value: raw.adx ?? raw.adx_value,
+    adx_state: raw.adx_state,
+    distance_to_ma50: raw.dist_ma50 ?? raw.distance_to_ma50,
+    distance_to_ma50_label: raw.distance_to_ma50_label,
+    momentum_20d: raw.momentum ?? raw.momentum_20d,
+    momentum_aligned: raw.momentum_aligned,
+    pendiente_medias: raw.pendiente ?? raw.pendiente_medias,
+  };
 }
 
 interface Correlation {
@@ -179,7 +213,7 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   }
 
   const instruments: ScannerInstrument[] = Array.isArray(activeSession.top_instruments)
-    ? (activeSession.top_instruments as unknown as ScannerInstrument[]).slice(0, 20)
+    ? (activeSession.top_instruments as unknown as ScannerInstrumentRaw[]).slice(0, 20).map((raw, i) => normalizeInstrument(raw, i))
     : [];
 
   const correlations: Correlation[] = Array.isArray(activeSession.correlations_detected)
