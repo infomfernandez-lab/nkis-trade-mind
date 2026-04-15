@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
 
+const WatchlistRoute = WatchlistRouteImport.update({
+  id: '/watchlist',
+  path: '/watchlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TradesRoute = TradesRouteImport.update({
   id: '/trades',
   path: '/trades',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRoute
+  '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/trades'
+    | '/watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
   fileRoutesById: FileRoutesById
@@ -143,12 +155,20 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   TradesRoute: typeof TradesRoute
+  WatchlistRoute: typeof WatchlistRoute
   ApiSyncScannerRoute: typeof ApiSyncScannerRoute
   ApiSyncTradesRoute: typeof ApiSyncTradesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/watchlist': {
+      id: '/watchlist'
+      path: '/watchlist'
+      fullPath: '/watchlist'
+      preLoaderRoute: typeof WatchlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trades': {
       id: '/trades'
       path: '/trades'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   TradesRoute: TradesRoute,
+  WatchlistRoute: WatchlistRoute,
   ApiSyncScannerRoute: ApiSyncScannerRoute,
   ApiSyncTradesRoute: ApiSyncTradesRoute,
 }

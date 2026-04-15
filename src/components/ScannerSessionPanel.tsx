@@ -46,7 +46,7 @@ export function ScannerSessionPanel({ onWatch }: { onWatch?: (instrument: Scanne
   }
 
   const instruments: ScannerInstrument[] = Array.isArray(session?.top_instruments)
-    ? (session.top_instruments as ScannerInstrument[]).slice(0, 10)
+    ? (session.top_instruments as unknown as ScannerInstrument[]).slice(0, 10)
     : [];
 
   return (
