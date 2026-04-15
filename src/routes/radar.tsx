@@ -309,7 +309,8 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChar
   const ma50Style = MA50_STYLES[inst.distance_to_ma50_label?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
   const isEven = index % 2 === 0;
 
-  const handleWatch = () => {
+  const handleWatch = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user) return;
     addToWatchlist.mutate({
       symbol: inst.symbol,
