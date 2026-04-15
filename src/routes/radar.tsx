@@ -14,6 +14,7 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/trade-utils';
+import { TradingViewChartDialog } from '@/components/TradingViewChart';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
