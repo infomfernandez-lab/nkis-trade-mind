@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Radar, Eye, AlertTriangle,
-  ChevronDown, ChevronUp, Clock, Check
+  ChevronDown, ChevronUp, Clock, Check, RefreshCw
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
@@ -101,6 +101,7 @@ function useScannerSessions() {
     },
     refetchOnWindowFocus: true,
     staleTime: 0,
+    gcTime: 0,
   });
 }
 
@@ -145,7 +146,7 @@ const MA50_STYLES: Record<string, string> = {
 };
 
 function RadarPage() {
-  const { data: sessions, isLoading } = useScannerSessions();
+  const { data: sessions, isLoading, refetch, isFetching } = useScannerSessions();
   const { data: watchlistItems } = useWatchlist();
   const { openTrades } = useAllTrades();
   const [broker, setBroker] = useState('darwinex');
@@ -168,9 +169,19 @@ function RadarPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-xl font-bold flex items-center gap-2">
-        <Radar className="w-5 h-5 text-primary" /> Radar
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-xl font-bold flex items-center gap-2">
+          <Radar className="w-5 h-5 text-primary" /> Radar
+        </h1>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+          Actualizar
+        </button>
+      </div>
 
       <Tabs value={broker} onValueChange={setBroker}>
         <TabsList>
