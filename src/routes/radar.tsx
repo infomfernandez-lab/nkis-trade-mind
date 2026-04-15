@@ -241,6 +241,7 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
                 index={i}
                 isOpen={openSymbols.has(inst.symbol)}
                 isWatched={watchlistSymbols.has(inst.symbol)}
+                onClickChart={() => setChartInstrument(inst)}
               />
             ))}
           </div>
