@@ -164,6 +164,7 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   const history = getHistoryForBroker(sessions, broker);
   const [selectedSession, setSelectedSession] = useState<ScannerSession | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [chartInstrument, setChartInstrument] = useState<ScannerInstrument | null>(null);
 
   const activeSession = selectedSession || latest;
 
