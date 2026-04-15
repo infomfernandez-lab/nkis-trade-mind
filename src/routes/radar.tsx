@@ -295,11 +295,12 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   );
 }
 
-function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
+function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChart }: {
   instrument: ScannerInstrument;
   index: number;
   isOpen: boolean;
   isWatched: boolean;
+  onClickChart: () => void;
 }) {
   const addToWatchlist = useAddToWatchlist();
   const { user } = useAuth();
