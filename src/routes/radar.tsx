@@ -14,7 +14,6 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/trade-utils';
-import { TradingViewChartDialog } from '@/components/TradingViewChart';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -164,7 +163,6 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   const history = getHistoryForBroker(sessions, broker);
   const [selectedSession, setSelectedSession] = useState<ScannerSession | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [chartInstrument, setChartInstrument] = useState<ScannerInstrument | null>(null);
 
   const activeSession = selectedSession || latest;
 
@@ -241,7 +239,6 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
                 index={i}
                 isOpen={openSymbols.has(inst.symbol)}
                 isWatched={watchlistSymbols.has(inst.symbol)}
-                onClickChart={() => setChartInstrument(inst)}
               />
             ))}
           </div>
@@ -284,23 +281,15 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
           </CollapsibleContent>
         </Collapsible>
       )}
-
-      <TradingViewChartDialog
-        open={!!chartInstrument}
-        onOpenChange={(open) => { if (!open) setChartInstrument(null); }}
-        instrument={chartInstrument}
-        broker={broker}
-      />
     </div>
   );
 }
 
-function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChart }: {
+function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
   instrument: ScannerInstrument;
   index: number;
   isOpen: boolean;
   isWatched: boolean;
-  onClickChart: () => void;
 }) {
   const addToWatchlist = useAddToWatchlist();
   const { user } = useAuth();
@@ -309,8 +298,7 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChar
   const ma50Style = MA50_STYLES[inst.distance_to_ma50_label?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
   const isEven = index % 2 === 0;
 
-  const handleWatch = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleWatch = () => {
     if (!user) return;
     addToWatchlist.mutate({
       symbol: inst.symbol,
@@ -331,15 +319,11 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched, onClickChar
   };
 
   return (
-    <div
-      onClick={onClickChart}
-      className={`
-        cursor-pointer
-        ${isEven ? 'bg-card' : 'bg-muted/20'}
-        ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
-        hover:bg-accent/50 transition-colors
-      `}
-    >
+    <div className={`
+      ${isEven ? 'bg-card' : 'bg-muted/20'}
+      ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
+      hover:bg-accent/50 transition-colors
+    `}>
       {/* Desktop row */}
       <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2.5">
         {/* Rank */}
