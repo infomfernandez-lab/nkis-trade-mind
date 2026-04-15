@@ -236,6 +236,60 @@ export type Database = {
         }
         Relationships: []
       }
+      watchlist: {
+        Row: {
+          added_from_scanner: boolean | null
+          adx_state: string | null
+          adx_value: number | null
+          created_at: string
+          direction: string
+          distance_to_ma50: number | null
+          id: string
+          scanner_score: number | null
+          status: string
+          stochastic_level: number | null
+          symbol: string
+          trade_id: string | null
+          updated_at: string
+          user_id: string
+          watch_reason: string | null
+        }
+        Insert: {
+          added_from_scanner?: boolean | null
+          adx_state?: string | null
+          adx_value?: number | null
+          created_at?: string
+          direction?: string
+          distance_to_ma50?: number | null
+          id?: string
+          scanner_score?: number | null
+          status?: string
+          stochastic_level?: number | null
+          symbol: string
+          trade_id?: string | null
+          updated_at?: string
+          user_id: string
+          watch_reason?: string | null
+        }
+        Update: {
+          added_from_scanner?: boolean | null
+          adx_state?: string | null
+          adx_value?: number | null
+          created_at?: string
+          direction?: string
+          distance_to_ma50?: number | null
+          id?: string
+          scanner_score?: number | null
+          status?: string
+          stochastic_level?: number | null
+          symbol?: string
+          trade_id?: string | null
+          updated_at?: string
+          user_id?: string
+          watch_reason?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
