@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 
 const SYMBOL_MAP: Record<string, string> = {
   RB: 'NYMEX:RB1!', CL: 'NYMEX:CL1!', HO: 'NYMEX:HO1!', BZ: 'NYMEX:BZ1!',
@@ -14,7 +15,6 @@ const SYMBOL_MAP: Record<string, string> = {
 
 function mapSymbol(symbol: string, broker: string): string {
   if (broker === 'fxpro') return symbol;
-  // Strip contract month suffix: "RB_K" → "RB", "FDAX_M" → "FDAX"
   const base = symbol.replace(/_[A-Z]$/i, '');
   return SYMBOL_MAP[base] || symbol;
 }
@@ -36,50 +36,16 @@ interface Props {
 }
 
 export function TradingViewChartDialog({ open, onOpenChange, instrument, broker }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open || !instrument || !containerRef.current) return;
-    const el = containerRef.current;
-    el.innerHTML = '';
-
-    const tvSymbol = mapSymbol(instrument.symbol, broker);
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      autosize: true,
-      symbol: tvSymbol,
-      interval: 'D',
-      timezone: 'Europe/Madrid',
-      theme: 'dark',
-      style: '1',
-      locale: 'es',
-      backgroundColor: 'rgba(15, 23, 42, 1)',
-      gridColor: 'rgba(30, 41, 59, 0.5)',
-      hide_top_toolbar: false,
-      hide_legend: false,
-      save_image: false,
-      allow_symbol_change: true,
-      support_host: 'https://www.tradingview.com',
-    });
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'tradingview-widget-container__widget';
-    wrapper.style.height = '100%';
-    wrapper.style.width = '100%';
-    el.appendChild(wrapper);
-    el.appendChild(script);
-
-    return () => { el.innerHTML = ''; };
-  }, [open, instrument, broker]);
+  const [loading, setLoading] = useState(true);
 
   if (!instrument) return null;
 
+  const tvSymbol = mapSymbol(instrument.symbol, broker);
+  const iframeSrc = `https://www.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(tvSymbol)}&interval=D&hidesidetoolbar=0&hidetoptoolbar=0&theme=dark&style=1&locale=es&enable_publishing=false&hide_top_toolbar=false&save_image=false`;
   const isAlcista = instrument.direction?.toLowerCase() === 'alcista' || instrument.direction?.toLowerCase() === 'buy';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setLoading(true); onOpenChange(v); }}>
       <DialogContent className="max-w-5xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border space-y-1">
           <DialogTitle className="flex items-center gap-3 text-lg">
@@ -98,10 +64,26 @@ export function TradingViewChartDialog({ open, onOpenChange, instrument, broker 
             )}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Gráfico diario — {mapSymbol(instrument.symbol, broker)}
+            Gráfico diario — {tvSymbol}
           </DialogDescription>
         </DialogHeader>
-        <div ref={containerRef} className="flex-1 min-h-[600px]" />
+        <div className="flex-1 relative min-h-[600px]">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
+          <iframe
+            src={iframeSrc}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            allowTransparency
+            scrolling="no"
+            className="absolute inset-0"
+            onLoad={() => setLoading(false)}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
