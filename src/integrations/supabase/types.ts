@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       scanner_sessions: {
         Row: {
+          broker: string
           correlations_detected: Json | null
           created_at: string
           id: string
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          broker?: string
           correlations_detected?: Json | null
           created_at?: string
           id?: string
@@ -36,6 +38,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          broker?: string
           correlations_detected?: Json | null
           created_at?: string
           id?: string
