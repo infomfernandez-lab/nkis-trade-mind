@@ -4,17 +4,67 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
 const SYMBOL_MAP: Record<string, string> = {
-  RB: 'NYMEX:RB1!', CL: 'NYMEX:CL1!', HO: 'NYMEX:HO1!', BZ: 'NYMEX:BZ1!',
-  GC: 'COMEX:GC1!', SI: 'COMEX:SI1!', HG: 'COMEX:HG1!', PL: 'NYMEX:PL1!',
-  NG: 'NYMEX:NG1!', ES: 'CME:ES1!', NQ: 'CME:NQ1!', YM: 'CBOT:YM1!',
-  RTY: 'CME:RTY1!', FDAX: 'EUREX:FDAX1!', FESX: 'EUREX:FESX1!', FGBL: 'EUREX:FGBL1!',
-  ZC: 'CBOT:ZC1!', ZS: 'CBOT:ZS1!', ZL: 'CBOT:ZL1!', ZM: 'CBOT:ZM1!',
-  ZN: 'CBOT:ZN1!', KE: 'CBOT:KE1!', LE: 'CME:LE1!', HE: 'CME:HE1!',
-  '6E': 'CME:6E1!', '6J': 'CME:6J1!', '6A': 'CME:6A1!', '6B': 'CME:6B1!', '6C': 'CME:6C1!',
+  // Energía
+  RB_K: 'NYMEX:RB1!', RB_M: 'NYMEX:RB1!',
+  CL_K: 'NYMEX:CL1!', CL_M: 'NYMEX:CL1!',
+  HO_K: 'NYMEX:HO1!', HO_M: 'NYMEX:HO1!',
+  BZ_M: 'ICEEUR:B1!',  BZ_K: 'ICEEUR:B1!',
+  NG_K: 'NYMEX:NG1!',  NG_M: 'NYMEX:NG1!',
+  // Metales
+  GC_M: 'COMEX:GC1!',  GC_J: 'COMEX:GC1!',  GC_Z: 'COMEX:GC1!',
+  SI_K: 'COMEX:SI1!',  SI_M: 'COMEX:SI1!',   SI_Z: 'COMEX:SI1!',
+  HG_K: 'COMEX:HG1!',  HG_H: 'COMEX:HG1!',
+  PL_N: 'NYMEX:PL1!',  PL_F: 'NYMEX:PL1!',
+  // Índices USA
+  ES_M: 'CME:ES1!',    ES_H: 'CME:ES1!',
+  NQ_M: 'CME:NQ1!',
+  YM_M: 'CBOT:YM1!',
+  RTY_M: 'CME:RTY1!',
+  // Índices Europa
+  FDAX_M: 'EUREX:FDAX1!', FDAX_H: 'EUREX:FDAX1!',
+  FESX_M: 'EUREX:FESX1!', FESX_H: 'EUREX:FESX1!',
+  FGBL_M: 'EUREX:FGBL1!',
+  // Agrícolas
+  ZC_K: 'CBOT:ZC1!',
+  ZS_K: 'CBOT:ZS1!',
+  ZL_K: 'CBOT:ZL1!',
+  ZM_K: 'CBOT:ZM1!',
+  ZN_M: 'CBOT:ZN1!',
+  KE_K: 'CBOT:KE1!',
+  LE_M: 'CME:LE1!',
+  HE_K: 'CME:HE1!',
+  // Divisas
+  '6E_M': 'CME:6E1!',
+  '6J_M': 'CME:6J1!',
+  '6A_M': 'CME:6A1!',
+  '6B_M': 'CME:6B1!',
+  '6C_M': 'CME:6C1!',
+  '6N_M': 'CME:6N1!',
+  '6S_M': 'CME:6S1!',
+  // FXPro — usar directamente
+  XAUUSD: 'OANDA:XAUUSD',
+  XAGUSD: 'OANDA:XAGUSD',
+  EURUSD: 'OANDA:EURUSD',
+  GBPUSD: 'OANDA:GBPUSD',
+  USDJPY: 'OANDA:USDJPY',
+  USDCHF: 'OANDA:USDCHF',
+  AUDUSD: 'OANDA:AUDUSD',
+  USDCAD: 'OANDA:USDCAD',
+  US500:  'SP:SPX',
+  US30:   'DJ:DJI',
+  US100:  'NASDAQ:NDX',
+  GER40:  'EUREX:FDAX1!',
+  USOIL:  'NYMEX:CL1!',
+  UKOIL:  'ICEEUR:B1!',
+  BTCUSD: 'BITSTAMP:BTCUSD',
+  ETHUSD: 'BITSTAMP:ETHUSD',
 };
 
 function mapSymbol(symbol: string, broker: string): string {
-  if (broker === 'fxpro') return symbol;
+  // Try exact match first
+  if (SYMBOL_MAP[symbol]) return SYMBOL_MAP[symbol];
+  
+  // Try stripping contract month suffix for Darwinex futures (e.g., RB_K -> RB)
   const base = symbol.replace(/_[A-Z]$/i, '');
   return SYMBOL_MAP[base] || symbol;
 }
