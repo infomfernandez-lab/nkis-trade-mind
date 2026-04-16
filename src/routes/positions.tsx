@@ -132,7 +132,7 @@ function PositionsPage() {
   // Find most recent updated_at from open trades for sync indicator
   const lastSync = allOpen.length > 0
     ? allOpen.reduce((latest, t) => {
-        const d = new Date(t.entryDate).getTime();
+        const d = new Date(t.updatedAt).getTime();
         return d > latest ? d : latest;
       }, 0)
     : null;

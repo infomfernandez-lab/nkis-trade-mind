@@ -38,6 +38,9 @@ const tradeSchema = z.object({
 
 const requestSchema = z.object({
   trades: z.array(tradeSchema).min(1).max(500),
+  close_stale: z.boolean().optional().default(false),
+  broker: z.enum(['darwinex', 'fxpro']).optional(),
+  open_tickets: z.array(z.number().int()).optional(),
 });
 
 export const Route = createFileRoute('/api/sync-trades')({
@@ -77,9 +80,39 @@ export const Route = createFileRoute('/api/sync-trades')({
             }));
           }
 
+          // Handle close_stale: close positions no longer open in MT5
+          let stalesClosed = 0;
+          if (parsed.data.close_stale && parsed.data.broker && parsed.data.open_tickets) {
+            const brokerVal = parsed.data.broker;
+            const openTickets = parsed.data.open_tickets;
+
+            // Find all open trades for this broker
+            const { data: openDbTrades } = await supabaseAdmin
+              .from('trades')
+              .select('id, ticket')
+              .eq('user_id', userId)
+              .eq('broker', brokerVal)
+              .eq('is_open', true);
+
+            if (openDbTrades && openDbTrades.length > 0) {
+              const staleIds = openDbTrades
+                .filter(t => t.ticket != null && !openTickets.includes(Number(t.ticket)))
+                .map(t => t.id);
+
+              if (staleIds.length > 0) {
+                await supabaseAdmin
+                  .from('trades')
+                  .update({ is_open: false })
+                  .in('id', staleIds);
+                stalesClosed = staleIds.length;
+              }
+            }
+          }
+
           return withCors(Response.json({
             success: true,
             upserted: data?.length ?? 0,
+            stales_closed: stalesClosed,
             trades: data,
           }));
         } catch (e) {
