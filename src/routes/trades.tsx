@@ -2,8 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
-import { BrokerSelector } from '@/components/BrokerSelector';
+import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade } from '@/lib/trade-utils';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { TradeJournal } from '@/components/TradeJournal';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/trades')({
 
 function TradeLog() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [broker, setBroker] = useState<BrokerFilter>('all');
+  const { broker } = useBrokerFilter();
   const { data: closedTrades, isLoading, error } = useClosedTrades();
 
   if (isLoading) {
@@ -57,14 +57,13 @@ function TradeLog() {
     );
   }
 
+  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades</h1>
-          <p className="text-sm text-muted-foreground mt-1">{trades.length} trades cerrados — expande para ver el detalle</p>
-        </div>
-        <BrokerSelector value={broker} onChange={setBroker} />
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades{brokerLabel}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{trades.length} trades cerrados — expande para ver el detalle</p>
       </div>
 
       <div className="space-y-3">
@@ -171,14 +170,6 @@ function Field({ label, value, mono, pnl }: { label: string; value: string; mono
     <div>
       <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
       <div className={`text-sm font-medium ${mono ? 'font-data' : ''} ${color}`}>{value}</div>
-    </div>
-  );
-}
-
-function NoteBlock({ text }: { text: string }) {
-  return (
-    <div className="mt-3 p-3 rounded-md bg-secondary border border-border text-sm text-foreground/80 italic">
-      {text}
     </div>
   );
 }

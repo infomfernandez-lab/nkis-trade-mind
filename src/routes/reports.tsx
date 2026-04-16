@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { FileText, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { formatCurrency, formatDate, computeStatsFromTrades, filterByBroker, type Trade } from '@/lib/trade-utils';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 export const Route = createFileRoute('/reports')({
   component: Reports,
@@ -16,7 +17,8 @@ export const Route = createFileRoute('/reports')({
 
 function Reports() {
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'trade'>('weekly');
-  const { data: closedTrades, isLoading, error } = useClosedTrades();
+  const { data: allClosedTrades, isLoading, error } = useClosedTrades();
+  const { broker } = useBrokerFilter();
 
   if (isLoading) {
     return (
@@ -35,7 +37,7 @@ function Reports() {
     );
   }
 
-  const trades = closedTrades ?? [];
+  const trades = filterByBroker(allClosedTrades ?? [], broker);
   const stats = computeStatsFromTrades(trades, []);
 
   const oneWeekAgo = new Date();
@@ -92,9 +94,6 @@ function Reports() {
             <MiniStat label="Cumplimiento" value={`${lastWeekTrades.length > 0 ? ((fullCompliance / lastWeekTrades.length) * 100).toFixed(0) : 0}%`} />
           </div>
 
-          {/* Broker breakdown */}
-          <BrokerBreakdown trades={lastWeekTrades} title="Desglose por Broker" />
-
           {lastWeekTrades.length > 0 ? (
             <div>
               <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">Trades de Esta Semana</h3>
@@ -142,9 +141,6 @@ function Reports() {
             <MiniStat label="Total Trades" value={String(monthStats.totalTrades)} />
           </div>
 
-          {/* Broker breakdown */}
-          <BrokerBreakdown trades={monthTrades} title="Desglose por Broker" />
-
           <div>
             <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Autoevaluación</h3>
             <textarea
@@ -183,51 +179,6 @@ function Reports() {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function BrokerBreakdown({ trades, title }: { trades: Trade[]; title: string }) {
-  const darwinex = filterByBroker(trades, 'darwinex');
-  const fxpro = filterByBroker(trades, 'fxpro');
-
-  if (darwinex.length === 0 && fxpro.length === 0) return null;
-  // Only show if there are trades from at least one broker
-  const brokers = [
-    { name: 'Darwinex', trades: darwinex },
-    { name: 'FXPro', trades: fxpro },
-  ].filter(b => b.trades.length > 0);
-
-  if (brokers.length <= 1) return null;
-
-  return (
-    <div>
-      <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">{title}</h3>
-      <div className="grid grid-cols-2 gap-3">
-        {brokers.map(b => {
-          const pnl = b.trades.reduce((s, t) => s + t.netPnl, 0);
-          const wr = b.trades.length > 0 ? (b.trades.filter(t => t.isWin).length / b.trades.length) * 100 : 0;
-          return (
-            <div key={b.name} className="p-3 rounded-md bg-secondary border border-border">
-              <div className="text-xs font-semibold text-foreground mb-2">{b.name}</div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Trades</span>
-                  <span className="font-data">{b.trades.length}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">P&L</span>
-                  <span className={`font-data font-semibold ${pnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(pnl)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Win Rate</span>
-                  <span className="font-data">{wr.toFixed(0)}%</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

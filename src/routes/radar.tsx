@@ -6,14 +6,14 @@ import {
   Radar, Eye, AlertTriangle,
   ChevronDown, ChevronUp, Clock, Check, RefreshCw
 } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
-import { formatDate } from '@/lib/trade-utils';
+import { formatDate, type BrokerFilter } from '@/lib/trade-utils';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -105,15 +105,7 @@ function useScannerSessions() {
   });
 }
 
-function matchesBroker(session: ScannerSession, broker: string): boolean {
-  const val = (session.broker ?? '').toLowerCase();
-  if (broker === 'fxpro') return val.includes('fxpro') || val === '';
-  // darwinex matches 'darwinex' or empty/missing broker
-  return val.includes('darwinex') || val === '';
-}
-
 function getLatestForBroker(sessions: ScannerSession[], broker: string): ScannerSession | null {
-  // For darwinex, empty broker matches; for fxpro only explicit matches unless broker is empty
   const matching = sessions.filter(s => {
     const val = (s.broker ?? '').toLowerCase();
     if (broker === 'fxpro') return val.includes('fxpro');
@@ -123,12 +115,11 @@ function getLatestForBroker(sessions: ScannerSession[], broker: string): Scanner
 }
 
 function getHistoryForBroker(sessions: ScannerSession[], broker: string): ScannerSession[] {
-  const matching = sessions.filter(s => {
+  return sessions.filter(s => {
     const val = (s.broker ?? '').toLowerCase();
     if (broker === 'fxpro') return val.includes('fxpro');
     return val.includes('darwinex') || val === '';
   });
-  return matching;
 }
 
 const ADX_STATE_STYLES: Record<string, string> = {
@@ -149,7 +140,7 @@ function RadarPage() {
   const { data: sessions, isLoading, refetch, isFetching } = useScannerSessions();
   const { data: watchlistItems } = useWatchlist();
   const { openTrades } = useAllTrades();
-  const [broker, setBroker] = useState('darwinex');
+  const { broker } = useBrokerFilter();
 
   const openSymbols = new Set((openTrades || []).map(t => t.symbol));
   const watchlistSymbols = new Set((watchlistItems || []).map(w => w.symbol));
@@ -167,6 +158,10 @@ function RadarPage() {
 
   const allSessions = sessions || [];
 
+  // When broker filter is "all", show both brokers side by side
+  const showDarwinex = broker === 'all' || broker === 'darwinex';
+  const showFxpro = broker === 'all' || broker === 'fxpro';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -183,19 +178,18 @@ function RadarPage() {
         </button>
       </div>
 
-      <Tabs value={broker} onValueChange={setBroker}>
-        <TabsList>
-          <TabsTrigger value="darwinex">Darwinex</TabsTrigger>
-          <TabsTrigger value="fxpro">FXPro</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="darwinex">
+      {showDarwinex && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Darwinex</h2>
           <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-        </TabsContent>
-        <TabsContent value="fxpro">
+        </div>
+      )}
+      {showFxpro && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">FXPro</h2>
           <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }
@@ -215,12 +209,9 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
 
   if (!activeSession) {
     return (
-      <div className="text-center py-16 space-y-2">
-        <Radar className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-        <p className="text-sm text-muted-foreground">Sin resultados para este broker.</p>
-        <p className="text-xs text-muted-foreground">
-          Ejecuta el scanner y sincroniza con SYNC_{broker.toUpperCase()}.bat
-        </p>
+      <div className="text-center py-10 space-y-2">
+        <Radar className="w-8 h-8 text-muted-foreground/30 mx-auto" />
+        <p className="text-sm text-muted-foreground">Sin resultados para {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}.</p>
       </div>
     );
   }
@@ -234,8 +225,7 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
     : [];
 
   return (
-    <div className="space-y-4 mt-4">
-      {/* Date/time */}
+    <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Clock className="w-4 h-4" />
         <span>Última sesión: <span className="font-data font-semibold text-foreground">{formatDate(activeSession.session_date)}</span></span>
@@ -246,7 +236,6 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
         )}
       </div>
 
-      {/* Correlation warnings */}
       {correlations.length > 0 && (
         <div className="space-y-2">
           {correlations.map((c, i) => (
@@ -261,9 +250,8 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
         </div>
       )}
 
-      {/* Table header */}
       {instruments.length === 0 ? (
-        <div className="text-center py-10 text-sm text-muted-foreground">Sin instrumentos en esta sesión.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">Sin instrumentos en esta sesión.</div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2 bg-muted/50 text-xs text-muted-foreground font-medium border-b border-border">
@@ -292,14 +280,12 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
         </div>
       )}
 
-      {/* Notes */}
       {activeSession.notes && (
         <div className="p-3 rounded-md bg-secondary text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">Notas:</span> {activeSession.notes}
         </div>
       )}
 
-      {/* History */}
       {history.length > 1 && (
         <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full py-2">
@@ -373,25 +359,16 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
     `}>
       {/* Desktop row */}
       <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2.5">
-        {/* Rank */}
         <span className="font-mono font-bold text-sm text-yellow-400">#{inst.rank}</span>
-
-        {/* Symbol */}
         <span className="font-semibold text-sm text-foreground">{inst.symbol}</span>
-
-        {/* Direction */}
         <span>
           <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
             {isAlcista ? 'ALCISTA' : 'BAJISTA'}
           </Badge>
         </span>
-
-        {/* Score */}
         <span className="font-data font-bold text-base text-yellow-400">
           {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
         </span>
-
-        {/* ADX */}
         <span className="flex items-center gap-1.5 text-xs">
           {inst.adx_value != null ? (
             <>
@@ -404,8 +381,6 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
             </>
           ) : <span className="text-muted-foreground">—</span>}
         </span>
-
-        {/* Dist MA50 */}
         <span className="flex items-center gap-1.5 text-xs">
           {inst.distance_to_ma50 != null ? (
             <>
@@ -418,8 +393,6 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
             </>
           ) : <span className="text-muted-foreground">—</span>}
         </span>
-
-        {/* Momentum */}
         <span className="text-xs font-data">
           {inst.momentum_20d != null ? (
             <>
@@ -430,13 +403,9 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
             </>
           ) : <span className="text-muted-foreground">—</span>}
         </span>
-
-        {/* Pendiente */}
         <span className="text-xs text-muted-foreground">
           {inst.pendiente_medias || '—'}
         </span>
-
-        {/* Status badges */}
         <span>
           {isOpen && (
             <Badge className="text-[10px] px-1.5 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">
@@ -444,8 +413,6 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
             </Badge>
           )}
         </span>
-
-        {/* Action */}
         <span className="text-right">
           {isWatched ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
@@ -470,49 +437,22 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
           <span className="font-mono font-bold text-sm text-yellow-400 w-8">#{inst.rank}</span>
           <span className="font-semibold text-sm text-foreground flex-1">{inst.symbol}</span>
           <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
-            {isAlcista ? 'ALCISTA' : 'BAJISTA'}
+            {isAlcista ? 'ALC' : 'BAJ'}
           </Badge>
-          <span className="font-data font-bold text-base text-yellow-400">
-            {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
-          </span>
+          <span className="font-data font-bold text-yellow-400">{inst.score}</span>
         </div>
-        <div className="flex items-center gap-3 flex-wrap text-xs">
-          {inst.adx_value != null && (
-            <span className="flex items-center gap-1">
-              <span className="text-muted-foreground">ADX</span>
-              <span className="font-data font-semibold">{inst.adx_value}</span>
-              {inst.adx_state && <span className={`px-1 py-0.5 rounded text-[10px] font-semibold ${adxStyle}`}>{inst.adx_state}</span>}
-            </span>
-          )}
-          {inst.distance_to_ma50 != null && (
-            <span className="flex items-center gap-1">
-              <span className="text-muted-foreground">MA50</span>
-              <span className="font-data">{inst.distance_to_ma50}%</span>
-              {inst.distance_to_ma50_label && <span className={`px-1 py-0.5 rounded text-[10px] font-semibold ${ma50Style}`}>{inst.distance_to_ma50_label}</span>}
-            </span>
-          )}
-          {inst.momentum_20d != null && (
-            <span className="font-data">
-              Mom {inst.momentum_20d}% <span className={inst.momentum_aligned ? 'text-success' : 'text-destructive'}>{inst.momentum_aligned ? '✓' : '✗'}</span>
-            </span>
-          )}
-          {inst.pendiente_medias && <span className="text-muted-foreground">{inst.pendiente_medias}</span>}
-          {isOpen && (
-            <Badge className="text-[10px] px-1.5 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">EN POSICIÓN</Badge>
-          )}
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground ml-8">
+          {inst.adx_value != null && <span>ADX: <span className="font-data text-foreground">{inst.adx_value}</span> {inst.adx_state && <span className={`${adxStyle} px-1 rounded text-[10px]`}>{inst.adx_state}</span>}</span>}
+          {inst.distance_to_ma50 != null && <span>MA50: <span className="font-data text-foreground">{inst.distance_to_ma50}%</span></span>}
+          {inst.momentum_20d != null && <span>Mom: <span className="font-data">{inst.momentum_20d}%</span></span>}
+          {isOpen && <Badge className="text-[10px] px-1 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">POSICIÓN</Badge>}
         </div>
-        <div className="flex justify-end">
+        <div className="ml-8">
           {isWatched ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-              <Check className="w-3 h-3" /> Vigilando
-            </span>
+            <span className="text-[11px] text-success"><Check className="w-3 h-3 inline" /> Vigilando</span>
           ) : (
-            <button
-              onClick={handleWatch}
-              disabled={addToWatchlist.isPending}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-50"
-            >
-              <Eye className="w-3 h-3" /> Vigilar +
+            <button onClick={handleWatch} disabled={addToWatchlist.isPending} className="text-[11px] text-yellow-400 border border-yellow-400/40 px-2 py-0.5 rounded">
+              <Eye className="w-3 h-3 inline mr-1" />Vigilar +
             </button>
           )}
         </div>
