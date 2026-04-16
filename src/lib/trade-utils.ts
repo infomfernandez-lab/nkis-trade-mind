@@ -51,6 +51,7 @@ export interface Trade {
   status: 'open' | 'closed';
   isWin: boolean;
   broker: string;
+  updatedAt: string;
 }
 
 /** Convert a Supabase trade row to the UI Trade shape */
@@ -98,6 +99,7 @@ export function rowToTrade(row: TradeRow): Trade {
     status: row.is_open ? 'open' : 'closed',
     isWin: row.is_win ?? false,
     broker: (row as any).broker ?? 'darwinex',
+    updatedAt: row.updated_at,
   };
 }
 
