@@ -140,10 +140,10 @@ const MA50_STYLES: Record<string, string> = {
 };
 
 function RadarPage() {
+  const [broker, setBroker] = useState<BrokerFilter>('all');
   const { data: sessions, isLoading, refetch, isFetching } = useScannerSessions();
   const { data: watchlistItems } = useWatchlist();
   const { openTrades } = useAllTrades();
-  const { broker } = useBrokerFilter();
 
   const openSymbols = new Set((openTrades || []).map(t => t.symbol));
   const watchlistSymbols = new Set((watchlistItems || []).map(w => w.symbol));
@@ -167,12 +167,13 @@ function RadarPage() {
 
   return (
     <div className="space-y-6">
-      {/* ZONA 1 — Radar */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-xl font-bold flex items-center gap-2">
-            <Radar className="w-5 h-5 text-primary" /> Radar
-          </h1>
+      {/* Broker tabs — local to this page */}
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-xl font-bold flex items-center gap-2">
+          <Radar className="w-5 h-5 text-primary" /> Radar
+        </h1>
+        <BrokerSelector value={broker} onChange={setBroker} />
+      </div>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
