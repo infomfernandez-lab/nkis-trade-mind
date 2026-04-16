@@ -166,33 +166,58 @@ function RadarPage() {
   const showFxpro = broker === 'all' || broker === 'fxpro';
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-xl font-bold flex items-center gap-2">
-          <Radar className="w-5 h-5 text-primary" /> Radar
-        </h1>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
+    <div className="space-y-6">
+      {/* ZONA 1 — Radar */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-xl font-bold flex items-center gap-2">
+            <Radar className="w-5 h-5 text-primary" /> Radar
+          </h1>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+        </div>
+
+        {showDarwinex && (
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-2">Darwinex</h2>
+            <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
+          </div>
+        )}
+        {showFxpro && (
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-2">FXPro</h2>
+            <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
+          </div>
+        )}
       </div>
 
-      {showDarwinex && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Darwinex</h2>
-          <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-        </div>
-      )}
-      {showFxpro && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-2">FXPro</h2>
-          <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-        </div>
-      )}
+      {/* Separator */}
+      <Separator className="my-2" />
+
+      {/* ZONA 2 — Vigilando */}
+      <div className="space-y-3">
+        <h2 className="font-display text-lg font-bold flex items-center gap-2">
+          <Eye className="w-5 h-5 text-yellow-400" /> Vigilando
+        </h2>
+        <WatchlistSection openSymbols={openSymbols} brokerFilter={broker} />
+      </div>
+
+      {/* Separator */}
+      <Separator className="my-2" />
+
+      {/* ZONA 3 — Posiciones Abiertas */}
+      <div className="space-y-3">
+        <h2 className="font-display text-lg font-bold flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary" /> Posiciones Abiertas
+        </h2>
+        <OpenPositionsSection brokerFilter={broker} />
+      </div>
     </div>
   );
 }
