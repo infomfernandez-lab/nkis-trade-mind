@@ -163,7 +163,7 @@ function StatisticsPage() {
   const { broker } = useBrokerFilter();
 
   const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
-  const startingBalance = Number(settings?.balance ?? 10000);
+  const startingBalance = broker === 'fxpro' ? 30 : 1000000;
   const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
 
   if (isLoading) {
@@ -222,6 +222,9 @@ function StatisticsPage() {
               color={stats.maeAbove50Pct === null ? 'muted' : stats.maeAbove50Pct > 60 ? 'destructive' : stats.maeAbove50Pct > 40 ? 'warning' : 'muted'}
               tip="Porcentaje de trades donde la excursión adversa máxima superó el 50% del stop loss. Requiere campo MAE."
             />
+            <StatCard label="Operaciones/Día" value={`${fmt(stats.tradesPerDay)} trades/día`} color="muted" tip="Número total de trades cerrados dividido entre el número de días entre el primer y último trade." />
+            <StatCard label="Ganadoras/Mes" value={fmt(stats.winnersPerMonth, 1)} color="success" tip="Número de trades ganadores dividido entre los meses activos." />
+            <StatCard label="Perdedoras/Mes" value={fmt(stats.losersPerMonth, 1)} color="destructive" tip="Número de trades perdedores dividido entre los meses activos." />
           </div>
         </Section>
 
@@ -236,6 +239,18 @@ function StatisticsPage() {
               value={`${fmt(stats.outlierPct, 1)}%`}
               color={stats.outlierPct > 10 ? 'destructive' : 'muted'}
               tip="% de trades con pérdida superior al doble de la pérdida media. Detecta outliers destructivos."
+            />
+            <StatCard
+              label="Retorno %"
+              value={`${stats.returnPct >= 0 ? '+' : ''}${fmt(stats.returnPct)}%`}
+              color={stats.returnPct >= 0 ? 'success' : 'destructive'}
+              tip={`(Beneficio Neto / Capital Inicial) × 100. Capital usado: €${startingBalance.toLocaleString('es-ES')}.`}
+            />
+            <StatCard
+              label="Factor de Fiabilidad"
+              value={fmt(stats.reliabilityFactor)}
+              color={stats.reliabilityFactor > 0.5 ? 'success' : stats.reliabilityFactor >= 0.2 ? 'warning' : 'destructive'}
+              tip="Mide qué parte del beneficio generado no fue consumida por el drawdown. Cercano a 1 = excelente."
             />
           </div>
         </Section>
