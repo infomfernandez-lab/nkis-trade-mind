@@ -110,8 +110,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Top metrics bar */}
           <header className="border-b border-border bg-card shrink-0">
             <div className="flex items-center gap-2 px-4 py-2 lg:px-6">
-              <button className="lg:hidden mr-2 text-muted-foreground" onClick={() => setMobileOpen(true)}>
-                <Menu className="w-5 h-5" />
+              <button className="lg:hidden mr-2 p-2 -ml-1 text-muted-foreground" onClick={() => setMobileOpen(true)}>
+                <Menu className="w-7 h-7" />
               </button>
               <BrokerSelector value={broker} onChange={setBroker} compact />
               <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide flex-1">
