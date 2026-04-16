@@ -49,13 +49,20 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.netPnl)) : 0;
   const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.netPnl)) : 0;
 
-  // Active months
-  const dates = trades.map(t => new Date(t.exitDate ?? t.entryDate).getTime());
-  const minDate = dates.length > 0 ? Math.min(...dates) : Date.now();
-  const maxDate = dates.length > 0 ? Math.max(...dates) : Date.now();
+  // Active months & days
+  const entryDates = trades.map(t => new Date(t.entryDate).getTime());
+  const exitDates = trades.map(t => new Date(t.exitDate ?? t.entryDate).getTime());
+  const minDate = entryDates.length > 0 ? Math.min(...entryDates) : Date.now();
+  const maxDate = exitDates.length > 0 ? Math.max(...exitDates) : Date.now();
   const activeMonths = Math.max(1, Math.round((maxDate - minDate) / (30.44 * 24 * 3600 * 1000)));
+  const activeDays = Math.max(1, Math.round((maxDate - minDate) / (24 * 3600 * 1000)));
   const netTotal = trades.reduce((s, t) => s + t.netPnl, 0);
   const avgPnlPerMonth = netTotal / activeMonths;
+
+  // New consistency metrics
+  const tradesPerDay = trades.length / activeDays;
+  const winnersPerMonth = winners.length / activeMonths;
+  const losersPerMonth = losers.length / activeMonths;
 
   // Block 2 — streaks
   let maxWinStreak = 0, maxLossStreak = 0, curWin = 0, curLoss = 0;
@@ -134,11 +141,17 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
     negative: b.max <= 0,
   }));
 
+  // Return % and reliability factor
+  const returnPct = startingBalance > 0 ? (netTotal / startingBalance) * 100 : 0;
+  const reliabilityFactor = netTotal > 0 ? netTotal / (netTotal + maxDdAbs) : 0;
+
   return {
     grossProfit, grossLoss, payoffRatio, avgWin, avgLoss, bestTrade, worstTrade, avgPnlPerMonth,
     maxWinStreak, maxLossStreak, tradesPerMonth, maeAbove50Pct,
+    tradesPerDay, winnersPerMonth, losersPerMonth,
     maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
-    heatmap, histogramData, activeMonths,
+    returnPct, reliabilityFactor,
+    heatmap, histogramData, activeMonths, netTotal,
   };
 }
 
@@ -150,7 +163,7 @@ function StatisticsPage() {
   const { broker } = useBrokerFilter();
 
   const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
-  const startingBalance = Number(settings?.balance ?? 10000);
+  const startingBalance = broker === 'fxpro' ? 30 : 1000000;
   const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
 
   if (isLoading) {
@@ -209,6 +222,9 @@ function StatisticsPage() {
               color={stats.maeAbove50Pct === null ? 'muted' : stats.maeAbove50Pct > 60 ? 'destructive' : stats.maeAbove50Pct > 40 ? 'warning' : 'muted'}
               tip="Porcentaje de trades donde la excursión adversa máxima superó el 50% del stop loss. Requiere campo MAE."
             />
+            <StatCard label="Operaciones/Día" value={`${fmt(stats.tradesPerDay)} trades/día`} color="muted" tip="Número total de trades cerrados dividido entre el número de días entre el primer y último trade." />
+            <StatCard label="Ganadoras/Mes" value={fmt(stats.winnersPerMonth, 1)} color="success" tip="Número de trades ganadores dividido entre los meses activos." />
+            <StatCard label="Perdedoras/Mes" value={fmt(stats.losersPerMonth, 1)} color="destructive" tip="Número de trades perdedores dividido entre los meses activos." />
           </div>
         </Section>
 
@@ -223,6 +239,18 @@ function StatisticsPage() {
               value={`${fmt(stats.outlierPct, 1)}%`}
               color={stats.outlierPct > 10 ? 'destructive' : 'muted'}
               tip="% de trades con pérdida superior al doble de la pérdida media. Detecta outliers destructivos."
+            />
+            <StatCard
+              label="Retorno %"
+              value={`${stats.returnPct >= 0 ? '+' : ''}${fmt(stats.returnPct)}%`}
+              color={stats.returnPct >= 0 ? 'success' : 'destructive'}
+              tip={`(Beneficio Neto / Capital Inicial) × 100. Capital usado: €${startingBalance.toLocaleString('es-ES')}.`}
+            />
+            <StatCard
+              label="Factor de Fiabilidad"
+              value={fmt(stats.reliabilityFactor)}
+              color={stats.reliabilityFactor > 0.5 ? 'success' : stats.reliabilityFactor >= 0.2 ? 'warning' : 'destructive'}
+              tip="Mide qué parte del beneficio generado no fue consumida por el drawdown. Cercano a 1 = excelente."
             />
           </div>
         </Section>
