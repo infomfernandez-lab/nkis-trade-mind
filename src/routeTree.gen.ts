@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as TradesRouteImport } from './routes/trades'
+import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RadarRouteImport } from './routes/radar'
+import { Route as PositionsRouteImport } from './routes/positions'
 import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as LoginRouteImport } from './routes/login'
@@ -31,6 +33,11 @@ const TradesRoute = TradesRouteImport.update({
   path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StatisticsRoute = StatisticsRouteImport.update({
+  id: '/statistics',
+  path: '/statistics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -44,6 +51,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const RadarRoute = RadarRouteImport.update({
   id: '/radar',
   path: '/radar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PositionsRoute = PositionsRouteImport.update({
+  id: '/positions',
+  path: '/positions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatternsRoute = PatternsRouteImport.update({
@@ -82,9 +94,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/positions': typeof PositionsRoute
   '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -95,9 +109,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/positions': typeof PositionsRoute
   '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -109,9 +125,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
   '/patterns': typeof PatternsRoute
+  '/positions': typeof PositionsRoute
   '/radar': typeof RadarRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
+  '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -124,9 +142,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/positions'
     | '/radar'
     | '/reports'
     | '/settings'
+    | '/statistics'
     | '/trades'
     | '/watchlist'
     | '/api/sync-scanner'
@@ -137,9 +157,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/positions'
     | '/radar'
     | '/reports'
     | '/settings'
+    | '/statistics'
     | '/trades'
     | '/watchlist'
     | '/api/sync-scanner'
@@ -150,9 +172,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual'
     | '/patterns'
+    | '/positions'
     | '/radar'
     | '/reports'
     | '/settings'
+    | '/statistics'
     | '/trades'
     | '/watchlist'
     | '/api/sync-scanner'
@@ -164,9 +188,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManualRoute: typeof ManualRoute
   PatternsRoute: typeof PatternsRoute
+  PositionsRoute: typeof PositionsRoute
   RadarRoute: typeof RadarRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
+  StatisticsRoute: typeof StatisticsRoute
   TradesRoute: typeof TradesRoute
   WatchlistRoute: typeof WatchlistRoute
   ApiSyncScannerRoute: typeof ApiSyncScannerRoute
@@ -189,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/statistics': {
+      id: '/statistics'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof StatisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -208,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/radar'
       fullPath: '/radar'
       preLoaderRoute: typeof RadarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/positions': {
+      id: '/positions'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof PositionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patterns': {
@@ -260,9 +300,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManualRoute: ManualRoute,
   PatternsRoute: PatternsRoute,
+  PositionsRoute: PositionsRoute,
   RadarRoute: RadarRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
+  StatisticsRoute: StatisticsRoute,
   TradesRoute: TradesRoute,
   WatchlistRoute: WatchlistRoute,
   ApiSyncScannerRoute: ApiSyncScannerRoute,
