@@ -1,20 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useMemo } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  AreaChart, Area, ScatterChart, Scatter, Cell
+  BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, Cell
 } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
-import {
-  formatCurrency, filterByBroker, buildEquityCurve
-} from '@/lib/trade-utils';
-import {
-  computeDashboardKpis, computeAdvancedMetrics, computeMaeMfe,
-  getPerformanceByAdxState, getPerformanceByMA50, getPerformanceByMomentum,
-  getPerformanceByBroker, type GroupStat, type BrokerStat
-} from '@/lib/analytics';
+import { filterByBroker, type Trade } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const Route = createFileRoute('/statistics')({
   component: StatisticsPage,
@@ -26,94 +21,148 @@ export const Route = createFileRoute('/statistics')({
   }),
 });
 
-const GOLD = '#D4A017';
 const GREEN = '#34d399';
 const RED = '#f87171';
+const GOLD = '#D4A017';
+const YELLOW = '#facc15';
+
+/* ─── helpers ─── */
+
+function fmt(v: number, decimals = 2): string {
+  return v.toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function fmtCurrency(v: number): string {
+  const sign = v >= 0 ? '+' : '';
+  return `${sign}€${Math.abs(v).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function computeAllStats(trades: Trade[], startingBalance: number) {
+  const winners = trades.filter(t => t.netPnl > 0);
+  const losers = trades.filter(t => t.netPnl < 0);
+
+  // Block 1
+  const grossProfit = winners.reduce((s, t) => s + t.netPnl, 0);
+  const grossLoss = losers.reduce((s, t) => s + Math.abs(t.netPnl), 0);
+  const avgWin = winners.length > 0 ? grossProfit / winners.length : 0;
+  const avgLoss = losers.length > 0 ? grossLoss / losers.length : 0;
+  const payoffRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? Infinity : 0;
+  const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.netPnl)) : 0;
+  const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.netPnl)) : 0;
+
+  // Active months
+  const dates = trades.map(t => new Date(t.exitDate ?? t.entryDate).getTime());
+  const minDate = dates.length > 0 ? Math.min(...dates) : Date.now();
+  const maxDate = dates.length > 0 ? Math.max(...dates) : Date.now();
+  const activeMonths = Math.max(1, Math.round((maxDate - minDate) / (30.44 * 24 * 3600 * 1000)));
+  const netTotal = trades.reduce((s, t) => s + t.netPnl, 0);
+  const avgPnlPerMonth = netTotal / activeMonths;
+
+  // Block 2 — streaks
+  let maxWinStreak = 0, maxLossStreak = 0, curWin = 0, curLoss = 0;
+  for (const t of trades) {
+    if (t.netPnl > 0) { curWin++; curLoss = 0; maxWinStreak = Math.max(maxWinStreak, curWin); }
+    else { curLoss++; curWin = 0; maxLossStreak = Math.max(maxLossStreak, curLoss); }
+  }
+  const tradesPerMonth = trades.length / activeMonths;
+
+  // MAE > 50% SL — we don't have MAE field, skip or compute from available data
+  // For now mark as N/A since there's no mae column
+  const maeAbove50Pct: number | null = null;
+
+  // Block 3 — Drawdown
+  const equityCurve: number[] = [];
+  let equity = startingBalance;
+  for (const t of trades) {
+    equity += t.netPnl;
+    equityCurve.push(equity);
+  }
+
+  let maxDdAbs = 0, maxDdPct = 0;
+  let peak = startingBalance;
+  for (const eq of equityCurve) {
+    if (eq > peak) peak = eq;
+    const dd = peak - eq;
+    const ddPct = peak > 0 ? (dd / peak) * 100 : 0;
+    if (dd > maxDdAbs) maxDdAbs = dd;
+    if (ddPct > maxDdPct) maxDdPct = ddPct;
+  }
+
+  // Drawdown duration avg (in trades, convert to approx days)
+  const ddPeriods: number[] = [];
+  let inDd = false, ddStart = 0;
+  peak = startingBalance;
+  for (let i = 0; i < equityCurve.length; i++) {
+    if (equityCurve[i] > peak) { peak = equityCurve[i]; if (inDd) { ddPeriods.push(i - ddStart); inDd = false; } }
+    else if (!inDd && equityCurve[i] < peak) { inDd = true; ddStart = i; }
+  }
+  if (inDd) ddPeriods.push(equityCurve.length - ddStart);
+
+  // Convert trade-based periods to days using avg duration
+  const avgDurationDays = trades.length > 0
+    ? trades.reduce((s, t) => s + t.durationHours, 0) / trades.length / 24
+    : 1;
+  const avgDdDurationDays = ddPeriods.length > 0
+    ? (ddPeriods.reduce((s, v) => s + v, 0) / ddPeriods.length) * avgDurationDays
+    : 0;
+
+  // Outlier losses > 2x avg loss
+  const outlierPct = losers.length > 0 && avgLoss > 0
+    ? (losers.filter(t => Math.abs(t.netPnl) > 2 * avgLoss).length / trades.length) * 100
+    : 0;
+
+  // Heatmap
+  const heatmap: Record<number, Record<number, number>> = {};
+  trades.forEach(t => {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    const y = d.getFullYear(), m = d.getMonth();
+    if (!heatmap[y]) heatmap[y] = {};
+    heatmap[y][m] = (heatmap[y][m] ?? 0) + t.netPnl;
+  });
+
+  // Histogram
+  const buckets = [
+    { label: '<-2000', min: -Infinity, max: -2000 },
+    { label: '-2000 a -1000', min: -2000, max: -1000 },
+    { label: '-1000 a 0', min: -1000, max: 0 },
+    { label: '0 a 1000', min: 0, max: 1000 },
+    { label: '1000 a 2000', min: 1000, max: 2000 },
+    { label: '>2000', min: 2000, max: Infinity },
+  ];
+  const histogramData = buckets.map(b => ({
+    label: b.label,
+    count: trades.filter(t => t.netPnl >= b.min && t.netPnl < b.max).length,
+    negative: b.max <= 0,
+  }));
+
+  return {
+    grossProfit, grossLoss, payoffRatio, avgWin, avgLoss, bestTrade, worstTrade, avgPnlPerMonth,
+    maxWinStreak, maxLossStreak, tradesPerMonth, maeAbove50Pct,
+    maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
+    heatmap, histogramData, activeMonths,
+  };
+}
+
+/* ─── Page ─── */
 
 function StatisticsPage() {
-  const { closedTrades: allClosed, openTrades: allOpen, isLoading } = useAllTrades();
+  const { closedTrades: allClosed, isLoading } = useAllTrades();
   const { data: settings } = useSettings();
   const { broker } = useBrokerFilter();
 
+  const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
+  const startingBalance = Number(settings?.balance ?? 10000);
+  const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <div className="space-y-6">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
+        </div>
       </div>
     );
   }
-
-  const closedTrades = filterByBroker(allClosed, broker);
-  const startingBalance = Number(settings?.balance ?? 10000);
-  const kpis = computeDashboardKpis(closedTrades, startingBalance);
-  const adv = computeAdvancedMetrics(closedTrades, startingBalance);
-  const maeMfe = computeMaeMfe(closedTrades);
-  const byAdx = getPerformanceByAdxState(closedTrades);
-  const byMA50 = getPerformanceByMA50(closedTrades);
-  const byMomentum = getPerformanceByMomentum(closedTrades);
-  const byBroker = getPerformanceByBroker(closedTrades);
-
-  // Instrument categories
-  const categorize = (symbol: string): string => {
-    if (/XAUUSD|XAGUSD|GOLD|SILVER/i.test(symbol)) return 'Metales';
-    if (/USOIL|UKOIL|BRENT|WTI|NGAS/i.test(symbol)) return 'Energía';
-    if (/US30|US500|NAS100|GER40|UK100|JP225|SPX|NDX/i.test(symbol)) return 'Índices';
-    if (/WHEAT|CORN|SOYBEAN|COCOA|COFFEE|SUGAR|COTTON/i.test(symbol)) return 'Agrícola';
-    return 'Forex';
-  };
-  const byCategory: Record<string, typeof closedTrades> = {};
-  closedTrades.forEach(t => {
-    const cat = categorize(t.symbol);
-    if (!byCategory[cat]) byCategory[cat] = [];
-    byCategory[cat].push(t);
-  });
-  const categoryStats = Object.entries(byCategory).map(([name, trades]) => ({
-    name,
-    winRate: trades.length > 0 ? (trades.filter(t => t.isWin).length / trades.length) * 100 : 0,
-    totalPnl: trades.reduce((s, t) => s + t.netPnl, 0),
-    count: trades.length,
-  }));
-
-  // Monthly heatmap
-  const heatmapData: Record<number, Record<number, number>> = {};
-  closedTrades.forEach(t => {
-    const d = new Date(t.exitDate ?? t.entryDate);
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    if (!heatmapData[y]) heatmapData[y] = {};
-    heatmapData[y][m] = (heatmapData[y][m] ?? 0) + t.netPnl;
-  });
-  const years = Object.keys(heatmapData).map(Number).sort();
-  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-  // Drawdown chart
-  const equityCurve = buildEquityCurve(closedTrades, startingBalance);
-  const drawdownData = (() => {
-    let peak = startingBalance;
-    return equityCurve.map(p => {
-      if (p.equity > peak) peak = p.equity;
-      const dd = peak - p.equity;
-      return { date: p.date, drawdown: -dd };
-    });
-  })();
-
-  // Duration distribution
-  const wins = closedTrades.filter(t => t.isWin);
-  const losses = closedTrades.filter(t => !t.isWin);
-  const durationBuckets = [
-    { label: '<1h', min: 0, max: 1 },
-    { label: '1-4h', min: 1, max: 4 },
-    { label: '4-12h', min: 4, max: 12 },
-    { label: '12-24h', min: 12, max: 24 },
-    { label: '1-3d', min: 24, max: 72 },
-    { label: '3-7d', min: 72, max: 168 },
-    { label: '>7d', min: 168, max: Infinity },
-  ];
-  const durationDist = durationBuckets.map(b => ({
-    label: b.label,
-    wins: wins.filter(t => t.durationHours >= b.min && t.durationHours < b.max).length,
-    losses: losses.filter(t => t.durationHours >= b.min && t.durationHours < b.max).length,
-  }));
 
   if (closedTrades.length === 0) {
     return (
@@ -126,206 +175,146 @@ function StatisticsPage() {
     );
   }
 
+  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const years = Object.keys(stats.heatmap).map(Number).sort();
+
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-8">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
 
-      {/* Core metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Esperanza" value={`€${kpis.expectancy.toFixed(2)}`} positive={kpis.expectancy >= 0} />
-        <MetricCard label="Profit Factor" value={kpis.profitFactor === Infinity ? '∞' : kpis.profitFactor.toFixed(2)} positive={kpis.profitFactor >= 1} />
-        <MetricCard label="Recovery Factor" value={kpis.recoveryFactor === Infinity ? '∞' : kpis.recoveryFactor.toFixed(2)} positive={kpis.recoveryFactor >= 1} />
-        <MetricCard label="Payoff Ratio" value={adv.payoffRatio === Infinity ? '∞' : adv.payoffRatio.toFixed(2)} positive={adv.payoffRatio >= 1} />
-      </div>
-
-      {/* MAE/MFE */}
-      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-        <h2 className="font-display text-sm font-semibold text-foreground mb-4" style={{ color: GOLD }}>Análisis MAE / MFE</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <MiniStat label="MAE Winners" value={`${maeMfe.avgMaeWinners.toFixed(2)}%`} />
-          <MiniStat label="MAE Losers" value={`${maeMfe.avgMaeLosers.toFixed(2)}%`} />
-          <MiniStat label="MFE Winners" value={`${maeMfe.avgMfeWinners.toFixed(2)}%`} />
-          <MiniStat label="MFE Losers" value={`${maeMfe.avgMfeLosers.toFixed(2)}%`} />
-          <MiniStat label="MFE Capturado" value={`${maeMfe.avgMfeCapturedPct.toFixed(0)}%`} />
-        </div>
-      </div>
-
-      {/* Win rate breakdowns */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <GroupChart title="Win Rate por Estado ADX" data={byAdx} />
-        <GroupChart title="Win Rate por Dist. MA50" data={byMA50} />
-        <GroupChart title="Win Rate por Momentum" data={byMomentum} />
-        <BrokerComparison data={byBroker} />
-      </div>
-
-      {/* Category performance */}
-      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-        <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Rendimiento por Categoría</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 px-2 text-xs text-muted-foreground">Categoría</th>
-                <th className="text-right py-2 px-2 text-xs text-muted-foreground">Trades</th>
-                <th className="text-right py-2 px-2 text-xs text-muted-foreground">Win Rate</th>
-                <th className="text-right py-2 px-2 text-xs text-muted-foreground">P&L Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categoryStats.map(c => (
-                <tr key={c.name} className="border-b border-border/50">
-                  <td className="py-2 px-2 font-semibold">{c.name}</td>
-                  <td className="py-2 px-2 text-right font-data">{c.count}</td>
-                  <td className={`py-2 px-2 text-right font-data font-semibold ${c.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{c.winRate.toFixed(1)}%</td>
-                  <td className={`py-2 px-2 text-right font-data font-semibold ${c.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(c.totalPnl)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Monthly Heatmap */}
-      {years.length > 0 && (
-        <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Heatmap P&L Mensual</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-data">
-              <thead>
-                <tr>
-                  <th className="py-1 px-2 text-left text-muted-foreground">Año</th>
-                  {monthNames.map(m => <th key={m} className="py-1 px-2 text-center text-muted-foreground">{m}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {years.map(y => (
-                  <tr key={y}>
-                    <td className="py-1 px-2 font-semibold text-foreground">{y}</td>
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const val = heatmapData[y]?.[i];
-                      if (val === undefined) return <td key={i} className="py-1 px-2 text-center text-muted-foreground/30">—</td>;
-                      const bg = val >= 0 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive';
-                      return <td key={i} className={`py-1 px-2 text-center font-semibold rounded ${bg}`}>{val >= 0 ? '+' : ''}{val.toFixed(0)}</td>;
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* BLOQUE 1 — Rendimiento por Trade */}
+        <Section title="Rendimiento por Trade">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Beneficio Bruto" value={fmtCurrency(stats.grossProfit)} color="success" tip="Suma de todos los trades ganadores." />
+            <StatCard label="Pérdida Bruta" value={`€${fmt(stats.grossLoss)}`} color="destructive" tip="Suma del valor absoluto de todos los trades perdedores." />
+            <StatCard label="Ratio B/P (Payoff)" value={stats.payoffRatio === Infinity ? '∞' : fmt(stats.payoffRatio)} color={stats.payoffRatio >= 1 ? 'success' : 'destructive'} tip="Beneficio medio ganador / Pérdida media perdedora. >1 es favorable." />
+            <StatCard label="Beneficio Medio" value={fmtCurrency(stats.avgWin)} color="success" tip="Promedio de P&L en trades ganadores." />
+            <StatCard label="Pérdida Media" value={`€${fmt(stats.avgLoss)}`} color="destructive" tip="Promedio del valor absoluto de P&L en trades perdedores." />
+            <StatCard label="Mayor Ganador" value={fmtCurrency(stats.bestTrade)} color="success" tip="El trade con mayor beneficio." />
+            <StatCard label="Mayor Perdedor" value={`€${fmt(Math.abs(stats.worstTrade))}`} color="destructive" tip="El trade con mayor pérdida (valor absoluto)." />
+            <StatCard label="Beneficio/Mes" value={fmtCurrency(stats.avgPnlPerMonth)} color={stats.avgPnlPerMonth >= 0 ? 'success' : 'destructive'} tip={`P&L neto total dividido entre ${stats.activeMonths} meses activos.`} />
           </div>
-        </div>
-      )}
+        </Section>
 
-      {/* Drawdown chart */}
-      {drawdownData.length > 1 && (
+        {/* BLOQUE 2 — Consistencia */}
+        <Section title="Consistencia">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Racha Ganadora Máx." value={`${stats.maxWinStreak}`} sub="trades consecutivos ganadores" color="success" tip="Mayor número de trades ganadores consecutivos." />
+            <StatCard label="Racha Perdedora Máx." value={`${stats.maxLossStreak}`} sub="trades consecutivos perdedores" color={stats.maxLossStreak > 5 ? 'destructive' : 'muted'} tip="Mayor número de trades perdedores consecutivos. Preocupante si >5." />
+            <StatCard label="Operaciones/Mes" value={fmt(stats.tradesPerMonth, 1)} color="muted" tip="Promedio de trades cerrados por mes activo." />
+            <StatCard
+              label="% Trades MAE > 50% SL"
+              value={stats.maeAbove50Pct !== null ? `${fmt(stats.maeAbove50Pct, 1)}%` : 'N/A'}
+              color={stats.maeAbove50Pct === null ? 'muted' : stats.maeAbove50Pct > 60 ? 'destructive' : stats.maeAbove50Pct > 40 ? 'warning' : 'muted'}
+              tip="Porcentaje de trades donde la excursión adversa máxima superó el 50% del stop loss. Requiere campo MAE."
+            />
+          </div>
+        </Section>
+
+        {/* BLOQUE 3 — Riesgo y Drawdown */}
+        <Section title="Riesgo y Drawdown">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Drawdown Máx. (€)" value={`€${fmt(stats.maxDdAbs)}`} color="destructive" tip="Mayor caída desde un pico de equity hasta un valle posterior." />
+            <StatCard label="Drawdown Máx. (%)" value={`${fmt(stats.maxDdPct, 1)}%`} color="destructive" tip="Mayor caída porcentual desde un pico de equity." />
+            <StatCard label="Duración Media DD" value={`${fmt(stats.avgDdDurationDays, 1)} días`} color="muted" tip="Duración promedio de los períodos de drawdown en días." />
+            <StatCard
+              label="Pérdidas > 2x Media"
+              value={`${fmt(stats.outlierPct, 1)}%`}
+              color={stats.outlierPct > 10 ? 'destructive' : 'muted'}
+              tip="% de trades con pérdida superior al doble de la pérdida media. Detecta outliers destructivos."
+            />
+          </div>
+        </Section>
+
+        {/* Heatmap P&L Mensual */}
+        {years.length > 0 && (
+          <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
+            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Heatmap P&L Mensual</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-data">
+                <thead>
+                  <tr>
+                    <th className="py-1 px-2 text-left text-muted-foreground">Año</th>
+                    {monthNames.map(m => <th key={m} className="py-1 px-2 text-center text-muted-foreground">{m}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {years.map(y => (
+                    <tr key={y}>
+                      <td className="py-1 px-2 font-semibold text-foreground">{y}</td>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const val = stats.heatmap[y]?.[i];
+                        if (val === undefined) return <td key={i} className="py-1 px-2 text-center text-muted-foreground/30">—</td>;
+                        const bg = val >= 0 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive';
+                        return <td key={i} className={`py-1 px-2 text-center font-semibold rounded ${bg}`}>{val >= 0 ? '+' : ''}{val.toFixed(0)}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Histogram */}
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Drawdown</h2>
-          <div className="h-56">
+          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Distribución de Resultados</h2>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={drawdownData}>
-                <defs>
-                  <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={RED} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={RED} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#475569' }} tickFormatter={v => v.slice(5)} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'Drawdown']} />
-                <Area type="monotone" dataKey="drawdown" stroke={RED} fill="url(#ddGrad)" strokeWidth={2} dot={false} />
-              </AreaChart>
+              <BarChart data={stats.histogramData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} />
+                <ReTooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v} trades`, 'Cantidad']} />
+                <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                  {stats.histogramData.map((entry, i) => (
+                    <Cell key={i} fill={entry.negative ? RED : GREEN} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-      )}
-
-      {/* Duration distribution */}
-      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-        <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Distribución de Duración</h2>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={durationDist}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} />
-              <Bar dataKey="wins" name="Winners" fill={GREEN} radius={[3, 3, 0, 0]} />
-              <Bar dataKey="losses" name="Losers" fill={RED} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 
-function MetricCard({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="text-xs text-muted-foreground mb-1">{label}</div>
-      <div className={`text-xl font-data font-bold ${positive === undefined ? 'text-foreground' : positive ? 'text-success' : 'text-destructive'}`}>{value}</div>
-    </div>
-  );
-}
+/* ─── Sub-components ─── */
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-sm font-data font-bold text-foreground">{value}</div>
+      <h2 className="font-display text-sm font-semibold mb-3" style={{ color: GOLD }}>{title}</h2>
+      {children}
     </div>
   );
 }
 
-function GroupChart({ title, data }: { title: string; data: GroupStat[] }) {
-  if (data.length === 0) return null;
-  return (
-    <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>{title}</h2>
-      <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11, fill: '#475569' }} tickFormatter={v => `${v}%`} domain={[0, 100]} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} width={100} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
-            <Bar dataKey="winRate" radius={[0, 3, 3, 0]}>
-              {data.map((entry, i) => (
-                <Cell key={i} fill={entry.winRate >= 50 ? GREEN : RED} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-        {data.map(d => (
-          <span key={d.name}>{d.name}: <span className="font-data font-semibold text-foreground">{d.count} trades</span> • <span className={d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}>{formatCurrency(d.totalPnl)}</span></span>
-        ))}
-      </div>
-    </div>
-  );
-}
+type CardColor = 'success' | 'destructive' | 'muted' | 'warning';
 
-function BrokerComparison({ data }: { data: BrokerStat[] }) {
-  if (data.length === 0) return null;
+const colorMap: Record<CardColor, string> = {
+  success: 'text-success',
+  destructive: 'text-destructive',
+  muted: 'text-foreground',
+  warning: 'text-yellow-400',
+};
+
+function StatCard({ label, value, sub, color, tip }: { label: string; value: string; sub?: string; color: CardColor; tip: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Comparación por Broker</h2>
-      <div className="space-y-3">
-        {data.map(b => (
-          <div key={b.name} className="flex items-center justify-between p-3 rounded-md bg-secondary border border-border">
-            <div>
-              <div className="text-sm font-semibold capitalize">{b.name}</div>
-              <div className="text-xs text-muted-foreground">{b.count} trades</div>
-            </div>
-            <div className="flex gap-4 text-xs font-data">
-              <div>WR: <span className={`font-semibold ${b.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{b.winRate.toFixed(1)}%</span></div>
-              <div>PF: <span className="font-semibold text-foreground">{b.profitFactor === Infinity ? '∞' : b.profitFactor.toFixed(2)}</span></div>
-              <div>P&L: <span className={`font-semibold ${b.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(b.totalPnl)}</span></div>
-            </div>
-          </div>
-        ))}
+    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="w-3 h-3 text-muted-foreground/50 cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-[220px] text-xs">{tip}</TooltipContent>
+        </Tooltip>
       </div>
+      <div className={`text-xl font-data font-bold ${colorMap[color]}`}>{value}</div>
+      {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
