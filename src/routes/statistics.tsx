@@ -145,6 +145,13 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   const returnPct = startingBalance > 0 ? (netTotal / startingBalance) * 100 : 0;
   const reliabilityFactor = netTotal > 0 ? netTotal / (netTotal + maxDdAbs) : 0;
 
+  // Summary block
+  const totalTrades = trades.length;
+  const winnersCount = winners.length;
+  const losersCount = losers.length;
+  const winPct = totalTrades > 0 ? (winnersCount / totalTrades) * 100 : 0;
+  const lossPct = totalTrades > 0 ? (losersCount / totalTrades) * 100 : 0;
+
   return {
     grossProfit, grossLoss, payoffRatio, avgWin, avgLoss, bestTrade, worstTrade, avgPnlPerMonth,
     maxWinStreak, maxLossStreak, tradesPerMonth, maeAbove50Pct,
@@ -152,6 +159,7 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
     maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
     returnPct, reliabilityFactor,
     heatmap, histogramData, activeMonths, netTotal,
+    totalTrades, winnersCount, losersCount, winPct, lossPct,
   };
 }
 
@@ -195,6 +203,22 @@ function StatisticsPage() {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-8">
         <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+
+        {/* BLOQUE 0 — Resumen General */}
+        <Section title="Resumen General">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Total Operaciones" value={`${stats.totalTrades}`} color="muted" tip="Número total de trades cerrados." />
+            <StatCard label="Operaciones Ganadoras" value={`${stats.winnersCount}`} color="success" tip="Trades cerrados con beneficio positivo." />
+            <StatCard label="Operaciones Perdedoras" value={`${stats.losersCount}`} color="destructive" tip="Trades cerrados con beneficio negativo." />
+            <StatCard label="Beneficio Neto" value={fmtCurrency(stats.netTotal)} color={stats.netTotal >= 0 ? 'success' : 'destructive'} tip="Suma del P&L de todos los trades cerrados." />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <StatCard label="Probabilidad Ganancia" value={`${fmt(stats.winPct)}%`} color={stats.winPct >= 50 ? 'success' : 'destructive'} tip="Porcentaje de trades cerrados que fueron ganadores." />
+            <StatCard label="Probabilidad Pérdida" value={`${fmt(stats.lossPct)}%`} color={stats.lossPct > 50 ? 'destructive' : 'success'} tip="Porcentaje de trades cerrados que fueron perdedores." />
+            <StatCard label="Retorno %" value={`${stats.returnPct >= 0 ? '+' : ''}${fmt(stats.returnPct)}%`} color={stats.returnPct >= 0 ? 'success' : 'destructive'} tip={`(Beneficio Neto / Capital Inicial) × 100. Capital: €${startingBalance.toLocaleString('es-ES')}.`} />
+            <StatCard label="Factor de Fiabilidad" value={fmt(stats.reliabilityFactor)} color={stats.reliabilityFactor > 0.5 ? 'success' : stats.reliabilityFactor >= 0.2 ? 'warning' : 'destructive'} tip="Proporción del beneficio no consumida por el drawdown. Cercano a 1 = sistema robusto." />
+          </div>
+        </Section>
 
         {/* BLOQUE 1 — Rendimiento por Trade */}
         <Section title="Rendimiento por Trade">
