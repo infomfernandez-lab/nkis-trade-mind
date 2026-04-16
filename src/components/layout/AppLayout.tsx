@@ -2,7 +2,7 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Eye, Radar
+  Settings, Menu, X, LogOut, Eye, Radar, Crosshair, BarChart3
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
@@ -20,12 +20,14 @@ export function useBrokerFilter() {
 
 const navItems = [
   { to: '/' as const, label: 'Panel', icon: LayoutDashboard },
-  { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/radar' as const, label: 'Radar', icon: Radar },
   { to: '/watchlist' as const, label: 'Watchlist', icon: Eye },
+  { to: '/positions' as const, label: 'Posiciones Abiertas', icon: Crosshair },
+  { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
-  { to: '/manual' as const, label: 'Manual', icon: BookMarked },
+  { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
   { to: '/reports' as const, label: 'Informes', icon: FileText },
+  { to: '/manual' as const, label: 'Manual', icon: BookMarked },
   { to: '/settings' as const, label: 'Ajustes', icon: Settings },
 ];
 
