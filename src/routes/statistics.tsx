@@ -49,13 +49,20 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.netPnl)) : 0;
   const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.netPnl)) : 0;
 
-  // Active months
-  const dates = trades.map(t => new Date(t.exitDate ?? t.entryDate).getTime());
-  const minDate = dates.length > 0 ? Math.min(...dates) : Date.now();
-  const maxDate = dates.length > 0 ? Math.max(...dates) : Date.now();
+  // Active months & days
+  const entryDates = trades.map(t => new Date(t.entryDate).getTime());
+  const exitDates = trades.map(t => new Date(t.exitDate ?? t.entryDate).getTime());
+  const minDate = entryDates.length > 0 ? Math.min(...entryDates) : Date.now();
+  const maxDate = exitDates.length > 0 ? Math.max(...exitDates) : Date.now();
   const activeMonths = Math.max(1, Math.round((maxDate - minDate) / (30.44 * 24 * 3600 * 1000)));
+  const activeDays = Math.max(1, Math.round((maxDate - minDate) / (24 * 3600 * 1000)));
   const netTotal = trades.reduce((s, t) => s + t.netPnl, 0);
   const avgPnlPerMonth = netTotal / activeMonths;
+
+  // New consistency metrics
+  const tradesPerDay = trades.length / activeDays;
+  const winnersPerMonth = winners.length / activeMonths;
+  const losersPerMonth = losers.length / activeMonths;
 
   // Block 2 — streaks
   let maxWinStreak = 0, maxLossStreak = 0, curWin = 0, curLoss = 0;
@@ -134,11 +141,17 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
     negative: b.max <= 0,
   }));
 
+  // Return % and reliability factor
+  const returnPct = startingBalance > 0 ? (netTotal / startingBalance) * 100 : 0;
+  const reliabilityFactor = netTotal > 0 ? netTotal / (netTotal + maxDdAbs) : 0;
+
   return {
     grossProfit, grossLoss, payoffRatio, avgWin, avgLoss, bestTrade, worstTrade, avgPnlPerMonth,
     maxWinStreak, maxLossStreak, tradesPerMonth, maeAbove50Pct,
+    tradesPerDay, winnersPerMonth, losersPerMonth,
     maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
-    heatmap, histogramData, activeMonths,
+    returnPct, reliabilityFactor,
+    heatmap, histogramData, activeMonths, netTotal,
   };
 }
 
