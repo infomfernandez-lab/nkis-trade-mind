@@ -275,7 +275,7 @@ function PositionsPage() {
                       <div className="flex items-center gap-1">
                         <span className="font-bold text-sm text-foreground">{trade.symbol}</span>
                         {isCorrelated && (
-                          <AlertTriangle className="w-3 h-3 text-yellow-500" title="Posición correlacionada" />
+                          <span title="Posición correlacionada"><AlertTriangle className="w-3 h-3 text-yellow-500" /></span>
                         )}
                       </div>
                     </TableCell>
