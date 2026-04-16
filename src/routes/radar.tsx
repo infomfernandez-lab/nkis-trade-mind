@@ -4,8 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Radar, Eye, AlertTriangle,
-  ChevronDown, ChevronUp, Clock, Check, RefreshCw
+  ChevronDown, ChevronUp, Clock, Check, RefreshCw, Crosshair, BarChart3
 } from 'lucide-react';
+import { WatchlistSection } from '@/components/radar/WatchlistSection';
+import { OpenPositionsSection } from '@/components/radar/OpenPositionsSection';
+import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
