@@ -14,9 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
-import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
 import { formatDate, type BrokerFilter } from '@/lib/trade-utils';
+import { BrokerSelector } from '@/components/BrokerSelector';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -140,10 +140,10 @@ const MA50_STYLES: Record<string, string> = {
 };
 
 function RadarPage() {
+  const [broker, setBroker] = useState<BrokerFilter>('all');
   const { data: sessions, isLoading, refetch, isFetching } = useScannerSessions();
   const { data: watchlistItems } = useWatchlist();
   const { openTrades } = useAllTrades();
-  const { broker } = useBrokerFilter();
 
   const openSymbols = new Set((openTrades || []).map(t => t.symbol));
   const watchlistSymbols = new Set((watchlistItems || []).map(w => w.symbol));
@@ -167,12 +167,20 @@ function RadarPage() {
 
   return (
     <div className="space-y-6">
+      {/* Broker tabs — local to this page */}
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-xl font-bold flex items-center gap-2">
+          <Radar className="w-5 h-5 text-primary" /> Radar
+        </h1>
+        <BrokerSelector value={broker} onChange={setBroker} />
+      </div>
+
       {/* ZONA 1 — Radar */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-xl font-bold flex items-center gap-2">
-            <Radar className="w-5 h-5 text-primary" /> Radar
-          </h1>
+          <h2 className="font-display text-lg font-bold flex items-center gap-2">
+            <Crosshair className="w-5 h-5 text-primary" /> Scanner
+          </h2>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
