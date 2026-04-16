@@ -14,9 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
-import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { toast } from 'sonner';
 import { formatDate, type BrokerFilter } from '@/lib/trade-utils';
+import { BrokerSelector } from '@/components/BrokerSelector';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,

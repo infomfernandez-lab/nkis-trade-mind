@@ -21,8 +21,6 @@ export function useBrokerFilter() {
 const navItems = [
   { to: '/' as const, label: 'Panel', icon: LayoutDashboard },
   { to: '/radar' as const, label: 'Radar', icon: Radar },
-  { to: '/watchlist' as const, label: 'Watchlist', icon: Eye },
-  { to: '/positions' as const, label: 'Posiciones Abiertas', icon: Crosshair },
   { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
   { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
