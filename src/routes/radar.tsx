@@ -174,6 +174,13 @@ function RadarPage() {
         </h1>
         <BrokerSelector value={broker} onChange={setBroker} />
       </div>
+
+      {/* ZONA 1 — Radar */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold flex items-center gap-2">
+            <Crosshair className="w-5 h-5 text-primary" /> Scanner
+          </h2>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
