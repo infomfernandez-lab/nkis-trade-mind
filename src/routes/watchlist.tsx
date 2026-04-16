@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Eye, Plus, Trash2, ArrowRightLeft, Loader2, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
+import { Eye, Plus, Trash2, ArrowRightLeft, Loader2, TrendingUp, TrendingDown, RefreshCw, Check, CircleCheck } from 'lucide-react';
 import { useWatchlist, useAddToWatchlist, useUpdateWatchlistItem, useDeleteWatchlistItem, type WatchlistItem } from '@/hooks/use-watchlist';
+import { useAllTrades } from '@/hooks/use-trades';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/watchlist')({
@@ -22,12 +24,26 @@ const STATUS_COLORS: Record<string, string> = {
   'Vigilando': 'bg-primary/10 text-primary',
   'Señal Próxima': 'bg-yellow-500/10 text-yellow-400',
   'Señal Dada': 'bg-success/10 text-success',
+  'Señal Dada — En posición': 'bg-yellow-500/20 text-yellow-400',
   'Descartado': 'bg-muted text-muted-foreground',
 };
 
 function WatchlistPage() {
   const { data: items, isLoading } = useWatchlist();
+  const { openTrades } = useAllTrades();
+  const updateItem = useUpdateWatchlistItem();
   const [showForm, setShowForm] = useState(false);
+
+  // Auto-detection: when open trades match watchlist "Vigilando" items, update status
+  useEffect(() => {
+    if (!items || !openTrades || openTrades.length === 0) return;
+    const openSymbols = new Set(openTrades.map(t => t.symbol));
+    items.forEach(item => {
+      if (item.status === 'Vigilando' && openSymbols.has(item.symbol)) {
+        updateItem.mutate({ id: item.id, status: 'Señal Dada — En posición' } as any);
+      }
+    });
+  }, [items, openTrades]);
 
   if (isLoading) {
     return (
@@ -75,19 +91,21 @@ function WatchlistPage() {
 function WatchlistCard({ item }: { item: WatchlistItem }) {
   const updateItem = useUpdateWatchlistItem();
   const deleteItem = useDeleteWatchlistItem();
+  const navigate = useNavigate();
   const [editStoch, setEditStoch] = useState(false);
   const [stochValue, setStochValue] = useState(String(item.stochastic_level ?? ''));
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const isAlcista = item.direction?.toLowerCase() === 'alcista' || item.direction?.toLowerCase() === 'buy';
+  const isConverted = item.status === 'Señal Dada' && item.trade_id != null;
+  const isInPosition = item.status === 'Señal Dada — En posición';
 
-  // Progress toward signal: buy signal at stoch <= 30, sell at stoch >= 70
+  // Progress toward signal
   let signalProgress = 0;
   if (item.stochastic_level != null) {
     if (isAlcista) {
-      // For buy: signal at 30 or below. Progress = how close from 100 down to 30
       signalProgress = Math.min(100, Math.max(0, ((100 - item.stochastic_level) / 70) * 100));
     } else {
-      // For sell: signal at 70 or above. Progress = how close from 0 up to 70
       signalProgress = Math.min(100, Math.max(0, (item.stochastic_level / 70) * 100));
     }
   }
@@ -106,118 +124,179 @@ function WatchlistCard({ item }: { item: WatchlistItem }) {
     toast.success(`Estado: ${status}`);
   };
 
+  const handleSignalActivated = () => {
+    setShowConfirm(true);
+  };
+
+  const handleConfirmSignal = () => {
+    updateItem.mutate({ id: item.id, status: 'Señal Dada' } as any, {
+      onSuccess: () => {
+        setShowConfirm(false);
+        toast.success(`Señal activada para ${item.symbol}`);
+        navigate({ to: '/trades' });
+      },
+    });
+  };
+
   return (
-    <div className={`rounded-lg border p-4 transition-colors ${
-      isAlcista ? 'border-success/20 bg-card' : 'border-destructive/20 bg-card'
-    } ${item.status === 'Descartado' ? 'opacity-50' : ''}`}>
-      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-        {/* Left: Symbol info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            {isAlcista ? (
-              <TrendingUp className="w-5 h-5 text-success shrink-0" />
-            ) : (
-              <TrendingDown className="w-5 h-5 text-destructive shrink-0" />
-            )}
-            <span className="font-display text-lg font-bold">{item.symbol}</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isAlcista ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-              {isAlcista ? 'Alcista' : 'Bajista'}
-            </span>
-            <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status] || 'bg-muted text-muted-foreground'}`}>
-              {item.status}
-            </span>
-            {item.added_from_scanner && (
-              <span className="text-xs text-muted-foreground">📡 Scanner</span>
-            )}
-          </div>
+    <>
+      <div className={`rounded-lg border p-4 transition-colors ${
+        isConverted || isInPosition ? 'opacity-60 border-border bg-muted/30' :
+        isAlcista ? 'border-success/20 bg-card' : 'border-destructive/20 bg-card'
+      } ${item.status === 'Descartado' ? 'opacity-50' : ''}`}>
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+          {/* Left: Symbol info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              {isAlcista ? (
+                <TrendingUp className="w-5 h-5 text-success shrink-0" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-destructive shrink-0" />
+              )}
+              <span className="font-display text-lg font-bold">{item.symbol}</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isAlcista ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                {isAlcista ? 'Alcista' : 'Bajista'}
+              </span>
+              <span className={`text-xs px-2 py-0.5 rounded ${STATUS_COLORS[item.status] || 'bg-muted text-muted-foreground'}`}>
+                {item.status === 'Señal Dada' && isConverted ? (
+                  <span className="flex items-center gap-1"><CircleCheck className="w-3 h-3" /> Convertido a operación</span>
+                ) : item.status}
+              </span>
+              {isInPosition && (
+                <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-bold border border-yellow-500/40">
+                  EN POSICIÓN
+                </span>
+              )}
+              {item.added_from_scanner && (
+                <span className="text-xs text-muted-foreground">📡 Scanner</span>
+              )}
+            </div>
 
-          {item.watch_reason && (
-            <p className="text-sm text-muted-foreground mb-2">{item.watch_reason}</p>
-          )}
+            {item.watch_reason && (
+              <p className="text-sm text-muted-foreground mb-2">{item.watch_reason}</p>
+            )}
 
-          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-            {item.scanner_score != null && (
-              <span>Score: <span className="font-data font-semibold text-foreground">{item.scanner_score}/100</span></span>
-            )}
-            {item.adx_value != null && (
-              <span>ADX: <span className="font-data">{item.adx_value} {item.adx_state && `(${item.adx_state})`}</span></span>
-            )}
-            {item.distance_to_ma50 != null && (
-              <span>MA50: <span className="font-data">{item.distance_to_ma50}%</span></span>
-            )}
-            <span>Añadido: {new Date(item.created_at).toLocaleDateString('es-ES')}</span>
-          </div>
-        </div>
-
-        {/* Middle: Stochastic + Progress */}
-        <div className="w-full lg:w-56 shrink-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted-foreground">Estocástico</span>
-            {editStoch ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={stochValue}
-                  onChange={e => setStochValue(e.target.value)}
-                  className="h-6 w-16 text-xs"
-                  onKeyDown={e => e.key === 'Enter' && handleStochSave()}
-                />
-                <button onClick={handleStochSave} className="text-xs text-primary hover:underline">OK</button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setEditStoch(true)}
-                className="text-xs font-data font-semibold text-foreground hover:text-primary transition-colors"
-              >
-                {item.stochastic_level != null ? item.stochastic_level.toFixed(1) : '—'}
-                <RefreshCw className="w-3 h-3 inline ml-1" />
-              </button>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Progress value={signalProgress} className="h-2" />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>{isAlcista ? 'Lejos (100)' : 'Lejos (0)'}</span>
-              <span>{isAlcista ? 'Señal (≤30)' : 'Señal (≥70)'}</span>
+            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+              {item.scanner_score != null && (
+                <span>Score: <span className="font-data font-semibold text-foreground">{item.scanner_score}/100</span></span>
+              )}
+              {item.adx_value != null && (
+                <span>ADX: <span className="font-data">{item.adx_value} {item.adx_state && `(${item.adx_state})`}</span></span>
+              )}
+              {item.distance_to_ma50 != null && (
+                <span>MA50: <span className="font-data">{item.distance_to_ma50}%</span></span>
+              )}
+              <span>Añadido: {new Date(item.created_at).toLocaleDateString('es-ES')}</span>
             </div>
           </div>
-        </div>
 
-        {/* Right: Actions */}
-        <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
-          {STATUSES.filter(s => s !== item.status).map(s => (
+          {/* Middle: Stochastic + Progress */}
+          <div className="w-full lg:w-56 shrink-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-muted-foreground">Estocástico</span>
+              {editStoch ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={stochValue}
+                    onChange={e => setStochValue(e.target.value)}
+                    className="h-6 w-16 text-xs"
+                    onKeyDown={e => e.key === 'Enter' && handleStochSave()}
+                  />
+                  <button onClick={handleStochSave} className="text-xs text-primary hover:underline">OK</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditStoch(true)}
+                  className="text-xs font-data font-semibold text-foreground hover:text-primary transition-colors"
+                >
+                  {item.stochastic_level != null ? item.stochastic_level.toFixed(1) : '—'}
+                  <RefreshCw className="w-3 h-3 inline ml-1" />
+                </button>
+              )}
+            </div>
+            <div className="space-y-1">
+              <Progress value={signalProgress} className="h-2" />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>{isAlcista ? 'Lejos (100)' : 'Lejos (0)'}</span>
+                <span>{isAlcista ? 'Señal (≤30)' : 'Señal (≥70)'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
+            {/* Signal activation button */}
+            {item.status === 'Vigilando' && (
+              <button
+                onClick={handleSignalActivated}
+                className="text-xs px-3 py-1.5 rounded bg-success/10 text-success border border-success/30 hover:bg-success/20 transition-colors flex items-center gap-1.5 font-semibold"
+              >
+                🟢 Señal activada — Abrir posición
+              </button>
+            )}
+
+            {STATUSES.filter(s => s !== item.status).map(s => (
+              <button
+                key={s}
+                onClick={() => handleStatusChange(s)}
+                className={`text-xs px-2.5 py-1 rounded transition-colors ${STATUS_COLORS[s]} hover:opacity-80`}
+              >
+                {s}
+              </button>
+            ))}
+            {item.status === 'Señal Dada' && !item.trade_id && (
+              <Link
+                to="/trades"
+                className="text-xs px-2.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
+              >
+                <ArrowRightLeft className="w-3 h-3" />
+                Ver Trades
+              </Link>
+            )}
             <button
-              key={s}
-              onClick={() => handleStatusChange(s)}
-              className={`text-xs px-2.5 py-1 rounded transition-colors ${STATUS_COLORS[s]} hover:opacity-80`}
+              onClick={() => {
+                deleteItem.mutate(item.id);
+                toast.success('Eliminado de la watchlist');
+              }}
+              className="text-xs px-2.5 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-1"
             >
-              {s}
+              <Trash2 className="w-3 h-3" />
+              Eliminar
             </button>
-          ))}
-          {item.status === 'Señal Dada' && !item.trade_id && (
-            <Link
-              to="/trades"
-              className="text-xs px-2.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
-            >
-              <ArrowRightLeft className="w-3 h-3" />
-              Ver Trades
-            </Link>
-          )}
-          <button
-            onClick={() => {
-              deleteItem.mutate(item.id);
-              toast.success('Eliminado de la watchlist');
-            }}
-            className="text-xs px-2.5 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-1"
-          >
-            <Trash2 className="w-3 h-3" />
-            Eliminar
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Confirmation dialog */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Confirmar entrada en {item.symbol}?</DialogTitle>
+            <DialogDescription>
+              Esto moverá el instrumento de Watchlist a Posiciones Abiertas. El estado cambiará a "Señal Dada".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmSignal}
+              disabled={updateItem.isPending}
+              className="px-4 py-2 rounded-md bg-success text-white text-sm font-medium hover:bg-success/90 transition-colors disabled:opacity-50"
+            >
+              {updateItem.isPending ? 'Confirmando...' : '✅ Confirmar entrada'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

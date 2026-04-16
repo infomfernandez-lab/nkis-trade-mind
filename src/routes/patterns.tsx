@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Zap, AlertTriangle, Loader2, Shield, Gauge, TrendingUp, BarChart3 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { formatCurrency, type Trade } from '@/lib/trade-utils';
+import { formatCurrency, filterByBroker, type Trade } from '@/lib/trade-utils';
 import {
   getPerformanceByAdxState, getPerformanceByMA50, getPerformanceByMomentum,
   getInterventionCosts, getEmotionalPerformanceMatrix, getMonthlyConsistencyScore,
@@ -13,6 +13,7 @@ import {
   type GroupStat, type HeatmapCell,
 } from '@/lib/analytics';
 import { useSettings } from '@/hooks/use-settings';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 export const Route = createFileRoute('/patterns')({
   component: Patterns,
@@ -35,8 +36,9 @@ function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
 }
 
 function Patterns() {
-  const { data: closedTrades, isLoading, error } = useClosedTrades();
+  const { data: allClosedTrades, isLoading, error } = useClosedTrades();
   const { data: settings } = useSettings();
+  const { broker } = useBrokerFilter();
 
   if (isLoading) {
     return (
@@ -55,7 +57,7 @@ function Patterns() {
     );
   }
 
-  const trades = closedTrades ?? [];
+  const trades = filterByBroker(allClosedTrades ?? [], broker);
 
   if (trades.length === 0) {
     return (
@@ -358,20 +360,14 @@ function Patterns() {
                   <tbody>
                     {emotions.map(e => (
                       <tr key={e} className="border-b border-border/50">
-                        <td className="py-2.5 px-3 font-medium text-sm">{e}</td>
+                        <td className="py-2 px-3 text-sm font-medium">{e}</td>
                         {compliances.map(c => {
                           const cell = lookup(e, c);
-                          if (!cell) return <td key={c} className="py-2.5 px-3 text-center text-xs text-muted-foreground">—</td>;
-                          const intensity = Math.min(Math.abs(cell.avgPnl) / 50, 1);
-                          const bg = cell.avgPnl >= 0
-                            ? `rgba(52, 211, 153, ${intensity * 0.3})`
-                            : `rgba(248, 113, 113, ${intensity * 0.3})`;
+                          if (!cell) return <td key={c} className="text-center py-2 px-3 text-muted-foreground/30">—</td>;
                           return (
-                            <td key={c} className="py-2.5 px-3 text-center" style={{ backgroundColor: bg }}>
-                              <div className={`font-data font-semibold text-sm ${cell.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                                €{cell.avgPnl.toFixed(0)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">{cell.count} trades</div>
+                            <td key={c} className={`text-center py-2 px-3 font-data font-semibold ${cell.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              {formatCurrency(cell.avgPnl)}
+                              <div className="text-[10px] text-muted-foreground font-normal">{cell.count} trades</div>
                             </td>
                           );
                         })}
@@ -385,83 +381,74 @@ function Patterns() {
         </ChartCard>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <ChartCard title="Rendimiento por Cumplimiento del Sistema">
+      {complianceData.length > 0 && (
+        <ChartCard title="P&L Medio por Nivel de Cumplimiento">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={complianceData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'P&L Medio']} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`€${v.toFixed(2)}`, 'P&L Medio']} />
                 <Bar dataKey="avgPnl" radius={[3, 3, 0, 0]}>
-                  {complianceData.map((d, i) => (
-                    <Cell key={i} fill={d.avgPnl >= 0 ? '#34d399' : '#f87171'} />
+                  {complianceData.map((entry, i) => (
+                    <Cell key={i} fill={entry.avgPnl >= 0 ? '#34d399' : '#f87171'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {complianceData.map(d => (
-              <div key={d.name} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{d.name}</span>: {d.winRate.toFixed(0)}% WR ({d.count} trades)
-              </div>
-            ))}
-          </div>
         </ChartCard>
+      )}
 
-        <ChartCard title="Análisis por Estado Emocional">
+      {emotionData.length > 0 && (
+        <ChartCard title="P&L Total por Estado Emocional">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={emotionData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`$${v.toFixed(0)}`, 'P&L Medio']} />
-                <Bar dataKey="avgPnl" radius={[3, 3, 0, 0]}>
-                  {emotionData.map((d, i) => (
-                    <Cell key={i} fill={d.avgPnl >= 0 ? '#34d399' : '#f87171'} />
+                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
+                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`€${v.toFixed(2)}`, 'P&L Total']} />
+                <Bar dataKey="totalPnl" radius={[3, 3, 0, 0]}>
+                  {emotionData.map((entry, i) => (
+                    <Cell key={i} fill={entry.totalPnl >= 0 ? '#34d399' : '#f87171'} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
-      </div>
+      )}
 
-      <ChartCard title="Rendimiento por Instrumento">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Símbolo</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">P&L Total</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Win Rate</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">P&L Medio</th>
-                <th className="text-right py-2 px-3 text-xs text-muted-foreground font-medium">Trades</th>
-              </tr>
-            </thead>
-            <tbody>
-              {instrumentData.map(d => (
-                <tr key={d.symbol} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
-                  <td className="py-2.5 px-3 font-semibold">{d.symbol}</td>
-                  <td className={`py-2.5 px-3 text-right font-data font-semibold ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(d.totalPnl)}
-                  </td>
-                  <td className={`py-2.5 px-3 text-right font-data ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>
-                    {d.winRate.toFixed(0)}%
-                  </td>
-                  <td className={`py-2.5 px-3 text-right font-data ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(d.avgPnl)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-muted-foreground font-data">{d.count}</td>
+      {instrumentData.length > 0 && (
+        <ChartCard title="Rendimiento por Instrumento">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Instrumento</th>
+                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Trades</th>
+                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Win Rate</th>
+                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L Medio</th>
+                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </ChartCard>
+              </thead>
+              <tbody>
+                {instrumentData.slice(0, 15).map(d => (
+                  <tr key={d.symbol} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
+                    <td className="py-2 px-2 font-semibold">{d.symbol}</td>
+                    <td className="py-2 px-2 text-right text-muted-foreground font-data">{d.count}</td>
+                    <td className={`py-2 px-2 text-right font-data font-semibold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{d.winRate.toFixed(0)}%</td>
+                    <td className={`py-2 px-2 text-right font-data ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.avgPnl)}</td>
+                    <td className={`py-2 px-2 text-right font-data font-semibold ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.totalPnl)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ChartCard>
+      )}
     </div>
   );
 }
@@ -469,7 +456,7 @@ function Patterns() {
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold text-foreground mb-4">{title}</h2>
+      <h2 className="font-display text-sm font-semibold text-foreground mb-4" style={{ color: '#c8a951' }}>{title}</h2>
       {children}
     </div>
   );
@@ -477,11 +464,9 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 function StatSummary({ data }: { data: GroupStat[] }) {
   return (
-    <div className="mt-3 flex flex-wrap gap-3">
+    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
       {data.map(d => (
-        <div key={d.name} className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{d.name}</span>: {d.winRate.toFixed(0)}% WR • Media {formatCurrency(d.avgPnl)} • €{d.totalPnl.toFixed(0)} total ({d.count})
-        </div>
+        <span key={d.name}>{d.name}: <span className="font-data font-semibold text-foreground">{d.count} trades</span> • <span className={d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}>{formatCurrency(d.totalPnl)}</span></span>
       ))}
     </div>
   );
