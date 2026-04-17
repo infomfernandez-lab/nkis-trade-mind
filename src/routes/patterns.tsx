@@ -1,473 +1,836 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-  ScatterChart, Scatter, ZAxis,
+  ScatterChart, Scatter, ZAxis, LineChart, Line, PieChart, Pie, ReferenceLine, Legend,
 } from 'recharts';
-import { Zap, AlertTriangle, Loader2, Shield, Gauge, TrendingUp, BarChart3 } from 'lucide-react';
+import { Loader2, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { formatCurrency, filterByBroker, type Trade } from '@/lib/trade-utils';
-import {
-  getPerformanceByAdxState, getPerformanceByMA50, getPerformanceByMomentum,
-  getInterventionCosts, getEmotionalPerformanceMatrix, getMonthlyConsistencyScore,
-  computeMaeMfe, computeRrData, generateEnhancedInsights, getPerformanceByBroker,
-  type GroupStat, type HeatmapCell,
-} from '@/lib/analytics';
-import { useSettings } from '@/hooks/use-settings';
+import { filterByBroker, type Trade } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const Route = createFileRoute('/patterns')({
   component: Patterns,
   head: () => ({
     meta: [
       { title: 'Inteligencia de Patrones — CAP Trading' },
-      { name: 'description', content: 'Análisis de patrones de comportamiento y rendimiento.' },
+      { name: 'description', content: 'Descubre cuándo y cómo funciona realmente tu sistema.' },
     ],
   }),
 });
 
-function groupBy<T>(arr: T[], fn: (item: T) => string): Record<string, T[]> {
-  const result: Record<string, T[]> = {};
-  for (const item of arr) {
-    const key = fn(item);
-    if (!result[key]) result[key] = [];
-    result[key].push(item);
-  }
-  return result;
+const NO_INTERVENTION_VALUES = new Set([
+  'EA gestionando solo',
+  'None, EA managing',
+  'Sin intervención',
+  'No EA gestionando solo',
+]);
+
+const MIN_GROUP = 5;
+
+/* ────────── helpers ────────── */
+
+function pct(part: number, whole: number) {
+  return whole > 0 ? (part / whole) * 100 : 0;
+}
+function avg(nums: number[]) {
+  return nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+function eur(n: number) {
+  const sign = n >= 0 ? '+' : '−';
+  return `${sign}€${Math.abs(n).toFixed(0)}`;
+}
+function wrColor(wr: number) {
+  return wr >= 50 ? 'text-success' : 'text-destructive';
+}
+function wrBar(wr: number) {
+  return wr >= 50 ? 'bg-success' : 'bg-destructive';
+}
+function trafficLight(wr: number) {
+  if (wr < 35) return { icon: '🔴', color: 'text-destructive' };
+  if (wr <= 50) return { icon: '🟡', color: 'text-yellow-400' };
+  return { icon: '🟢', color: 'text-success' };
 }
 
+interface GroupRow {
+  key: string;
+  count: number;
+  winRate: number;
+  totalPnl: number;
+  avgPnl: number;
+}
+
+function buildGroup(trades: Trade[], keyFn: (t: Trade) => string | null): GroupRow[] {
+  const buckets: Record<string, Trade[]> = {};
+  for (const t of trades) {
+    const k = keyFn(t);
+    if (!k) continue;
+    (buckets[k] ??= []).push(t);
+  }
+  return Object.entries(buckets).map(([key, arr]) => ({
+    key,
+    count: arr.length,
+    winRate: pct(arr.filter(t => t.isWin).length, arr.length),
+    totalPnl: arr.reduce((s, t) => s + t.netPnl, 0),
+    avgPnl: avg(arr.map(t => t.netPnl)),
+  }));
+}
+
+function isIntervened(t: Trade): boolean {
+  const v = t.manualIntervention?.trim();
+  if (!v) return false; // null = sin bitácora → fuera del cálculo (manejado aparte)
+  return !NO_INTERVENTION_VALUES.has(v);
+}
+
+/* ────────── page ────────── */
+
 function Patterns() {
-  const { data: allClosedTrades, isLoading, error } = useClosedTrades();
-  const { data: settings } = useSettings();
+  const { data: allClosed, isLoading, error } = useClosedTrades();
   const { broker } = useBrokerFilter();
+
+  const trades = useMemo(
+    () => filterByBroker(allClosed ?? [], broker),
+    [allClosed, broker],
+  );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="ml-2 text-sm text-muted-foreground">Cargando patrones...</span>
+      <div className="space-y-6">
+        <Header />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
-        <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
+      <div className="space-y-6">
+        <Header />
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
+        </div>
       </div>
     );
   }
-
-  const trades = filterByBroker(allClosedTrades ?? [], broker);
 
   if (trades.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
-          <p className="text-sm text-muted-foreground mt-1">Datos insuficientes aún</p>
-        </div>
+        <Header />
         <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground text-sm">Los patrones aparecerán cuando tengas trades cerrados en el sistema.</p>
+          <p className="text-muted-foreground text-sm">
+            Los patrones aparecerán cuando tengas trades cerrados en el sistema.
+          </p>
         </div>
       </div>
     );
   }
 
-  const startingBalance = Number(settings?.balance ?? 10000);
-  const insights = generateEnhancedInsights(trades, startingBalance);
-
-  const byCompliance = groupBy(trades.filter(t => t.systemCompliance), t => t.systemCompliance!);
-  const complianceData = Object.entries(byCompliance).map(([key, g]) => ({
-    name: key,
-    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
-    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
-    count: g.length,
-  }));
-
-  const byEmotion = groupBy(trades.filter(t => t.emotionalState), t => t.emotionalState!);
-  const emotionData = Object.entries(byEmotion).map(([key, g]) => ({
-    name: key,
-    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
-    totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
-    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
-    count: g.length,
-  }));
-
-  const bySymbol = groupBy(trades, t => t.symbol);
-  const instrumentData = Object.entries(bySymbol).map(([symbol, g]) => ({
-    symbol,
-    totalPnl: g.reduce((s, t) => s + t.netPnl, 0),
-    winRate: (g.filter(t => t.isWin).length / g.length) * 100,
-    count: g.length,
-    avgPnl: g.reduce((s, t) => s + t.netPnl, 0) / g.length,
-  })).sort((a, b) => b.totalPnl - a.totalPnl);
-
-  const adxStateData = getPerformanceByAdxState(trades);
-  const ma50Data = getPerformanceByMA50(trades);
-  const momentumData = getPerformanceByMomentum(trades);
-  const interventions = getInterventionCosts(trades);
-  const emotionalMatrix = getEmotionalPerformanceMatrix(trades);
-  const consistency = getMonthlyConsistencyScore(trades);
-  const maeMfe = computeMaeMfe(trades);
-  const rrData = computeRrData(trades);
-  const brokerData = getPerformanceByBroker(trades);
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
-        <p className="text-sm text-muted-foreground mt-1">Patrones de comportamiento y rendimiento de {trades.length} trades</p>
-      </div>
+    <div className="space-y-10">
+      <Header />
+      <Block1WhenItWorks trades={trades} />
+      <Block2RespectingSystem trades={trades} />
+      <Block3WhenYouEnterBad trades={trades} />
+      <Block4TradeManagement trades={trades} />
+      <Block5Consistency trades={trades} />
+    </div>
+  );
+}
 
-      {insights.length > 0 && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 lg:p-6 gold-glow">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-4 h-4 text-primary" />
-            <h2 className="font-display text-sm font-semibold text-primary">Insights Automáticos</h2>
+function Header() {
+  return (
+    <div>
+      <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
+      <p className="text-sm text-muted-foreground mt-1">
+        Descubre cuándo y cómo funciona realmente tu sistema
+      </p>
+    </div>
+  );
+}
+
+/* ────────── shared UI ────────── */
+
+function BlockHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="border-b border-primary/20 pb-3">
+      <h2 className="font-display text-lg lg:text-xl font-bold text-primary">{title}</h2>
+      <p className="text-xs lg:text-sm text-muted-foreground mt-1">{subtitle}</p>
+    </div>
+  );
+}
+
+function Card({ title, children, footer }: { title: string; children: React.ReactNode; footer?: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 lg:p-5">
+      <h3 className="font-display text-sm font-semibold text-foreground mb-3">{title}</h3>
+      <div>{children}</div>
+      {footer && <div className="mt-3 pt-3 border-t border-border/60">{footer}</div>}
+    </div>
+  );
+}
+
+function Insight({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2 text-xs lg:text-sm italic text-muted-foreground">
+      <Lightbulb className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function NotEnough({ note }: { note?: string }) {
+  return (
+    <div className="text-xs text-muted-foreground/70 italic py-6 text-center">
+      {note ?? 'Necesitas más trades para este análisis (mínimo 5)'}
+    </div>
+  );
+}
+
+function GroupBars({ rows }: { rows: GroupRow[] }) {
+  const sorted = [...rows].sort((a, b) => b.winRate - a.winRate);
+  return (
+    <div className="space-y-2.5">
+      {sorted.map(r => (
+        <div key={r.key}>
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="font-medium text-foreground">{r.key}</span>
+            <span className={`font-data font-semibold ${wrColor(r.winRate)}`}>
+              {r.winRate.toFixed(0)}%
+            </span>
           </div>
-          <div className="space-y-3">
-            {insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-3 text-sm">
-                <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${insight.type === 'positive' ? 'bg-success' : insight.type === 'warning' ? 'bg-yellow-500' : 'bg-destructive'}`} />
-                <p className="text-foreground/90">{insight.text}</p>
-              </div>
-            ))}
+          <div className="h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className={`h-full ${wrBar(r.winRate)} transition-all`}
+              style={{ width: `${Math.min(100, Math.max(2, r.winRate))}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-data">
+            <span>{r.count} trades</span>
+            <span className={r.totalPnl >= 0 ? 'text-success' : 'text-destructive'}>
+              {eur(r.totalPnl)}
+            </span>
           </div>
         </div>
-      )}
+      ))}
+    </div>
+  );
+}
 
-      {/* Broker Performance */}
-      {brokerData.length > 1 && (
-        <ChartCard title="Rendimiento por Broker">
-          <div className="grid grid-cols-2 gap-4">
-            {brokerData.map(d => (
-              <div key={d.name} className="p-4 rounded-md bg-secondary border border-border">
-                <div className="text-sm font-semibold text-foreground capitalize mb-3">{d.name}</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Win Rate</span>
-                    <span className={`font-data text-sm font-semibold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{d.winRate.toFixed(0)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Profit Factor</span>
-                    <span className="font-data text-sm font-semibold text-foreground">{d.profitFactor === Infinity ? '∞' : d.profitFactor.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">P&L Medio</span>
-                    <span className={`font-data text-sm font-semibold ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.avgPnl)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">P&L Total</span>
-                    <span className={`font-data text-sm font-semibold ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>€{d.totalPnl.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs text-muted-foreground">Trades</span>
-                    <span className="font-data text-sm text-muted-foreground">{d.count}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ChartCard>
-      )}
+/* ────────── BLOQUE 1 ────────── */
 
-      <div className="grid lg:grid-cols-3 gap-4">
-        <ChartCard title="Consistencia Mensual">
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-primary" />
-            <div>
-              <div className={`text-3xl font-data font-bold ${consistency.score >= 80 ? 'text-success' : consistency.score >= 50 ? 'text-primary' : 'text-destructive'}`}>
-                {consistency.score.toFixed(0)}%
-              </div>
-              <div className="text-xs text-muted-foreground">{consistency.compliantMonths}/{consistency.totalMonths} meses al 100% de cumplimiento</div>
-            </div>
-          </div>
-        </ChartCard>
+function Block1WhenItWorks({ trades }: { trades: Trade[] }) {
+  const adxRows = useMemo(() => buildGroup(trades, t => t.adxState || null), [trades]);
+  const ma50Rows = useMemo(() => buildGroup(trades, t => t.distanceToMA50Label || null), [trades]);
 
-        <ChartCard title="Análisis MAE (Colocación SL)">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">MAE Medio Ganadores</span>
-              <span className="font-data text-sm text-success">{maeMfe.avgMaeWinners.toFixed(3)}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">MAE Medio Perdedores</span>
-              <span className="font-data text-sm text-destructive">{maeMfe.avgMaeLosers.toFixed(3)}%</span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              {maeMfe.avgMaeLosers <= maeMfe.avgMaeWinners * 1.3
-                ? '✅ El SL parece bien colocado'
-                : '⚠️ El SL puede ser demasiado amplio en perdedores'}
-            </div>
-          </div>
-        </ChartCard>
+  const rankRows = useMemo(() => buildGroup(trades, t => {
+    if (t.scannerRank == null) return 'Fuera del radar';
+    if (t.scannerRank <= 3) return 'Top 3 del radar';
+    if (t.scannerRank <= 7) return 'Top 4-7';
+    return 'Resto del radar';
+  }), [trades]);
 
-        <ChartCard title="Análisis MFE (Beneficio Capturado)">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">MFE Medio Ganadores</span>
-              <span className="font-data text-sm text-success">{maeMfe.avgMfeWinners.toFixed(3)}%</span>
+  const vixRows = useMemo(() => buildGroup(trades, t => {
+    const v = t.vixAtEntry;
+    if (v == null) return 'Sin dato';
+    if (v < 15) return 'VIX Bajo (<15)';
+    if (v <= 25) return 'VIX Medio (15-25)';
+    return 'VIX Alto (>25)';
+  }), [trades]);
+
+  const bestAdx = [...adxRows].sort((a, b) => b.winRate - a.winRate)[0];
+  const bestMa50 = [...ma50Rows].sort((a, b) => b.winRate - a.winRate)[0];
+  const top3 = rankRows.find(r => r.key === 'Top 3 del radar');
+  const restRanks = rankRows.filter(r => r.key !== 'Top 3 del radar');
+  const restAvg = restRanks.length ? avg(restRanks.map(r => r.winRate)) : 0;
+  const bestVix = [...vixRows].filter(r => r.key !== 'Sin dato').sort((a, b) => b.winRate - a.winRate)[0];
+
+  return (
+    <section className="space-y-4">
+      <BlockHeader
+        title="¿Cuándo funciona el sistema?"
+        subtitle="Condiciones de mercado donde tu edge es real"
+      />
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card title="Win Rate por Estado ADX">
+          {adxRows.length > 0 ? <GroupBars rows={adxRows} /> : <NotEnough />}
+          {bestAdx && (
+            <div className="mt-4">
+              <Insight text={`Tu mejor condición de entrada es ${bestAdx.key} con ${bestAdx.winRate.toFixed(0)}% de win rate en ${bestAdx.count} trades.`} />
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">MFE Capturado</span>
-              <span className={`font-data text-sm font-semibold ${maeMfe.avgMfeCapturedPct >= 70 ? 'text-success' : 'text-primary'}`}>
-                {maeMfe.avgMfeCapturedPct.toFixed(0)}%
-              </span>
+          )}
+        </Card>
+
+        <Card title="Win Rate por Distancia MA50">
+          {ma50Rows.length > 0 ? <GroupBars rows={ma50Rows} /> : <NotEnough />}
+          {bestMa50 && (
+            <div className="mt-4">
+              <Insight text={`Entrar cuando el precio está ${bestMa50.key} tiene un win rate de ${bestMa50.winRate.toFixed(0)}%.`} />
             </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              {maeMfe.avgMfeCapturedPct >= 80
-                ? '✅ Buena captura de beneficio'
-                : `⚠️ Dejando ${(100 - maeMfe.avgMfeCapturedPct).toFixed(0)}% sobre la mesa`}
+          )}
+        </Card>
+
+        <Card title="Win Rate por Ranking Scanner">
+          {rankRows.length > 0 ? <GroupBars rows={rankRows} /> : <NotEnough />}
+          {top3 && restAvg > 0 && (
+            <div className="mt-4">
+              <Insight text={`Los trades del Top 3 tienen un ${(top3.winRate - restAvg).toFixed(0)} pts ${top3.winRate >= restAvg ? 'más' : 'menos'} de win rate que el resto (${top3.winRate.toFixed(0)}% vs ${restAvg.toFixed(0)}%).`} />
             </div>
-          </div>
-        </ChartCard>
+          )}
+        </Card>
+
+        <Card title="Win Rate por VIX">
+          {vixRows.length > 0 ? <GroupBars rows={vixRows} /> : <NotEnough />}
+          {bestVix && (
+            <div className="mt-4">
+              <Insight text={`Tu mejor entorno es ${bestVix.key} con ${bestVix.winRate.toFixed(0)}% de win rate en ${bestVix.count} trades.`} />
+            </div>
+          )}
+        </Card>
       </div>
+    </section>
+  );
+}
 
-      {rrData.length > 0 && (
-        <ChartCard title="RR Real vs Teórico">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" />
-                <XAxis type="number" dataKey="theoreticalRR" name="RR Teórico" tick={{ fontSize: 11, fill: '#475569' }} axisLine={false} tickLine={false} label={{ value: 'RR Teórico', position: 'bottom', offset: -5, style: { fontSize: 10, fill: '#475569' } }} />
-                <YAxis type="number" dataKey="actualRR" name="RR Real" tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} label={{ value: 'RR Real', angle: -90, position: 'insideLeft', style: { fontSize: 10, fill: '#475569' } }} />
-                <ZAxis range={[40, 40]} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }}
-                  formatter={(value: number, name: string) => [value.toFixed(2), name]}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.symbol ?? ''}
-                />
-                <Scatter data={rrData.filter(r => r.isWin)} fill="#34d399" name="Ganadores" />
-                <Scatter data={rrData.filter(r => !r.isWin)} fill="#f87171" name="Perdedores" />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-            <span><span className="inline-block w-2 h-2 rounded-full bg-success mr-1" />Ganadores</span>
-            <span><span className="inline-block w-2 h-2 rounded-full bg-destructive mr-1" />Perdedores</span>
-            <span className="ml-auto">Puntos sobre la diagonal = capturó más de lo esperado</span>
-          </div>
-        </ChartCard>
-      )}
+/* ────────── BLOQUE 2 ────────── */
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {adxStateData.length > 0 && (
-          <ChartCard title="Rendimiento por Estado ADX">
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={adxStateData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                  <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
-                  <Bar dataKey="winRate" radius={[3, 3, 0, 0]} fill="#c8a951" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <StatSummary data={adxStateData} />
-          </ChartCard>
-        )}
+function Block2RespectingSystem({ trades }: { trades: Trade[] }) {
+  // Solo trades con bitácora rellena para intervención
+  const withInterventionLog = useMemo(
+    () => trades.filter(t => t.manualIntervention != null && t.manualIntervention.trim() !== ''),
+    [trades],
+  );
+  const intervened = withInterventionLog.filter(isIntervened);
+  const notIntervened = withInterventionLog.filter(t => !isIntervened(t));
 
-        {ma50Data.length > 0 && (
-          <ChartCard title="Rendimiento por Distancia MA50">
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ma50Data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                  <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v.toFixed(1)}%`, 'Win Rate']} />
-                  <Bar dataKey="winRate" radius={[3, 3, 0, 0]} fill="#60a5fa" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <StatSummary data={ma50Data} />
-          </ChartCard>
-        )}
-      </div>
+  const interventionRate = pct(intervened.length, withInterventionLog.length);
+  const interventionRateColor =
+    interventionRate > 40 ? 'text-destructive' : interventionRate > 20 ? 'text-yellow-400' : 'text-success';
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {momentumData.length > 0 && (
-          <ChartCard title="Rendimiento por Alineación de Momentum">
-            <div className="grid grid-cols-2 gap-4">
-              {momentumData.map(d => (
-                <div key={d.name} className="p-4 rounded-md bg-secondary border border-border text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{d.name}</div>
-                  <div className={`text-2xl font-data font-bold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>
-                    {d.winRate.toFixed(0)}%
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">{d.count} trades</div>
-                  <div className={`text-sm font-data font-semibold mt-1 ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    Media {formatCurrency(d.avgPnl)}
-                  </div>
-                  <div className={`text-xs font-data ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    Total: €{d.totalPnl.toFixed(0)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ChartCard>
-        )}
+  const avgIntervened = avg(intervened.map(t => t.netPnl));
+  const avgNotIntervened = avg(notIntervened.map(t => t.netPnl));
+  const interventionDelta = avgIntervened - avgNotIntervened;
+  const totalInterventionCost = intervened.reduce((s, t) => s + t.netPnl, 0);
 
-        <ChartCard title="Coste de Intervenciones Manuales">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className={`w-5 h-5 ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`} />
-              <div>
-                <div className={`text-2xl font-data font-bold ${interventions.total < 0 ? 'text-destructive' : 'text-success'}`}>
-                  €{interventions.total.toFixed(0)}
-                </div>
-                <div className="text-xs text-muted-foreground">Total de {interventions.totalCount} intervenciones</div>
+  // Respeto del sistema (systemCompliance maps to "Sí completamente" / "No al 100%" / "No")
+  const respectMap: Record<string, string> = {
+    '100%': 'Sí completamente',
+    'Sí completamente': 'Sí completamente',
+    '75%': 'No al 100%',
+    '50%': 'No al 100%',
+    'No al 100%': 'No al 100%',
+    '25%': 'No',
+    '0%': 'No',
+    'No': 'No',
+  };
+  const withRespect = trades.filter(t => t.systemCompliance && respectMap[t.systemCompliance]);
+  const respectGroups: Record<string, number> = { 'Sí completamente': 0, 'No al 100%': 0, 'No': 0 };
+  for (const t of withRespect) {
+    respectGroups[respectMap[t.systemCompliance!]] = (respectGroups[respectMap[t.systemCompliance!]] ?? 0) + 1;
+  }
+  const respectData = Object.entries(respectGroups).map(([name, value]) => ({ name, value }));
+  const respectColors: Record<string, string> = {
+    'Sí completamente': '#34d399',
+    'No al 100%': '#facc15',
+    'No': '#f87171',
+  };
+
+  // Impacto emocional
+  const withEmotion = trades.filter(t => t.emotionalState && t.emotionalState.trim() !== '');
+  const tranquilo = withEmotion.filter(t => /tranquil/i.test(t.emotionalState!));
+  const otros = withEmotion.filter(t => !/tranquil/i.test(t.emotionalState!));
+  const wrTranquilo = pct(tranquilo.filter(t => t.isWin).length, tranquilo.length);
+  const wrOtros = pct(otros.filter(t => t.isWin).length, otros.length);
+
+  return (
+    <section className="space-y-4">
+      <BlockHeader
+        title="¿Estás respetando el sistema?"
+        subtitle="El mayor enemigo eres tú mismo — Pablo Gil"
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card title="Tasa de Intervención">
+          {withInterventionLog.length >= MIN_GROUP ? (
+            <>
+              <div className={`text-3xl font-data font-bold ${interventionRateColor}`}>
+                {interventionRate.toFixed(0)}%
               </div>
-            </div>
-            <div className="space-y-2">
-              {interventions.byType.map(it => (
-                <div key={it.type} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
-                  <span className="text-muted-foreground">{it.type}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">{it.count} trades</span>
-                    <span className={`font-data font-semibold ${it.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      €{it.totalPnl.toFixed(0)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {interventions.byType.length === 0 && (
-                <div className="text-center py-4 text-xs text-muted-foreground">Sin intervenciones registradas</div>
-              )}
-            </div>
-          </div>
-        </ChartCard>
-      </div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {intervened.length} de {withInterventionLog.length} trades
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-2">
+                Basado en {withInterventionLog.length} trades con bitácora rellenada
+              </div>
+            </>
+          ) : (
+            <NotEnough note="Necesitas más trades con bitácora" />
+          )}
+        </Card>
 
-      {emotionalMatrix.length > 0 && (
-        <ChartCard title="Matriz Emocional × Cumplimiento (P&L Medio)">
-          <div className="overflow-x-auto">
-            {(() => {
-              const emotions = [...new Set(emotionalMatrix.map(c => c.emotion))];
-              const compliances = [...new Set(emotionalMatrix.map(c => c.compliance))];
-              const lookup = (e: string, c: string) => emotionalMatrix.find(cell => cell.emotion === e && cell.compliance === c);
-              return (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-2 px-3 text-xs text-muted-foreground font-medium">Emoción \ Cumplimiento</th>
-                      {compliances.map(c => (
-                        <th key={c} className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">{c}</th>
+        <Card title="Coste de Intervenciones">
+          {intervened.length >= 2 && notIntervened.length >= 2 ? (
+            <>
+              <div className={`text-2xl font-data font-bold ${interventionDelta < 0 ? 'text-destructive' : 'text-success'}`}>
+                {eur(interventionDelta)}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-2 space-y-0.5">
+                <div>Intervención: <span className="font-data">{eur(avgIntervened)}</span> medio</div>
+                <div>Sin intervención: <span className="font-data">{eur(avgNotIntervened)}</span> medio</div>
+              </div>
+            </>
+          ) : (
+            <NotEnough note="Necesitas más trades comparables" />
+          )}
+        </Card>
+
+        <Card title="Respeto del Sistema">
+          {withRespect.length >= MIN_GROUP ? (
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-20 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={respectData} dataKey="value" innerRadius={20} outerRadius={36} paddingAngle={2}>
+                      {respectData.map(d => (
+                        <Cell key={d.name} fill={respectColors[d.name]} />
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {emotions.map(e => (
-                      <tr key={e} className="border-b border-border/50">
-                        <td className="py-2 px-3 text-sm font-medium">{e}</td>
-                        {compliances.map(c => {
-                          const cell = lookup(e, c);
-                          if (!cell) return <td key={c} className="text-center py-2 px-3 text-muted-foreground/30">—</td>;
-                          return (
-                            <td key={c} className={`text-center py-2 px-3 font-data font-semibold ${cell.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                              {formatCurrency(cell.avgPnl)}
-                              <div className="text-[10px] text-muted-foreground font-normal">{cell.count} trades</div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              );
-            })()}
-          </div>
-        </ChartCard>
-      )}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-[10px] space-y-1">
+                {respectData.map(d => (
+                  <div key={d.name} className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full" style={{ background: respectColors[d.name] }} />
+                    <span className="text-muted-foreground">{d.name}: <span className="font-data text-foreground">{pct(d.value, withRespect.length).toFixed(0)}%</span></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <NotEnough note="Necesitas más trades con bitácora" />
+          )}
+        </Card>
 
-      {complianceData.length > 0 && (
-        <ChartCard title="P&L Medio por Nivel de Cumplimiento">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={complianceData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`€${v.toFixed(2)}`, 'P&L Medio']} />
-                <Bar dataKey="avgPnl" radius={[3, 3, 0, 0]}>
-                  {complianceData.map((entry, i) => (
-                    <Cell key={i} fill={entry.avgPnl >= 0 ? '#34d399' : '#f87171'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      )}
+        <Card title="Impacto Emocional">
+          {tranquilo.length >= 2 && otros.length >= 2 ? (
+            <div className="space-y-2">
+              <div>
+                <div className="text-[11px] text-muted-foreground">Tranquilo</div>
+                <div className={`text-xl font-data font-bold ${wrColor(wrTranquilo)}`}>
+                  {wrTranquilo.toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-muted-foreground">{tranquilo.length} trades</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-muted-foreground">Otros estados</div>
+                <div className={`text-xl font-data font-bold ${wrColor(wrOtros)}`}>
+                  {wrOtros.toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-muted-foreground">{otros.length} trades</div>
+              </div>
+            </div>
+          ) : (
+            <NotEnough note="Necesitas más bitácoras" />
+          )}
+        </Card>
+      </div>
 
-      {emotionData.length > 0 && (
-        <ChartCard title="P&L Total por Estado Emocional">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={emotionData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} tickFormatter={v => `€${v}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`€${v.toFixed(2)}`, 'P&L Total']} />
-                <Bar dataKey="totalPnl" radius={[3, 3, 0, 0]}>
-                  {emotionData.map((entry, i) => (
-                    <Cell key={i} fill={entry.totalPnl >= 0 ? '#34d399' : '#f87171'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
+      {intervened.length >= 2 && (
+        <div className={`rounded-lg border p-4 flex items-start gap-3 ${
+          totalInterventionCost < 0
+            ? 'border-destructive/40 bg-destructive/10'
+            : 'border-success/40 bg-success/10'
+        }`}>
+          {totalInterventionCost < 0
+            ? <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            : <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />}
+          <p className="text-sm">
+            {totalInterventionCost < 0
+              ? <>Tus intervenciones te han costado <span className="font-data font-bold text-destructive">{eur(totalInterventionCost)}</span> — el sistema funciona mejor sin ti.</>
+              : <>Intervenir te ha aportado <span className="font-data font-bold text-success">{eur(totalInterventionCost)}</span> en estos {intervened.length} trades.</>
+            }
+          </p>
+        </div>
       )}
+    </section>
+  );
+}
 
-      {instrumentData.length > 0 && (
-        <ChartCard title="Rendimiento por Instrumento">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+/* ────────── BLOQUE 3 ────────── */
+
+interface BadEntryRow {
+  label: string;
+  count: number;
+  winRate: number;
+  avgPnl: number;
+  totalPnl: number;
+  basedOnLog?: boolean;
+  logged?: number;
+}
+
+function Block3WhenYouEnterBad({ trades }: { trades: Trade[] }) {
+  const make = (filterFn: (t: Trade) => boolean, label: string, basedOnLog = false): BadEntryRow => {
+    const filtered = trades.filter(filterFn);
+    const wins = filtered.filter(t => t.isWin).length;
+    return {
+      label,
+      count: filtered.length,
+      winRate: pct(wins, filtered.length),
+      avgPnl: avg(filtered.map(t => t.netPnl)),
+      totalPnl: filtered.reduce((s, t) => s + t.netPnl, 0),
+      basedOnLog,
+    };
+  };
+
+  const rows: BadEntryRow[] = [
+    make(t => t.adxState === 'AGOTANDO', 'ADX = AGOTANDO al entrar'),
+    make(t => t.momentum20d < 0, 'Momentum 20d negativo al entrar'),
+    make(t => /sobreext/i.test(t.distanceToMA50Label), 'Precio SOBREEXTENDIDO sobre MA50'),
+    make(t => t.scannerRank == null || t.scannerRank > 7, 'Scanner rank > 7 o sin ranking'),
+    make(isIntervened, 'Trades con intervención manual', true),
+    make(t => t.systemCompliance === 'No' || t.systemCompliance === '0%' || t.systemCompliance === '25%', 'Sistema no respetado', true),
+  ].filter(r => r.count >= 3);
+
+  const worst = [...rows].filter(r => r.totalPnl < 0).sort((a, b) => a.totalPnl - b.totalPnl)[0];
+
+  return (
+    <section className="space-y-4">
+      <BlockHeader
+        title="¿Cuándo entras mal?"
+        subtitle="Entiende tus errores sistemáticos — Ray Dalio"
+      />
+      <Card title="Errores sistemáticos detectados">
+        {rows.length === 0 ? (
+          <NotEnough note="No hay suficientes trades en estas categorías para análisis." />
+        ) : (
+          <div className="overflow-x-auto -mx-4 lg:mx-0 px-4 lg:px-0">
+            <table className="w-full text-sm min-w-[520px]">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-2 text-xs text-muted-foreground font-medium">Instrumento</th>
-                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Trades</th>
-                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">Win Rate</th>
-                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L Medio</th>
-                  <th className="text-right py-2 px-2 text-xs text-muted-foreground font-medium">P&L Total</th>
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="text-left py-2 pr-2 font-medium">Patrón</th>
+                  <th className="text-right py-2 px-2 font-medium">N</th>
+                  <th className="text-right py-2 px-2 font-medium">Win Rate</th>
+                  <th className="text-right py-2 px-2 font-medium">P&L Medio</th>
+                  <th className="text-right py-2 pl-2 font-medium">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {instrumentData.slice(0, 15).map(d => (
-                  <tr key={d.symbol} className="border-b border-border/50 hover:bg-accent/30 transition-colors">
-                    <td className="py-2 px-2 font-semibold">{d.symbol}</td>
-                    <td className="py-2 px-2 text-right text-muted-foreground font-data">{d.count}</td>
-                    <td className={`py-2 px-2 text-right font-data font-semibold ${d.winRate >= 50 ? 'text-success' : 'text-destructive'}`}>{d.winRate.toFixed(0)}%</td>
-                    <td className={`py-2 px-2 text-right font-data ${d.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.avgPnl)}</td>
-                    <td className={`py-2 px-2 text-right font-data font-semibold ${d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(d.totalPnl)}</td>
-                  </tr>
-                ))}
+                {rows.map(r => {
+                  const tl = trafficLight(r.winRate);
+                  return (
+                    <tr key={r.label} className="border-b border-border/40">
+                      <td className="py-2.5 pr-2 text-foreground">{r.label}</td>
+                      <td className="py-2.5 px-2 text-right font-data text-muted-foreground">{r.count}</td>
+                      <td className={`py-2.5 px-2 text-right font-data font-semibold ${wrColor(r.winRate)}`}>{r.winRate.toFixed(0)}%</td>
+                      <td className={`py-2.5 px-2 text-right font-data font-semibold ${r.avgPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{eur(r.avgPnl)}</td>
+                      <td className="py-2.5 pl-2 text-right text-base">{tl.icon}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </ChartCard>
-      )}
-    </div>
+        )}
+        {worst && (
+          <div className="mt-4">
+            <Insight text={`Tu error más costoso es "${worst.label}" — te ha costado ${eur(worst.totalPnl)} en ${worst.count} trades.`} />
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+/* ────────── BLOQUE 4 ────────── */
+
+function Block4TradeManagement({ trades }: { trades: Trade[] }) {
+  // 4A — MFE Capturado: aproximamos MFE como distancia entry→TP teórico
+  const winnersWithTp = trades.filter(t =>
+    t.isWin && t.tpPrice > 0 && t.exitPrice != null
+  );
+  const mfeCaptured = winnersWithTp.map(t => {
+    const tpDist = Math.abs(t.tpPrice - t.entryPrice);
+    const actualDist = Math.abs((t.exitPrice ?? t.entryPrice) - t.entryPrice);
+    return tpDist > 0 ? Math.min(100, (actualDist / tpDist) * 100) : 100;
+  });
+  const avgMfeCaptured = avg(mfeCaptured);
+  const mfeColor = avgMfeCaptured < 40 ? 'text-destructive' : avgMfeCaptured < 70 ? 'text-yellow-400' : 'text-success';
+
+  // 4B — MAE Ganadores vs Perdedores (% en términos de precio)
+  const wins = trades.filter(t => t.isWin && t.slPrice > 0);
+  const losses = trades.filter(t => !t.isWin && t.slPrice > 0);
+  const maeWinners = avg(wins.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100));
+  const maeLosers = avg(losses.map(t => Math.abs(t.entryPrice - t.slPrice) / t.entryPrice * 100));
+  const slTooWide = maeLosers > maeWinners * 1.3;
+
+  // 4C — RR Real vs Teórico
+  const rrData = useMemo(() => trades
+    .filter(t => t.slPrice > 0 && t.tpPrice > 0 && t.exitPrice != null)
+    .map(t => {
+      const risk = Math.abs(t.entryPrice - t.slPrice);
+      const theoreticalReward = Math.abs(t.tpPrice - t.entryPrice);
+      const actualReward = t.direction === 'BUY'
+        ? (t.exitPrice! - t.entryPrice)
+        : (t.entryPrice - t.exitPrice!);
+      return {
+        symbol: t.symbol,
+        theoreticalRR: risk > 0 ? theoreticalReward / risk : 0,
+        actualRR: risk > 0 ? actualReward / risk : 0,
+        isWin: t.isWin,
+      };
+    }), [trades]);
+  const belowDiag = rrData.filter(p => p.actualRR < p.theoreticalRR).length;
+  const belowDiagPct = pct(belowDiag, rrData.length);
+
+  // 4D — Duración por resultado
+  const buckets = [
+    { label: '<1d', min: 0, max: 24 },
+    { label: '1-3d', min: 24, max: 72 },
+    { label: '3-7d', min: 72, max: 168 },
+    { label: '>7d', min: 168, max: Infinity },
+  ];
+  const durData = buckets.map(b => {
+    const inBucket = trades.filter(t => t.durationHours >= b.min && t.durationHours < b.max);
+    const w = inBucket.filter(t => t.isWin).length;
+    const l = inBucket.length - w;
+    return {
+      range: b.label,
+      ganadores: w,
+      perdedores: l,
+      total: inBucket.length,
+      winRate: pct(w, inBucket.length),
+    };
+  });
+  const bestDur = [...durData].filter(d => d.total >= 3).sort((a, b) => b.winRate - a.winRate)[0];
+
   return (
-    <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold text-foreground mb-4" style={{ color: '#c8a951' }}>{title}</h2>
-      {children}
-    </div>
+    <section className="space-y-4">
+      <BlockHeader
+        title="Gestión del trade"
+        subtitle="El timing de salida importa tanto como la entrada"
+      />
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card title="MFE Capturado">
+          {mfeCaptured.length >= MIN_GROUP ? (
+            <>
+              <div className={`text-4xl font-data font-bold ${mfeColor}`}>
+                {avgMfeCaptured.toFixed(0)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Sobre {mfeCaptured.length} trades ganadores con TP definido
+              </div>
+              <div className="mt-4">
+                <Insight text={`Capturas el ${avgMfeCaptured.toFixed(0)}% del movimiento favorable medio. ${
+                  avgMfeCaptured < 40 ? 'Estás cerrando demasiado pronto.' :
+                  avgMfeCaptured < 70 ? 'Hay margen para dejar correr más los ganadores.' :
+                  'Excelente captura de beneficio.'
+                }`} />
+              </div>
+            </>
+          ) : <NotEnough />}
+        </Card>
+
+        <Card title="MAE Ganadores vs Perdedores">
+          {wins.length >= 3 && losses.length >= 3 ? (
+            <>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Ganadores</span>
+                    <span className="font-data text-success">{maeWinners.toFixed(2)}%</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-success" style={{ width: `${Math.min(100, (maeWinners / Math.max(maeWinners, maeLosers, 0.01)) * 100)}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Perdedores</span>
+                    <span className="font-data text-destructive">{maeLosers.toFixed(2)}%</span>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-destructive" style={{ width: `${Math.min(100, (maeLosers / Math.max(maeWinners, maeLosers, 0.01)) * 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+              {slTooWide && (
+                <div className="mt-3 flex items-start gap-2 text-xs text-destructive">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>El SL puede estar demasiado amplio en perdedores</span>
+                </div>
+              )}
+            </>
+          ) : <NotEnough />}
+        </Card>
+
+        <Card title="RR Real vs Teórico">
+          {rrData.length >= MIN_GROUP ? (
+            <>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" />
+                    <XAxis type="number" dataKey="theoreticalRR" name="RR Teórico" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis type="number" dataKey="actualRR" name="RR Real" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <ZAxis range={[40, 40]} />
+                    <ReferenceLine
+                      segment={[{ x: 0, y: 0 }, { x: 5, y: 5 }]}
+                      stroke="#c8a951" strokeDasharray="4 4" ifOverflow="extendDomain"
+                    />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: number, n: string) => [Number(v).toFixed(2), n]}
+                      labelFormatter={(_, p) => p?.[0]?.payload?.symbol ?? ''}
+                    />
+                    <Scatter data={rrData.filter(r => r.isWin)} fill="#34d399" name="Ganadores" />
+                    <Scatter data={rrData.filter(r => !r.isWin)} fill="#f87171" name="Perdedores" />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+              {belowDiagPct > 50 && (
+                <div className="mt-2">
+                  <Insight text={`${belowDiagPct.toFixed(0)}% de tus trades están bajo la diagonal — estás capturando menos RR del planificado.`} />
+                </div>
+              )}
+            </>
+          ) : <NotEnough />}
+        </Card>
+
+        <Card title="Duración por Resultado">
+          {durData.some(d => d.total > 0) ? (
+            <>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={durData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
+                    <XAxis dataKey="range" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: 8, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="ganadores" fill="#34d399" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="perdedores" fill="#f87171" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {bestDur && (
+                <div className="mt-2">
+                  <Insight text={`Tus mejores trades duran ${bestDur.range} (${bestDur.winRate.toFixed(0)}% win rate en ${bestDur.total} trades).`} />
+                </div>
+              )}
+            </>
+          ) : <NotEnough />}
+        </Card>
+      </div>
+    </section>
   );
 }
 
-function StatSummary({ data }: { data: GroupStat[] }) {
+/* ────────── BLOQUE 5 ────────── */
+
+function Block5Consistency({ trades }: { trades: Trade[] }) {
+  const monthly = useMemo(() => {
+    const buckets: Record<string, Trade[]> = {};
+    for (const t of trades) {
+      const d = new Date(t.exitDate ?? t.entryDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      (buckets[key] ??= []).push(t);
+    }
+    const sortedKeys = Object.keys(buckets).sort();
+    let cumWins = 0, cumTotal = 0;
+    return sortedKeys.map(key => {
+      const arr = buckets[key];
+      const wins = arr.filter(t => t.isWin).length;
+      cumWins += wins;
+      cumTotal += arr.length;
+      const interventions = arr.filter(t => t.manualIntervention != null && isIntervened(t)).length;
+      const withCompliance = arr.filter(t => t.systemCompliance);
+      const respectFull = withCompliance.filter(t => t.systemCompliance === '100%' || t.systemCompliance === 'Sí completamente').length;
+      const respectPct = withCompliance.length > 0 ? pct(respectFull, withCompliance.length) : null;
+      const [year, month] = key.split('-');
+      const label = new Date(Number(year), Number(month) - 1, 1).toLocaleString('es-ES', { month: 'short', year: '2-digit' });
+      return {
+        key,
+        label,
+        trades: arr.length,
+        winRate: pct(wins, arr.length),
+        cumWinRate: pct(cumWins, cumTotal),
+        pnl: arr.reduce((s, t) => s + t.netPnl, 0),
+        interventions,
+        respectPct,
+      };
+    });
+  }, [trades]);
+
+  const recent = [...monthly].reverse();
+
   return (
-    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-      {data.map(d => (
-        <span key={d.name}>{d.name}: <span className="font-data font-semibold text-foreground">{d.count} trades</span> • <span className={d.totalPnl >= 0 ? 'text-success' : 'text-destructive'}>{formatCurrency(d.totalPnl)}</span></span>
-      ))}
-    </div>
+    <section className="space-y-4">
+      <BlockHeader
+        title="Consistencia en el tiempo"
+        subtitle="La disciplina se mide en meses, no en operaciones"
+      />
+
+      <Card title="Evolución del Win Rate Mensual">
+        {monthly.length >= 2 ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={monthly} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} domain={[0, 100]} />
+                <Tooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => `${v.toFixed(1)}%`} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="winRate" name="Win Rate Mensual" stroke="#c8a951" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="cumWinRate" name="WR Acumulado" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : <NotEnough note="Se necesitan al menos 2 meses con trades" />}
+      </Card>
+
+      <Card title="Resumen Mensual">
+        {recent.length > 0 ? (
+          <div className="overflow-x-auto -mx-4 lg:mx-0 px-4 lg:px-0">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-border text-xs text-muted-foreground">
+                  <th className="text-left py-2 pr-2 font-medium">Mes</th>
+                  <th className="text-right py-2 px-2 font-medium">Trades</th>
+                  <th className="text-right py-2 px-2 font-medium">Win Rate</th>
+                  <th className="text-right py-2 px-2 font-medium">P&L</th>
+                  <th className="text-right py-2 px-2 font-medium">Intervenc.</th>
+                  <th className="text-right py-2 pl-2 font-medium">Respeto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map(m => {
+                  const respectColor = m.respectPct == null ? 'bg-secondary text-muted-foreground'
+                    : m.respectPct >= 80 ? 'bg-success/20 text-success'
+                    : m.respectPct >= 50 ? 'bg-yellow-500/20 text-yellow-400'
+                    : 'bg-destructive/20 text-destructive';
+                  return (
+                    <tr key={m.key} className="border-b border-border/40">
+                      <td className="py-2.5 pr-2 capitalize text-foreground">{m.label}</td>
+                      <td className="py-2.5 px-2 text-right font-data text-muted-foreground">{m.trades}</td>
+                      <td className={`py-2.5 px-2 text-right font-data font-semibold ${wrColor(m.winRate)}`}>{m.winRate.toFixed(0)}%</td>
+                      <td className={`py-2.5 px-2 text-right font-data font-semibold ${m.pnl >= 0 ? 'text-success' : 'text-destructive'}`}>{eur(m.pnl)}</td>
+                      <td className="py-2.5 px-2 text-right font-data text-muted-foreground">{m.interventions}</td>
+                      <td className="py-2.5 pl-2 text-right">
+                        <span className={`inline-block px-2 py-0.5 rounded-md font-data text-[11px] ${respectColor}`}>
+                          {m.respectPct == null ? '—' : `${m.respectPct.toFixed(0)}%`}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : <NotEnough />}
+      </Card>
+    </section>
   );
 }
