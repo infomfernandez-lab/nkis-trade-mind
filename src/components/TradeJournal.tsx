@@ -150,7 +150,9 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
     setData(prev => ({ ...prev, [key]: val }));
 
   const showInterventionReason =
-    data.manualIntervention !== null && data.manualIntervention !== 'EA gestionando solo';
+    data.manualIntervention !== null &&
+    data.manualIntervention !== 'EA gestionando solo' &&
+    data.manualIntervention !== 'Sin intervención';
 
   const handleSave = async () => {
     setSaving(true);
