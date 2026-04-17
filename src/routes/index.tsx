@@ -28,26 +28,6 @@ function Dashboard() {
   const { closedTrades: allClosed, openTrades: allOpen, isLoading, error } = useAllTrades();
   const { data: settings } = useSettings();
   const { broker } = useBrokerFilter();
-  const addToWatchlist = useAddToWatchlist();
-
-  const handleWatchFromScanner = (inst: { symbol: string; direction: string; score: number; adx_value?: number; adx_state?: string; distance_to_ma50?: number }) => {
-    addToWatchlist.mutate({
-      symbol: inst.symbol,
-      direction: inst.direction?.toLowerCase() === 'buy' ? 'alcista' : inst.direction?.toLowerCase() === 'sell' ? 'bajista' : inst.direction,
-      watch_reason: `Añadido desde el scanner con score ${inst.score}/100`,
-      stochastic_level: null,
-      scanner_score: inst.score,
-      adx_value: inst.adx_value ?? null,
-      adx_state: inst.adx_state ?? null,
-      distance_to_ma50: inst.distance_to_ma50 ?? null,
-      status: 'Vigilando',
-      added_from_scanner: true,
-      trade_id: null,
-    }, {
-      onSuccess: () => toast.success(`${inst.symbol} añadido a la watchlist`),
-      onError: () => toast.error('Error al añadir a la watchlist'),
-    });
-  };
 
   if (isLoading) {
     return (
