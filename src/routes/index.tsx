@@ -93,8 +93,11 @@ function Dashboard() {
         <StatCard label="Total Trades" value={String(stats.totalTrades)} />
       </div>
 
-      {/* Scanner Session */}
-      <ScannerSessionPanel onWatch={handleWatchFromScanner} />
+      {/* Vigilando */}
+      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
+        <h2 className="font-display text-sm font-semibold text-foreground mb-4">Vigilando</h2>
+        <WatchlistSection openSymbols={new Set(openTrades.map(t => t.symbol))} brokerFilter={broker} />
+      </div>
 
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
