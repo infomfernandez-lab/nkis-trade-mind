@@ -12,9 +12,7 @@ import {
 } from '@/lib/trade-utils';
 import { computeDashboardKpis } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
-import { ScannerSessionPanel } from '@/components/ScannerSessionPanel';
-import { useAddToWatchlist } from '@/hooks/use-watchlist';
-import { toast } from 'sonner';
+import { WatchlistSection } from '@/components/radar/WatchlistSection';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
