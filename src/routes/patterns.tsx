@@ -112,7 +112,7 @@ function Patterns() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Header />
+        <Header count={0} broker={broker} loading />
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -122,7 +122,7 @@ function Patterns() {
   if (error) {
     return (
       <div className="space-y-6">
-        <Header />
+        <Header count={0} broker={broker} />
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
           <p className="text-sm text-destructive">Error al cargar datos: {error.message}</p>
         </div>
@@ -133,7 +133,7 @@ function Patterns() {
   if (trades.length === 0) {
     return (
       <div className="space-y-6">
-        <Header />
+        <Header count={0} broker={broker} />
         <div className="rounded-lg border border-border bg-card p-12 text-center">
           <p className="text-muted-foreground text-sm">
             Los patrones aparecerán cuando tengas trades cerrados en el sistema.
@@ -145,22 +145,36 @@ function Patterns() {
 
   return (
     <div className="space-y-10">
-      <Header />
-      <Block1WhenItWorks trades={trades} />
-      <Block2RespectingSystem trades={trades} />
-      <Block3WhenYouEnterBad trades={trades} />
-      <Block4TradeManagement trades={trades} />
-      <Block5Consistency trades={trades} />
+      <Header count={trades.length} broker={broker} />
+      <AnchorNav items={PATTERN_ANCHORS} />
+      <section id="cuando-funciona" className="scroll-mt-24">
+        <Block1WhenItWorks trades={trades} />
+      </section>
+      <section id="respeto-sistema" className="scroll-mt-24">
+        <Block2RespectingSystem trades={trades} />
+      </section>
+      <section id="errores" className="scroll-mt-24">
+        <Block3WhenYouEnterBad trades={trades} />
+      </section>
+      <section id="gestion-trade" className="scroll-mt-24">
+        <Block4TradeManagement trades={trades} />
+      </section>
+      <section id="consistencia" className="scroll-mt-24">
+        <Block5Consistency trades={trades} />
+      </section>
     </div>
   );
 }
 
-function Header() {
+function Header({ count, broker, loading }: { count: number; broker: BrokerFilter; loading?: boolean }) {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold tracking-tight">Inteligencia de Patrones</h1>
       <p className="text-sm text-muted-foreground mt-1">
         Descubre cuándo y cómo funciona realmente tu sistema
+      </p>
+      <p className="text-xs text-muted-foreground/80 mt-2 font-data">
+        {loading ? 'Cargando…' : `Analizando ${count} trade${count === 1 ? '' : 's'} de ${BROKER_LABELS[broker]}`}
       </p>
     </div>
   );
