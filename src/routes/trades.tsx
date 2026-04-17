@@ -1,11 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, BookCheck, Circle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { formatCurrency, formatDate, getTradeColorStrip, filterByBroker, type Trade } from '@/lib/trade-utils';
+import { filterByBroker, type Trade } from '@/lib/trade-utils';
+import { detectCloseType, computeRR, hasJournal, lookupScannerRank } from '@/lib/trade-derived';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { TradeJournal } from '@/components/TradeJournal';
-import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -17,10 +19,36 @@ export const Route = createFileRoute('/trades')({
   }),
 });
 
+function formatEur(value: number): string {
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign}€${Math.abs(value).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatShortDate(d: string): string {
+  return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function useScannerSessions() {
+  return useQuery({
+    queryKey: ['scanner_sessions', 'lookup'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scanner_sessions')
+        .select('session_date, broker, top_instruments')
+        .order('session_date', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+}
+
 function TradeLog() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { broker } = useBrokerFilter();
   const { data: closedTrades, isLoading, error } = useClosedTrades();
+  const { data: scannerSessions } = useScannerSessions();
 
   if (isLoading) {
     return (
@@ -66,11 +94,12 @@ function TradeLog() {
         <p className="text-sm text-muted-foreground mt-1">{trades.length} trades cerrados — expande para ver el detalle</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {trades.map(trade => (
           <TradeCard
             key={trade.id}
             trade={trade}
+            scannerSessions={scannerSessions ?? []}
             expanded={expandedId === trade.id}
             onToggle={() => setExpandedId(expandedId === trade.id ? null : trade.id)}
           />
@@ -85,28 +114,74 @@ function TradeLog() {
   );
 }
 
-function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: boolean; onToggle: () => void }) {
+interface TradeCardProps {
+  trade: Trade;
+  scannerSessions: any[];
+  expanded: boolean;
+  onToggle: () => void;
+}
+
+function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProps) {
   const queryClient = useQueryClient();
-  const strip = getTradeColorStrip(trade);
+  const close = detectCloseType(trade);
+  const rr = computeRR(trade);
+  const journalDone = hasJournal(trade);
+  const scanner = lookupScannerRank(trade, scannerSessions);
+
+  // Subtle background tint by win/loss for closed trades
+  const rowBg = trade.netPnl >= 0
+    ? 'bg-success/[0.04] hover:bg-success/[0.08]'
+    : 'bg-destructive/[0.04] hover:bg-destructive/[0.08]';
+
+  const brokerLabel = trade.broker === 'darwinex' ? 'Darwinex' : trade.broker === 'fxpro' ? 'FXPro' : trade.broker;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden card-hover">
-      <div className={`h-1 ${strip}`} />
-      <button onClick={onToggle} className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/20 transition-colors">
-        <div className="flex items-center gap-4">
-          <div className={`px-2 py-0.5 rounded text-xs font-data font-bold ${trade.direction === 'BUY' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+    <div className="rounded-lg border border-border bg-card overflow-hidden transition-colors">
+      <button
+        onClick={onToggle}
+        className={`w-full text-left transition-colors ${rowBg}`}
+      >
+        {/* Mobile: stacked / Desktop: single row */}
+        <div className="px-3 py-3 lg:px-4 lg:py-3 grid grid-cols-[auto_1fr_auto] gap-3 items-center">
+          {/* Direction badge */}
+          <div className={`px-2 py-0.5 rounded text-xs font-data font-bold ${
+            trade.direction === 'BUY' ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'
+          }`}>
             {trade.direction}
           </div>
-          <div className="font-semibold text-sm">{trade.symbol}</div>
-          <div className="text-xs text-muted-foreground font-data">{formatDate(trade.entryDate)}</div>
-          <div className="text-xs text-muted-foreground capitalize">{trade.broker}</div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className={`font-data font-bold text-sm ${trade.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-            {formatCurrency(trade.netPnl)}
+
+          {/* Center column */}
+          <div className="min-w-0 flex flex-col lg:flex-row lg:items-center lg:gap-4">
+            <div className="flex items-baseline gap-2">
+              <span className="font-semibold text-sm truncate">{trade.symbol}</span>
+              <span className="text-xs text-muted-foreground font-data">{formatShortDate(trade.entryDate)}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+              <span>{brokerLabel}</span>
+              <span className="font-data">
+                {trade.entryPrice} → {trade.exitPrice ?? '—'}
+              </span>
+              <span className="font-data">{trade.durationHours}h</span>
+              {rr != null && (
+                <span className="font-data">
+                  RR <span className={rr >= 0 ? 'text-success' : 'text-destructive'}>{rr.toFixed(2)}</span>
+                </span>
+              )}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground font-data">{trade.durationHours}h</div>
-          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+
+          {/* Right column */}
+          <div className="flex items-center gap-3">
+            <div className={`font-data font-bold text-sm ${trade.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {formatEur(trade.netPnl)}
+            </div>
+            {journalDone ? (
+              <BookCheck className="w-4 h-4 text-yellow-400" aria-label="Bitácora rellenada" />
+            ) : (
+              <Circle className="w-4 h-4 text-muted-foreground/50" aria-label="Bitácora vacía" />
+            )}
+            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
         </div>
       </button>
 
@@ -115,18 +190,24 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
           <Section title="Datos del Trade">
             <Grid>
               <Field label="Ticket" value={`#${trade.ticket}`} />
-              <Field label="Broker" value={trade.broker} />
+              <Field label="Broker" value={brokerLabel} />
               <Field label="Precio Entrada" value={String(trade.entryPrice)} mono />
-              <Field label="Precio Salida" value={String(trade.exitPrice)} mono />
+              <Field label="Precio Salida" value={String(trade.exitPrice ?? '—')} mono />
               <Field label="SL" value={String(trade.slPrice)} mono />
               <Field label="TP" value={String(trade.tpPrice)} mono />
               <Field label="Lotaje" value={String(trade.lotSize)} mono />
-              <Field label="P&L Bruto" value={formatCurrency(trade.grossPnl)} pnl={trade.grossPnl} />
-              <Field label="Comisión" value={`$${trade.commission}`} />
-              <Field label="Swap" value={`$${trade.swap}`} />
-              <Field label="P&L Neto" value={formatCurrency(trade.netPnl)} pnl={trade.netPnl} />
+              <Field label="P&L Bruto" value={formatEur(trade.grossPnl)} pnl={trade.grossPnl} />
+              <Field label="Comisión" value={`€${trade.commission}`} />
+              <Field label="Swap" value={`€${trade.swap}`} />
+              <Field label="P&L Neto" value={formatEur(trade.netPnl)} pnl={trade.netPnl} />
               <Field label="Duración" value={`${trade.durationHours}h`} />
-              <Field label="Tipo de Cierre" value={trade.howClosed || '—'} />
+              <Field label="RR Real" value={rr != null ? rr.toFixed(2) : '—'} mono />
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Tipo de Cierre</div>
+                <span className={`inline-block px-2 py-0.5 rounded text-xs font-data font-bold ${close.bg} ${close.color}`}>
+                  {close.label}
+                </span>
+              </div>
             </Grid>
           </Section>
 
@@ -136,13 +217,22 @@ function TradeCard({ trade, expanded, onToggle }: { trade: Trade; expanded: bool
               <Field label="Dist. a MA50" value={`${trade.distanceToMA50}% (${trade.distanceToMA50Label})`} mono />
               <Field label="Momentum 20d" value={`${trade.momentum20d}% ${trade.momentumAligned ? '✓ Alineado' : '✗ No alineado'}`} mono />
               <Field label="Stochastic K" value={String(trade.stochasticK)} mono />
-              <Field label="Ranking Scanner" value={trade.scannerRank ? `#${trade.scannerRank}` : '—'} />
-              <Field label="VIX al Entrar" value={trade.vixAtEntry ? String(trade.vixAtEntry) : '—'} />
+              <Field
+                label="Ranking Scanner"
+                value={
+                  scanner.rank != null
+                    ? `#${scanner.rank} de ${scanner.total} — Score: ${scanner.score ?? '—'}`
+                    : 'No estaba en el radar'
+                }
+              />
+              <Field label="VIX al Entrar" value={trade.vixAtEntry != null ? `VIX: ${trade.vixAtEntry}` : 'VIX: —'} />
             </Grid>
           </Section>
 
           <TradeJournal
             trade={trade}
+            scannerInfo={scanner}
+            vixValue={trade.vixAtEntry}
             onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
           />
         </div>
