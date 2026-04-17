@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { WatchlistSection } from '@/components/radar/WatchlistSection';
 import { OpenPositionsSection } from '@/components/radar/OpenPositionsSection';
+import { AnchorNav, type AnchorItem } from '@/components/radar/AnchorNav';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +16,8 @@ import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
-import { formatDate, type BrokerFilter } from '@/lib/trade-utils';
-import { BrokerSelector } from '@/components/BrokerSelector';
+import { formatDate } from '@/lib/trade-utils';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -140,13 +141,25 @@ const MA50_STYLES: Record<string, string> = {
 };
 
 function RadarPage() {
-  const [broker, setBroker] = useState<BrokerFilter>('all');
+  const { broker } = useBrokerFilter();
   const { data: sessions, isLoading, refetch, isFetching } = useScannerSessions();
   const { data: watchlistItems } = useWatchlist();
   const { openTrades } = useAllTrades();
 
   const openSymbols = new Set((openTrades || []).map(t => t.symbol));
   const watchlistSymbols = new Set((watchlistItems || []).map(w => w.symbol));
+
+  const showDarwinex = broker === 'all' || broker === 'darwinex';
+  const showFxpro = broker === 'all' || broker === 'fxpro';
+
+  const anchorItems: AnchorItem[] = useMemo(() => {
+    const items: AnchorItem[] = [];
+    if (showDarwinex) items.push({ id: 'radar-darwinex', label: 'Radar Darwinex' });
+    if (showFxpro) items.push({ id: 'radar-fxpro', label: 'Radar FXPro' });
+    items.push({ id: 'vigilando', label: 'Vigilando' });
+    items.push({ id: 'posiciones-abiertas', label: 'Posiciones Abiertas' });
+    return items;
+  }, [showDarwinex, showFxpro]);
 
   if (isLoading) {
     return (
@@ -161,71 +174,64 @@ function RadarPage() {
 
   const allSessions = sessions || [];
 
-  // When broker filter is "all", show both brokers side by side
-  const showDarwinex = broker === 'all' || broker === 'darwinex';
-  const showFxpro = broker === 'all' || broker === 'fxpro';
-
   return (
     <div className="space-y-6">
-      {/* Broker tabs — local to this page */}
       <div className="flex items-center justify-between">
         <h1 className="font-display text-xl font-bold flex items-center gap-2">
           <Radar className="w-5 h-5 text-primary" /> Radar
         </h1>
-        <BrokerSelector value={broker} onChange={setBroker} />
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+          Actualizar
+        </button>
       </div>
+
+      {/* Sticky anchor nav */}
+      <AnchorNav items={anchorItems} />
 
       {/* ZONA 1 — Radar */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold flex items-center gap-2">
-            <Crosshair className="w-5 h-5 text-primary" /> Scanner
-          </h2>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            Actualizar
-          </button>
-        </div>
+        <h2 className="font-display text-lg font-bold flex items-center gap-2">
+          <Crosshair className="w-5 h-5 text-primary" /> Scanner
+        </h2>
 
         {showDarwinex && (
-          <div>
+          <section id="radar-darwinex" className="scroll-mt-24">
             <h2 className="text-sm font-semibold text-muted-foreground mb-2">Darwinex</h2>
             <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-          </div>
+          </section>
         )}
         {showFxpro && (
-          <div>
+          <section id="radar-fxpro" className="scroll-mt-24">
             <h2 className="text-sm font-semibold text-muted-foreground mb-2">FXPro</h2>
             <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
-          </div>
+          </section>
         )}
       </div>
 
-      {/* Separator */}
       <Separator className="my-2" />
 
       {/* ZONA 2 — Vigilando */}
-      <div className="space-y-3">
+      <section id="vigilando" className="space-y-3 scroll-mt-24">
         <h2 className="font-display text-lg font-bold flex items-center gap-2">
           <Eye className="w-5 h-5 text-yellow-400" /> Vigilando
         </h2>
         <WatchlistSection openSymbols={openSymbols} brokerFilter={broker} />
-      </div>
+      </section>
 
-      {/* Separator */}
       <Separator className="my-2" />
 
       {/* ZONA 3 — Posiciones Abiertas */}
-      <div className="space-y-3">
+      <section id="posiciones-abiertas" className="space-y-3 scroll-mt-24">
         <h2 className="font-display text-lg font-bold flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-primary" /> Posiciones Abiertas
         </h2>
         <OpenPositionsSection brokerFilter={broker} />
-      </div>
+      </section>
     </div>
   );
 }

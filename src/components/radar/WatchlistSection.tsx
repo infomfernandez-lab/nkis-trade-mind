@@ -1,7 +1,9 @@
 import { Eye, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import { useWatchlist, useDeleteWatchlistItem, type WatchlistItem } from '@/hooks/use-watchlist';
+import { useQuery } from '@tanstack/react-query';
+import { useWatchlist, useDeleteWatchlistItem } from '@/hooks/use-watchlist';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Props {
@@ -9,14 +11,53 @@ interface Props {
   brokerFilter: string;
 }
 
+interface ScannerRow {
+  broker: string | null;
+  top_instruments: unknown;
+}
+
+function useBrokerSymbols() {
+  return useQuery({
+    queryKey: ['watchlist-broker-symbols'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scanner_sessions')
+        .select('broker, top_instruments')
+        .order('created_at', { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      const darwinex = new Set<string>();
+      const fxpro = new Set<string>();
+      (data as ScannerRow[]).forEach((row) => {
+        const b = (row.broker ?? '').toLowerCase();
+        const target = b.includes('fxpro') ? fxpro : darwinex;
+        if (Array.isArray(row.top_instruments)) {
+          (row.top_instruments as Array<{ symbol?: string }>).forEach((inst) => {
+            if (inst?.symbol) target.add(inst.symbol);
+          });
+        }
+      });
+      return { darwinex, fxpro };
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
   const { data: items, isLoading } = useWatchlist();
+  const { data: brokerSymbols } = useBrokerSymbols();
   const deleteItem = useDeleteWatchlistItem();
 
   // Filter to "Vigilando" status items only
-  const watching = (items ?? []).filter(i =>
+  let watching = (items ?? []).filter(i =>
     i.status === 'Vigilando' || i.status === 'Señal Dada — En posición'
   );
+
+  // Filter by broker (inferred from scanner sessions)
+  if (brokerFilter !== 'all' && brokerSymbols) {
+    const set = brokerFilter === 'fxpro' ? brokerSymbols.fxpro : brokerSymbols.darwinex;
+    watching = watching.filter(i => set.has(i.symbol));
+  }
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-8">Cargando...</div>;
