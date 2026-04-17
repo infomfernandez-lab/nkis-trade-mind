@@ -99,6 +99,30 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Mejor legibilidad en móvil: fuente más grande, peso reforzado y mayor contraste */
+  @media (max-width: 767px) {
+    html {
+      font-size: 17px;
+    }
+    body {
+      font-weight: 500;
+      -webkit-text-size-adjust: 100%;
+    }
+    .text-xs {
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+    .text-sm {
+      font-size: 0.9375rem;
+    }
+    .text-muted-foreground {
+      color: oklch(0.62 0.02 255);
+    }
+    .font-data {
+      font-weight: 600;
+    }
+  }
 }
 
 @layer utilities {
