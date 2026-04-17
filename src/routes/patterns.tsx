@@ -6,9 +6,24 @@ import {
 } from 'recharts';
 import { Loader2, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { filterByBroker, type Trade } from '@/lib/trade-utils';
+import { filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AnchorNav } from '@/components/radar/AnchorNav';
+
+const BROKER_LABELS: Record<BrokerFilter, string> = {
+  all: 'Todos los brokers',
+  darwinex: 'Darwinex',
+  fxpro: 'FXPro',
+};
+
+const PATTERN_ANCHORS = [
+  { id: 'cuando-funciona', label: '¿Cuándo funciona?' },
+  { id: 'respeto-sistema', label: 'Respeto del sistema' },
+  { id: 'errores', label: 'Errores' },
+  { id: 'gestion-trade', label: 'Gestión' },
+  { id: 'consistencia', label: 'Consistencia' },
+];
 
 export const Route = createFileRoute('/patterns')({
   component: Patterns,
