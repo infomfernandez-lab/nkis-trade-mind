@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Trade } from '@/lib/trade-utils';
+import { exportTradePdf } from '@/lib/trade-pdf';
 
 interface ChipFieldProps {
   label: string;
@@ -45,19 +46,87 @@ interface JournalData {
   preTradeNotes: string | null;
   managingWait: string | null;
   manualIntervention: string | null;
+  interventionReason: string | null;
   duringTradeNotes: string | null;
   feelingResult: string | null;
+  respectedSystem: string | null;
   whatDoDifferently: string | null;
   postTradeNotes: string | null;
 }
 
 interface TradeJournalProps {
   trade: Trade;
+  scannerInfo?: { rank: number | null; total: number | null; score: number | null };
+  vixValue?: number | null;
   onSaved?: (data: JournalData) => void;
 }
 
-export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
+const MANUAL_INTERVENTION_OPTIONS = [
+  'EA gestionando solo',
+  'SL a breakeven',
+  'SL a beneficio',
+  'Amplié SL inicial',
+  'Cerré antes de tiempo',
+  'Añadí posición',
+];
+
+const INTERVENTION_REASON_OPTIONS = [
+  'Para proteger beneficio',
+  'Tenía miedo de perder',
+  'Cambió el contexto de mercado',
+  'Sin razón clara — impulso',
+];
+
+const RESPECTED_SYSTEM_OPTIONS = ['Sí completamente', 'No al 100%', 'No'];
+
+const WHAT_DIFFERENT_OPTIONS = [
+  'Nada, todo correcto',
+  'Entrar antes',
+  'Esperar más confirmación',
+  'Respetar los stops',
+  'Operación incorrecta desde el inicio',
+];
+
+/**
+ * Parse intervention reason out of `during_trade_notes` using a sentinel prefix.
+ * Format stored: "[REASON:<value>]\n<rest of notes>"
+ */
+function parseDuringNotes(raw: string | null): { reason: string | null; notes: string | null } {
+  if (!raw) return { reason: null, notes: null };
+  const m = raw.match(/^\[REASON:([^\]]+)\]\n?([\s\S]*)$/);
+  if (!m) return { reason: null, notes: raw };
+  return { reason: m[1] || null, notes: m[2] || null };
+}
+
+function serializeDuringNotes(reason: string | null, notes: string | null): string | null {
+  const cleanNotes = notes?.trim() ?? '';
+  if (!reason && !cleanNotes) return null;
+  if (reason) return `[REASON:${reason}]\n${cleanNotes}`;
+  return cleanNotes || null;
+}
+
+/** Same trick for "respected system" stored inside post_trade_notes */
+function parsePostNotes(raw: string | null): { respected: string | null; notes: string | null } {
+  if (!raw) return { respected: null, notes: null };
+  const m = raw.match(/^\[RESPECTED:([^\]]+)\]\n?([\s\S]*)$/);
+  if (!m) return { respected: null, notes: raw };
+  return { respected: m[1] || null, notes: m[2] || null };
+}
+
+function serializePostNotes(respected: string | null, notes: string | null): string | null {
+  const cleanNotes = notes?.trim() ?? '';
+  if (!respected && !cleanNotes) return null;
+  if (respected) return `[RESPECTED:${respected}]\n${cleanNotes}`;
+  return cleanNotes || null;
+}
+
+export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJournalProps) {
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const initialDuring = parseDuringNotes(trade.duringTradeNotes);
+  const initialPost = parsePostNotes(trade.postTradeNotes);
+
   const [data, setData] = useState<JournalData>({
     emotionalState: trade.emotionalState,
     reasonForEntry: trade.reasonForEntry,
@@ -66,14 +135,19 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
     preTradeNotes: trade.preTradeNotes,
     managingWait: trade.managingWait,
     manualIntervention: trade.manualIntervention,
-    duringTradeNotes: trade.duringTradeNotes,
+    interventionReason: initialDuring.reason,
+    duringTradeNotes: initialDuring.notes,
     feelingResult: trade.feelingResult,
+    respectedSystem: initialPost.respected,
     whatDoDifferently: trade.whatDoDifferently,
-    postTradeNotes: trade.postTradeNotes,
+    postTradeNotes: initialPost.notes,
   });
 
   const set = <K extends keyof JournalData>(key: K, val: JournalData[K]) =>
     setData(prev => ({ ...prev, [key]: val }));
+
+  const showInterventionReason =
+    data.manualIntervention !== null && data.manualIntervention !== 'EA gestionando solo';
 
   const handleSave = async () => {
     setSaving(true);
@@ -88,10 +162,13 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
           pre_trade_notes: data.preTradeNotes,
           managing_wait: data.managingWait,
           manual_intervention: data.manualIntervention,
-          during_trade_notes: data.duringTradeNotes,
+          during_trade_notes: serializeDuringNotes(
+            showInterventionReason ? data.interventionReason : null,
+            data.duringTradeNotes,
+          ),
           feeling_result: data.feelingResult,
           what_do_differently: data.whatDoDifferently,
-          post_trade_notes: data.postTradeNotes,
+          post_trade_notes: serializePostNotes(data.respectedSystem, data.postTradeNotes),
         })
         .eq('id', trade.id);
 
@@ -102,6 +179,18 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
       toast.error(`Error al guardar: ${err.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      await exportTradePdf({ trade, journal: data, scannerInfo, vixValue });
+      toast.success('PDF exportado');
+    } catch (err: any) {
+      toast.error(`Error al exportar: ${err.message}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -154,10 +243,18 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
         />
         <ChipField
           label="Intervención Manual"
-          options={['No EA gestionando solo', 'Moví el SL', 'Cerré antes de tiempo', 'Añadí posición']}
+          options={MANUAL_INTERVENTION_OPTIONS}
           value={data.manualIntervention}
           onChange={v => set('manualIntervention', v)}
         />
+        {showInterventionReason && (
+          <ChipField
+            label="¿Por qué intervine?"
+            options={INTERVENTION_REASON_OPTIONS}
+            value={data.interventionReason}
+            onChange={v => set('interventionReason', v)}
+          />
+        )}
         <div className="space-y-1">
           <div className="text-xs text-muted-foreground font-medium">Notas libres</div>
           <Textarea
@@ -178,13 +275,19 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
           onChange={v => set('feelingResult', v)}
         />
         <ChipField
-          label="Qué Haría Diferente"
-          options={['Nada repetiría igual', 'Entrar antes', 'Esperar más confirmación', 'No haber entrado', 'Dejar correr más el TP']}
+          label="¿Respeté el sistema?"
+          options={RESPECTED_SYSTEM_OPTIONS}
+          value={data.respectedSystem}
+          onChange={v => set('respectedSystem', v)}
+        />
+        <ChipField
+          label="¿Qué haría diferente?"
+          options={WHAT_DIFFERENT_OPTIONS}
           value={data.whatDoDifferently}
           onChange={v => set('whatDoDifferently', v)}
         />
         <div className="space-y-1">
-          <div className="text-xs text-muted-foreground font-medium">Post-mortem</div>
+          <div className="text-xs text-muted-foreground font-medium">Notas libres</div>
           <Textarea
             placeholder="Reflexión post-trade..."
             value={data.postTradeNotes ?? ''}
@@ -194,10 +297,16 @@ export function TradeJournal({ trade, onSaved }: TradeJournalProps) {
         </div>
       </Section>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full">
-        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-        Guardar
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button onClick={handleSave} disabled={saving} className="flex-1">
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Guardar
+        </Button>
+        <Button onClick={handleExportPdf} disabled={exporting} variant="outline" className="flex-1">
+          {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+          Exportar PDF
+        </Button>
+      </div>
     </div>
   );
 }
