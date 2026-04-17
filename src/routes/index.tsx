@@ -12,9 +12,7 @@ import {
 } from '@/lib/trade-utils';
 import { computeDashboardKpis } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
-import { ScannerSessionPanel } from '@/components/ScannerSessionPanel';
-import { useAddToWatchlist } from '@/hooks/use-watchlist';
-import { toast } from 'sonner';
+import { WatchlistSection } from '@/components/radar/WatchlistSection';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -30,26 +28,6 @@ function Dashboard() {
   const { closedTrades: allClosed, openTrades: allOpen, isLoading, error } = useAllTrades();
   const { data: settings } = useSettings();
   const { broker } = useBrokerFilter();
-  const addToWatchlist = useAddToWatchlist();
-
-  const handleWatchFromScanner = (inst: { symbol: string; direction: string; score: number; adx_value?: number; adx_state?: string; distance_to_ma50?: number }) => {
-    addToWatchlist.mutate({
-      symbol: inst.symbol,
-      direction: inst.direction?.toLowerCase() === 'buy' ? 'alcista' : inst.direction?.toLowerCase() === 'sell' ? 'bajista' : inst.direction,
-      watch_reason: `Añadido desde el scanner con score ${inst.score}/100`,
-      stochastic_level: null,
-      scanner_score: inst.score,
-      adx_value: inst.adx_value ?? null,
-      adx_state: inst.adx_state ?? null,
-      distance_to_ma50: inst.distance_to_ma50 ?? null,
-      status: 'Vigilando',
-      added_from_scanner: true,
-      trade_id: null,
-    }, {
-      onSuccess: () => toast.success(`${inst.symbol} añadido a la watchlist`),
-      onError: () => toast.error('Error al añadir a la watchlist'),
-    });
-  };
 
   if (isLoading) {
     return (
@@ -115,8 +93,11 @@ function Dashboard() {
         <StatCard label="Total Trades" value={String(stats.totalTrades)} />
       </div>
 
-      {/* Scanner Session */}
-      <ScannerSessionPanel onWatch={handleWatchFromScanner} />
+      {/* Vigilando */}
+      <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
+        <h2 className="font-display text-sm font-semibold text-foreground mb-4">Vigilando</h2>
+        <WatchlistSection openSymbols={new Set(openTrades.map(t => t.symbol))} brokerFilter={broker} />
+      </div>
 
       {/* Equity Curve */}
       {equityCurve.length > 1 && (
