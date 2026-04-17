@@ -63,6 +63,7 @@ interface TradeJournalProps {
 
 const MANUAL_INTERVENTION_OPTIONS = [
   'EA gestionando solo',
+  'Sin intervención',
   'SL a breakeven',
   'SL a beneficio',
   'Amplié SL inicial',
@@ -71,6 +72,7 @@ const MANUAL_INTERVENTION_OPTIONS = [
 ];
 
 const INTERVENTION_REASON_OPTIONS = [
+  'Sin intervenir',
   'Para proteger beneficio',
   'Tenía miedo de perder',
   'Cambió el contexto de mercado',
@@ -84,6 +86,7 @@ const WHAT_DIFFERENT_OPTIONS = [
   'Entrar antes',
   'Esperar más confirmación',
   'Respetar los stops',
+  'Respetar las correlaciones',
   'Operación incorrecta desde el inicio',
 ];
 
@@ -270,7 +273,7 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
       <Section title="Después del Cierre">
         <ChipField
           label="Sensación"
-          options={['Bien proceso correcto', 'Bien aunque perdí', 'Mal aunque gané', 'Mal no seguí el sistema']}
+          options={['Bien proceso correcto', 'Bien proceso correcto aunque perdi', 'Mal aunque gané', 'Mal no seguí el sistema']}
           value={data.feelingResult}
           onChange={v => set('feelingResult', v)}
         />
