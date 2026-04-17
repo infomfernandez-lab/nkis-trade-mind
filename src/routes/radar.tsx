@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { WatchlistSection } from '@/components/radar/WatchlistSection';
 import { OpenPositionsSection } from '@/components/radar/OpenPositionsSection';
+import { AnchorNav, type AnchorItem } from '@/components/radar/AnchorNav';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +16,8 @@ import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
-import { formatDate, type BrokerFilter } from '@/lib/trade-utils';
-import { BrokerSelector } from '@/components/BrokerSelector';
+import { formatDate } from '@/lib/trade-utils';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
