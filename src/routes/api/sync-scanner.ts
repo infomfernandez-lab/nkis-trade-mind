@@ -10,6 +10,12 @@ const scannerSchema = z.object({
   correlations_detected: z.array(z.record(z.unknown())).max(50).optional(),
   notes: z.string().max(5000).nullable().optional(),
   broker: z.string().max(50).optional(),
+  // New metadata fields
+  timeframe: z.string().max(20).nullable().optional(),
+  vix: z.number().nullable().optional(),
+  total_analyzed: z.number().int().nullable().optional(),
+  discarded: z.number().int().nullable().optional(),
+  tradeable: z.number().int().nullable().optional(),
 });
 
 export const Route = createFileRoute('/api/sync-scanner')({
@@ -32,7 +38,6 @@ export const Route = createFileRoute('/api/sync-scanner')({
             }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
           }
 
-          // Normalize broker value
           const rawBroker = (parsed.data.broker ?? '').trim().toLowerCase();
           const broker = rawBroker.includes('fxpro') ? 'fxpro' : 'darwinex';
 
@@ -43,6 +48,11 @@ export const Route = createFileRoute('/api/sync-scanner')({
             correlations_detected: (parsed.data.correlations_detected ?? []) as unknown as import('@/integrations/supabase/types').Json,
             notes: parsed.data.notes ?? null,
             broker,
+            timeframe: parsed.data.timeframe ?? null,
+            vix: parsed.data.vix ?? null,
+            total_analyzed: parsed.data.total_analyzed ?? null,
+            discarded: parsed.data.discarded ?? null,
+            tradeable: parsed.data.tradeable ?? null,
           };
 
           const { data, error } = await supabaseAdmin

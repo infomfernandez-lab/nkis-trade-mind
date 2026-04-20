@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Radar, Eye, AlertTriangle,
-  ChevronDown, ChevronUp, Clock, Check, RefreshCw, Crosshair, BarChart3
+  Radar, Eye, AlertTriangle, ChevronDown, ChevronUp, Clock, Check,
+  RefreshCw, Crosshair, BarChart3, Star, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { WatchlistSection } from '@/components/radar/WatchlistSection';
 import { OpenPositionsSection } from '@/components/radar/OpenPositionsSection';
@@ -24,7 +24,7 @@ export const Route = createFileRoute('/radar')({
   head: () => ({
     meta: [
       { title: 'Radar — CAP Trading' },
-      { name: 'description', content: 'Resultados completos del scanner de instrumentos.' },
+      { name: 'description', content: 'Centro de mando del scanner de instrumentos.' },
     ],
   }),
 });
@@ -45,6 +45,15 @@ interface ScannerInstrumentRaw {
   momentum_aligned?: boolean;
   pendiente?: string;
   pendiente_medias?: string;
+  // Nuevos campos
+  pullback_active?: boolean;
+  pullback_bars?: number;
+  stoch_k?: number;
+  trend_age_bars?: number;
+  volume?: number;
+  atr?: number;
+  structure?: string;
+  breakout?: string;
 }
 
 interface ScannerInstrument {
@@ -59,6 +68,14 @@ interface ScannerInstrument {
   momentum_20d?: number;
   momentum_aligned?: boolean;
   pendiente_medias?: string;
+  pullback_active?: boolean;
+  pullback_bars?: number;
+  stoch_k?: number;
+  trend_age_bars?: number;
+  volume?: number;
+  atr?: number;
+  structure?: string;
+  breakout?: string;
 }
 
 function normalizeInstrument(raw: ScannerInstrumentRaw, index: number): ScannerInstrument {
@@ -74,6 +91,14 @@ function normalizeInstrument(raw: ScannerInstrumentRaw, index: number): ScannerI
     momentum_20d: raw.momentum ?? raw.momentum_20d,
     momentum_aligned: raw.momentum_aligned,
     pendiente_medias: raw.pendiente ?? raw.pendiente_medias,
+    pullback_active: raw.pullback_active,
+    pullback_bars: raw.pullback_bars,
+    stoch_k: raw.stoch_k,
+    trend_age_bars: raw.trend_age_bars,
+    volume: raw.volume,
+    atr: raw.atr,
+    structure: raw.structure,
+    breakout: raw.breakout,
   };
 }
 
@@ -90,6 +115,11 @@ interface ScannerSession {
   notes: string | null;
   user_id: string;
   broker?: string;
+  timeframe?: string | null;
+  vix?: number | null;
+  total_analyzed?: number | null;
+  discarded?: number | null;
+  tradeable?: number | null;
 }
 
 function useScannerSessions() {
@@ -125,20 +155,6 @@ function getHistoryForBroker(sessions: ScannerSession[], broker: string): Scanne
     return val.includes('darwinex') || val === '';
   });
 }
-
-const ADX_STATE_STYLES: Record<string, string> = {
-  'ACELERANDO': 'bg-success/20 text-success',
-  'SUBIENDO': 'bg-emerald-400/20 text-emerald-400',
-  'ESTABLE': 'bg-yellow-400/20 text-yellow-400',
-  'AGOTANDO': 'bg-destructive/20 text-destructive',
-};
-
-const MA50_STYLES: Record<string, string> = {
-  'MUY CERCA': 'bg-success/20 text-success',
-  'CERCA': 'bg-yellow-400/20 text-yellow-400',
-  'ALEJADO': 'bg-orange-400/20 text-orange-400',
-  'SOBREEXTEND': 'bg-destructive/20 text-destructive',
-};
 
 function RadarPage() {
   const { broker } = useBrokerFilter();
@@ -190,10 +206,8 @@ function RadarPage() {
         </button>
       </div>
 
-      {/* Sticky anchor nav */}
       <AnchorNav items={anchorItems} />
 
-      {/* ZONA 1 — Radar */}
       <div className="space-y-4">
         <h2 className="font-display text-lg font-bold flex items-center gap-2">
           <Crosshair className="w-5 h-5 text-primary" /> Scanner
@@ -201,13 +215,11 @@ function RadarPage() {
 
         {showDarwinex && (
           <section id="radar-darwinex" className="scroll-mt-24">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-2">Darwinex</h2>
             <BrokerScanView sessions={allSessions} broker="darwinex" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
           </section>
         )}
         {showFxpro && (
           <section id="radar-fxpro" className="scroll-mt-24">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-2">FXPro</h2>
             <BrokerScanView sessions={allSessions} broker="fxpro" openSymbols={openSymbols} watchlistSymbols={watchlistSymbols} />
           </section>
         )}
@@ -215,7 +227,6 @@ function RadarPage() {
 
       <Separator className="my-2" />
 
-      {/* ZONA 2 — Vigilando */}
       <section id="vigilando" className="space-y-3 scroll-mt-24">
         <h2 className="font-display text-lg font-bold flex items-center gap-2">
           <Eye className="w-5 h-5 text-yellow-400" /> Vigilando
@@ -225,7 +236,6 @@ function RadarPage() {
 
       <Separator className="my-2" />
 
-      {/* ZONA 3 — Posiciones Abiertas */}
       <section id="posiciones-abiertas" className="space-y-3 scroll-mt-24">
         <h2 className="font-display text-lg font-bold flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-primary" /> Posiciones Abiertas
@@ -246,37 +256,51 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   const history = getHistoryForBroker(sessions, broker);
   const [selectedSession, setSelectedSession] = useState<ScannerSession | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const brokerLabel = broker === 'darwinex' ? 'Darwinex' : 'FXPro';
 
   const activeSession = selectedSession || latest;
 
   if (!activeSession) {
     return (
-      <div className="text-center py-10 space-y-2">
-        <Radar className="w-8 h-8 text-muted-foreground/30 mx-auto" />
-        <p className="text-sm text-muted-foreground">Sin resultados para {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}.</p>
+      <div className="rounded-lg border border-border bg-card p-10 text-center space-y-2">
+        <Radar className="w-10 h-10 text-muted-foreground/30 mx-auto" />
+        <p className="text-sm text-muted-foreground">
+          Sin resultados para {brokerLabel}.
+        </p>
+        <p className="text-xs text-muted-foreground/70">
+          Ejecuta el scanner y sube los resultados para ver el radar.
+        </p>
       </div>
     );
   }
 
   const instruments: ScannerInstrument[] = Array.isArray(activeSession.top_instruments)
-    ? (activeSession.top_instruments as unknown as ScannerInstrumentRaw[]).slice(0, 20).map((raw, i) => normalizeInstrument(raw, i))
+    ? (activeSession.top_instruments as unknown as ScannerInstrumentRaw[]).slice(0, 30).map((raw, i) => normalizeInstrument(raw, i))
     : [];
 
   const correlations: Correlation[] = Array.isArray(activeSession.correlations_detected)
     ? (activeSession.correlations_detected as unknown as Correlation[])
     : [];
 
+  // Sort: pullback first, then score desc
+  const sorted = [...instruments].sort((a, b) => {
+    if (!!a.pullback_active !== !!b.pullback_active) return a.pullback_active ? -1 : 1;
+    return (b.score ?? 0) - (a.score ?? 0);
+  });
+
+  const elite = sorted.filter(i => i.score >= 75);
+  const solid = sorted.filter(i => i.score >= 60 && i.score < 75);
+  const observe = sorted.filter(i => i.score >= 40 && i.score < 60);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Clock className="w-4 h-4" />
-        <span>Última sesión: <span className="font-data font-semibold text-foreground">{formatDate(activeSession.session_date)}</span></span>
-        {selectedSession && (
-          <button onClick={() => setSelectedSession(null)} className="ml-2 text-xs text-primary hover:underline">
-            ← Volver a la última
-          </button>
-        )}
-      </div>
+      <ScanHeader session={activeSession} brokerLabel={brokerLabel} />
+
+      {selectedSession && (
+        <button onClick={() => setSelectedSession(null)} className="text-xs text-primary hover:underline">
+          ← Volver a la última sesión
+        </button>
+      )}
 
       {correlations.length > 0 && (
         <div className="space-y-2">
@@ -292,33 +316,40 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
         </div>
       )}
 
-      {instruments.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="text-center py-8 text-sm text-muted-foreground">Sin instrumentos en esta sesión.</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2 bg-muted/50 text-xs text-muted-foreground font-medium border-b border-border">
-            <span>#</span>
-            <span>Símbolo</span>
-            <span>Dir.</span>
-            <span>Score</span>
-            <span>ADX</span>
-            <span>Dist MA50</span>
-            <span>Mom.</span>
-            <span>Pend.</span>
-            <span>Estado</span>
-            <span className="text-right">Acción</span>
-          </div>
-          <div className="divide-y divide-border">
-            {instruments.map((inst, i) => (
-              <InstrumentRow
-                key={`${inst.symbol}-${i}`}
-                instrument={inst}
-                index={i}
-                isOpen={openSymbols.has(inst.symbol)}
-                isWatched={watchlistSymbols.has(inst.symbol)}
-              />
-            ))}
-          </div>
+        <div className="space-y-5">
+          <ScanZone
+            title="ÉLITE"
+            icon="★"
+            tone="elite"
+            description="Score ≥ 75 — máxima prioridad"
+            items={elite}
+            openSymbols={openSymbols}
+            watchlistSymbols={watchlistSymbols}
+            broker={broker}
+          />
+          <ScanZone
+            title="SÓLIDO"
+            icon="●"
+            tone="solid"
+            description="Score 60-74 — operables"
+            items={solid}
+            openSymbols={openSymbols}
+            watchlistSymbols={watchlistSymbols}
+            broker={broker}
+          />
+          <ScanZone
+            title="OBSERVAR"
+            icon="◌"
+            tone="observe"
+            description="Score 40-59 — vigilar evolución"
+            items={observe}
+            openSymbols={openSymbols}
+            watchlistSymbols={watchlistSymbols}
+            broker={broker}
+          />
         </div>
       )}
 
@@ -360,26 +391,118 @@ function BrokerScanView({ sessions, broker, openSymbols, watchlistSymbols }: {
   );
 }
 
-function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
+function ScanHeader({ session, brokerLabel }: { session: ScannerSession; brokerLabel: string }) {
+  const vix = session.vix;
+  const vixColor = vix == null ? 'text-muted-foreground'
+    : vix < 25 ? 'text-success'
+    : vix <= 35 ? 'text-orange-400'
+    : 'text-destructive';
+
+  const brokerBadge = brokerLabel === 'Darwinex'
+    ? 'bg-blue-950 text-blue-300 border-blue-800'
+    : 'bg-orange-900/40 text-orange-300 border-orange-700/50';
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-3 lg:p-4 space-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="font-data text-foreground">{formatDate(session.session_date)}</span>
+        </div>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${brokerBadge}`}>{brokerLabel}</span>
+        {session.timeframe && (
+          <span className="text-muted-foreground">TF: <span className="font-data text-foreground">{session.timeframe}</span></span>
+        )}
+        {vix != null && (
+          <span className="text-muted-foreground">VIX: <span className={`font-data font-bold ${vixColor}`}>{vix}</span></span>
+        )}
+        {session.total_analyzed != null && (
+          <span className="text-muted-foreground">Analizados: <span className="font-data text-foreground">{session.total_analyzed}</span></span>
+        )}
+        {session.discarded != null && (
+          <span className="text-muted-foreground">Descartados: <span className="font-data text-destructive/80">{session.discarded}</span></span>
+        )}
+        {session.tradeable != null && (
+          <span className="text-muted-foreground">Operables: <span className="font-data text-success">{session.tradeable}</span></span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ScanZone({ title, icon, tone, description, items, openSymbols, watchlistSymbols, broker }: {
+  title: string;
+  icon: string;
+  tone: 'elite' | 'solid' | 'observe';
+  description: string;
+  items: ScannerInstrument[];
+  openSymbols: Set<string>;
+  watchlistSymbols: Set<string>;
+  broker: string;
+}) {
+  if (items.length === 0) return null;
+
+  const headerColor = tone === 'elite' ? 'text-yellow-400' : tone === 'solid' ? 'text-success' : 'text-muted-foreground';
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline gap-2">
+        <h3 className={`font-display text-sm font-bold ${headerColor}`}>{icon} {title}</h3>
+        <span className="text-[11px] text-muted-foreground">— {description} ({items.length})</span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        {items.map((inst, i) => (
+          <InstrumentCard
+            key={`${inst.symbol}-${i}`}
+            instrument={inst}
+            tone={tone}
+            isOpen={openSymbols.has(inst.symbol)}
+            isWatched={watchlistSymbols.has(inst.symbol)}
+            broker={broker}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ADX_STATE_STYLES: Record<string, string> = {
+  'ACELERANDO': 'bg-success/20 text-success',
+  'SUBIENDO': 'bg-emerald-400/20 text-emerald-400',
+  'ESTABLE': 'bg-yellow-400/20 text-yellow-400',
+  'AGOTANDO': 'bg-destructive/20 text-destructive',
+};
+
+function InstrumentCard({ instrument: inst, tone, isOpen, isWatched, broker }: {
   instrument: ScannerInstrument;
-  index: number;
+  tone: 'elite' | 'solid' | 'observe';
   isOpen: boolean;
   isWatched: boolean;
+  broker: string;
 }) {
   const addToWatchlist = useAddToWatchlist();
   const { user } = useAuth();
   const isAlcista = inst.direction?.toLowerCase() === 'alcista' || inst.direction?.toLowerCase() === 'buy';
   const adxStyle = ADX_STATE_STYLES[inst.adx_state?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
-  const ma50Style = MA50_STYLES[inst.distance_to_ma50_label?.toUpperCase() || ''] || 'bg-muted text-muted-foreground';
-  const isEven = index % 2 === 0;
+  const pullback = !!inst.pullback_active;
+
+  const borderClass = pullback
+    ? 'border-yellow-500/60 border-l-[3px] border-l-yellow-400 bg-yellow-500/[0.04]'
+    : tone === 'elite'
+      ? 'border-yellow-500/40 bg-yellow-500/[0.02]'
+      : tone === 'solid'
+        ? 'border-success/30'
+        : 'border-border';
 
   const handleWatch = () => {
     if (!user) return;
     addToWatchlist.mutate({
       symbol: inst.symbol,
       direction: isAlcista ? 'alcista' : 'bajista',
-      watch_reason: `Desde Radar — Score ${inst.score}/100`,
-      stochastic_level: null,
+      watch_reason: pullback
+        ? `Pullback activo — Score ${inst.score}/100`
+        : `Desde Radar — Score ${inst.score}/100`,
+      stochastic_level: inst.stoch_k ?? null,
       scanner_score: inst.score,
       adx_value: inst.adx_value ?? null,
       adx_state: inst.adx_state ?? null,
@@ -387,117 +510,88 @@ function InstrumentRow({ instrument: inst, index, isOpen, isWatched }: {
       status: 'Vigilando',
       added_from_scanner: true,
       trade_id: null,
+      broker: broker === 'fxpro' ? 'fxpro' : 'darwinex',
     }, {
-      onSuccess: () => toast.success(`${inst.symbol} añadido a la watchlist`),
-      onError: () => toast.error('Error al añadir a watchlist'),
+      onSuccess: () => toast.success(`${inst.symbol} añadido a Vigilando`),
+      onError: () => toast.error('Error al añadir a la watchlist'),
     });
   };
 
   return (
-    <div className={`
-      ${isEven ? 'bg-card' : 'bg-muted/20'}
-      ${isOpen ? 'border-l-2 border-l-yellow-400' : ''}
-      hover:bg-accent/50 transition-colors
-    `}>
-      {/* Desktop row */}
-      <div className="hidden lg:grid grid-cols-[3rem_1fr_5.5rem_4.5rem_9rem_9rem_5.5rem_5rem_6rem_6.5rem] items-center px-3 py-2.5">
-        <span className="font-mono font-bold text-sm text-yellow-400">#{inst.rank}</span>
-        <span className="font-semibold text-sm text-foreground">{inst.symbol}</span>
-        <span>
-          <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
-            {isAlcista ? 'ALCISTA' : 'BAJISTA'}
+    <div className={`rounded-lg border p-3 ${borderClass} transition-colors`}>
+      {/* Línea 1 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {pullback && (
+          <Badge className="text-[9px] px-1.5 py-0 bg-yellow-500/25 text-yellow-300 border-yellow-500/50 border font-bold gap-1">
+            <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" /> PULLBACK
           </Badge>
+        )}
+        <span className="font-display font-bold text-base text-foreground">{inst.symbol}</span>
+        <Badge className={`text-[10px] px-1.5 py-0 border ${
+          isAlcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+        }`}>
+          {isAlcista ? <><TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />BUY</> : <><TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />SELL</>}
+        </Badge>
+        <span className="ml-auto font-data font-bold text-base text-yellow-400">
+          {inst.score}<span className="text-[10px] text-muted-foreground font-normal">/100</span>
         </span>
-        <span className="font-data font-bold text-base text-yellow-400">
-          {inst.score}<span className="text-xs text-muted-foreground font-normal">/100</span>
-        </span>
-        <span className="flex items-center gap-1.5 text-xs">
-          {inst.adx_value != null ? (
-            <>
-              <span className="font-data font-semibold text-foreground">{inst.adx_value}</span>
-              {inst.adx_state && (
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${adxStyle}`}>
-                  {inst.adx_state}
-                </span>
-              )}
-            </>
-          ) : <span className="text-muted-foreground">—</span>}
-        </span>
-        <span className="flex items-center gap-1.5 text-xs">
-          {inst.distance_to_ma50 != null ? (
-            <>
-              <span className="font-data text-foreground">{inst.distance_to_ma50}%</span>
-              {inst.distance_to_ma50_label && (
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${ma50Style}`}>
-                  {inst.distance_to_ma50_label}
-                </span>
-              )}
-            </>
-          ) : <span className="text-muted-foreground">—</span>}
-        </span>
-        <span className="text-xs font-data">
-          {inst.momentum_20d != null ? (
-            <>
-              {inst.momentum_20d}%{' '}
-              <span className={inst.momentum_aligned ? 'text-success' : 'text-destructive'}>
-                {inst.momentum_aligned ? '✓' : '✗'}
-              </span>
-            </>
-          ) : <span className="text-muted-foreground">—</span>}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {inst.pendiente_medias || '—'}
-        </span>
-        <span>
-          {isOpen && (
-            <Badge className="text-[10px] px-1.5 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">
-              EN POSICIÓN
-            </Badge>
-          )}
-        </span>
-        <span className="text-right">
-          {isWatched ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-              <Check className="w-3 h-3" /> Vigilando
-            </span>
-          ) : (
-            <button
-              onClick={handleWatch}
-              disabled={addToWatchlist.isPending}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-50"
-            >
-              <Eye className="w-3 h-3" />
-              Vigilar +
-            </button>
-          )}
-        </span>
+        {isOpen && (
+          <Badge className="text-[9px] px-1 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">POS</Badge>
+        )}
       </div>
 
-      {/* Mobile row */}
-      <div className="lg:hidden px-3 py-3 space-y-2">
-        <div className="flex items-center gap-3">
-          <span className="font-mono font-bold text-sm text-yellow-400 w-8">#{inst.rank}</span>
-          <span className="font-semibold text-sm text-foreground flex-1">{inst.symbol}</span>
-          <Badge className={`text-[10px] px-1.5 py-0 border ${isAlcista ? 'bg-success/20 text-success border-success/30' : 'bg-destructive/20 text-destructive border-destructive/30'}`}>
-            {isAlcista ? 'ALC' : 'BAJ'}
-          </Badge>
-          <span className="font-data font-bold text-yellow-400">{inst.score}</span>
+      {/* Línea 2 */}
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        {inst.adx_value != null && (
+          <span>ADX <span className="font-data text-foreground">{inst.adx_value}</span>
+            {inst.adx_state && <span className={`ml-1 px-1 rounded text-[9px] font-semibold ${adxStyle}`}>{inst.adx_state}</span>}
+          </span>
+        )}
+        {inst.distance_to_ma50 != null && (
+          <span>MA50 <span className="font-data text-foreground">{inst.distance_to_ma50}%</span></span>
+        )}
+        {inst.momentum_20d != null && (
+          <span>Mom <span className={`font-data ${inst.momentum_aligned ? 'text-success' : 'text-destructive'}`}>{inst.momentum_20d}%</span></span>
+        )}
+        {inst.trend_age_bars != null && (
+          <span>Edad <span className="font-data text-foreground">{inst.trend_age_bars}v</span></span>
+        )}
+      </div>
+
+      {/* Línea 3 */}
+      {(inst.volume != null || inst.atr != null || inst.structure || inst.breakout) && (
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          {inst.volume != null && <span>Vol <span className="font-data text-foreground">{inst.volume}</span></span>}
+          {inst.atr != null && <span>ATR <span className="font-data text-foreground">{Number(inst.atr).toFixed(5)}</span></span>}
+          {inst.structure && <span>Estr <span className="text-foreground">{inst.structure}</span></span>}
+          {inst.breakout && <span>Rupt <span className="text-foreground">{inst.breakout}</span></span>}
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground ml-8">
-          {inst.adx_value != null && <span>ADX: <span className="font-data text-foreground">{inst.adx_value}</span> {inst.adx_state && <span className={`${adxStyle} px-1 rounded text-[10px]`}>{inst.adx_state}</span>}</span>}
-          {inst.distance_to_ma50 != null && <span>MA50: <span className="font-data text-foreground">{inst.distance_to_ma50}%</span></span>}
-          {inst.momentum_20d != null && <span>Mom: <span className="font-data">{inst.momentum_20d}%</span></span>}
-          {isOpen && <Badge className="text-[10px] px-1 py-0 bg-yellow-400/20 text-yellow-400 border-yellow-400/40 border">POSICIÓN</Badge>}
+      )}
+
+      {/* Línea 4 — pullback alert */}
+      {pullback && (
+        <div className="mt-2 px-2 py-1.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-[11px] text-yellow-300 font-semibold flex items-center gap-1.5">
+          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+          ⭐ PULLBACK ACTIVO{inst.pullback_bars ? ` — ${inst.pullback_bars} velas corrigiendo` : ''} — Vigilar estocástico
         </div>
-        <div className="ml-8">
-          {isWatched ? (
-            <span className="text-[11px] text-success"><Check className="w-3 h-3 inline" /> Vigilando</span>
-          ) : (
-            <button onClick={handleWatch} disabled={addToWatchlist.isPending} className="text-[11px] text-yellow-400 border border-yellow-400/40 px-2 py-0.5 rounded">
-              <Eye className="w-3 h-3 inline mr-1" />Vigilar +
-            </button>
-          )}
-        </div>
+      )}
+
+      {/* Acción */}
+      <div className="mt-2 flex justify-end">
+        {isWatched ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
+            <Check className="w-3 h-3" /> En Vigilando
+          </span>
+        ) : (
+          <button
+            onClick={handleWatch}
+            disabled={addToWatchlist.isPending}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors disabled:opacity-50"
+          >
+            <Eye className="w-3 h-3" />
+            + Añadir a Vigilando
+          </button>
+        )}
       </div>
     </div>
   );
