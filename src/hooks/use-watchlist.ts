@@ -15,6 +15,7 @@ export interface WatchlistItem {
   status: string;
   added_from_scanner: boolean;
   trade_id: string | null;
+  broker: string;
   created_at: string;
 }
 
@@ -49,6 +50,7 @@ export function useAddToWatchlist() {
         distance_to_ma50: item.distance_to_ma50,
         status: item.status || 'Vigilando',
         added_from_scanner: item.added_from_scanner || false,
+        broker: item.broker || 'darwinex',
       });
       if (error) throw error;
     },
