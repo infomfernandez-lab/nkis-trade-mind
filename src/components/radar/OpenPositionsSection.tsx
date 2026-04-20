@@ -194,8 +194,8 @@ function SLManagement({ trade }: { trade: TradeWithSL }) {
   const [slValue, setSlValue] = useState(String(trade.slPrice ?? ''));
 
   const updatePhase = useCallback(async (newPhase: string, extra?: Record<string, unknown>) => {
-    const update: Record<string, unknown> = { sl_phase: newPhase, sl_updated_at: new Date().toISOString(), ...extra };
-    const { error } = await supabase.from('trades').update(update).eq('id', trade.id);
+    const update = { sl_phase: newPhase, sl_updated_at: new Date().toISOString(), ...(extra ?? {}) };
+    const { error } = await supabase.from('trades').update(update as never).eq('id', trade.id);
     if (error) {
       toast.error('Error al actualizar fase SL');
       return;
