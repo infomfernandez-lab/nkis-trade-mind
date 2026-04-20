@@ -19,34 +19,49 @@ export type Database = {
           broker: string
           correlations_detected: Json | null
           created_at: string
+          discarded: number | null
           id: string
           notes: string | null
           session_date: string
+          timeframe: string | null
           top_instruments: Json | null
+          total_analyzed: number | null
+          tradeable: number | null
           updated_at: string
           user_id: string
+          vix: number | null
         }
         Insert: {
           broker?: string
           correlations_detected?: Json | null
           created_at?: string
+          discarded?: number | null
           id?: string
           notes?: string | null
           session_date?: string
+          timeframe?: string | null
           top_instruments?: Json | null
+          total_analyzed?: number | null
+          tradeable?: number | null
           updated_at?: string
           user_id: string
+          vix?: number | null
         }
         Update: {
           broker?: string
           correlations_detected?: Json | null
           created_at?: string
+          discarded?: number | null
           id?: string
           notes?: string | null
           session_date?: string
+          timeframe?: string | null
           top_instruments?: Json | null
+          total_analyzed?: number | null
+          tradeable?: number | null
           updated_at?: string
           user_id?: string
+          vix?: number | null
         }
         Relationships: []
       }
@@ -54,6 +69,7 @@ export type Database = {
         Row: {
           adx_state: string | null
           adx_value: number | null
+          atr_at_entry: number | null
           broker: string
           commission: number | null
           created_at: string
@@ -86,7 +102,9 @@ export type Database = {
           reason_for_entry: string | null
           scanner_rank: number | null
           setup_doubts: string | null
+          sl_phase: string
           sl_price: number | null
+          sl_updated_at: string | null
           stochastic_k: number | null
           swap: number | null
           symbol: string
@@ -101,6 +119,7 @@ export type Database = {
         Insert: {
           adx_state?: string | null
           adx_value?: number | null
+          atr_at_entry?: number | null
           broker?: string
           commission?: number | null
           created_at?: string
@@ -133,7 +152,9 @@ export type Database = {
           reason_for_entry?: string | null
           scanner_rank?: number | null
           setup_doubts?: string | null
+          sl_phase?: string
           sl_price?: number | null
+          sl_updated_at?: string | null
           stochastic_k?: number | null
           swap?: number | null
           symbol: string
@@ -148,6 +169,7 @@ export type Database = {
         Update: {
           adx_state?: string | null
           adx_value?: number | null
+          atr_at_entry?: number | null
           broker?: string
           commission?: number | null
           created_at?: string
@@ -180,7 +202,9 @@ export type Database = {
           reason_for_entry?: string | null
           scanner_rank?: number | null
           setup_doubts?: string | null
+          sl_phase?: string
           sl_price?: number | null
+          sl_updated_at?: string | null
           stochastic_k?: number | null
           swap?: number | null
           symbol?: string
@@ -244,6 +268,7 @@ export type Database = {
           added_from_scanner: boolean | null
           adx_state: string | null
           adx_value: number | null
+          broker: string
           created_at: string
           direction: string
           distance_to_ma50: number | null
@@ -261,6 +286,7 @@ export type Database = {
           added_from_scanner?: boolean | null
           adx_state?: string | null
           adx_value?: number | null
+          broker?: string
           created_at?: string
           direction?: string
           distance_to_ma50?: number | null
@@ -278,6 +304,7 @@ export type Database = {
           added_from_scanner?: boolean | null
           adx_state?: string | null
           adx_value?: number | null
+          broker?: string
           created_at?: string
           direction?: string
           distance_to_ma50?: number | null
