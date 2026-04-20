@@ -327,6 +327,7 @@ function AddWatchlistForm({ onClose }: { onClose: () => void }) {
       status: 'Vigilando',
       added_from_scanner: false,
       trade_id: null,
+      broker: 'darwinex',
     }, {
       onSuccess: () => {
         toast.success('Añadido a la watchlist');

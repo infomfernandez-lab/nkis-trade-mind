@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { useState, createContext, useContext } from 'react';
+import { useState, createContext, useContext, useMemo } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
   Settings, Menu, X, LogOut, Radar, BarChart3
@@ -7,6 +7,7 @@ import {
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useWatchlist } from '@/hooks/use-watchlist';
 import { BrokerSelector } from '@/components/BrokerSelector';
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
@@ -29,6 +30,19 @@ const navItems = [
   { to: '/settings' as const, label: 'Ajustes', icon: Settings },
 ];
 
+function useRadarBadges() {
+  const { data: items } = useWatchlist();
+  return useMemo(() => {
+    const list = (items ?? []).filter(i => i.status !== 'EN POSICIÓN' && i.status !== 'Señal Dada — En posición');
+    const pullback = list.filter(i => (i.watch_reason ?? '').toLowerCase().includes('pullback')).length;
+    const near = list.filter(i => {
+      const v = i.stochastic_level;
+      return v != null && (v < 30 || v > 70);
+    }).length;
+    return { pullback, near };
+  }, [items]);
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [broker, setBroker] = useState<BrokerFilter>('all');
@@ -37,44 +51,60 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const filteredClosed = filterByBroker(closedTrades, broker);
   const filteredOpen = filterByBroker(openTrades, broker);
   const stats = computeStatsFromTrades(filteredClosed, filteredOpen);
+  const radarBadges = useRadarBadges();
+
+  const renderNavItem = (item: typeof navItems[number], onClick?: () => void) => {
+    const isActive = location.pathname === item.to;
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        onClick={onClick}
+        className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+        }`}
+      >
+        <item.icon className="w-4 h-4" />
+        <span className="flex-1">{item.label}</span>
+        {item.to === '/radar' && (radarBadges.pullback > 0 || radarBadges.near > 0) && (
+          <span className="flex items-center gap-1 shrink-0">
+            {radarBadges.pullback > 0 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
+                ⭐{radarBadges.pullback}
+              </span>
+            )}
+            {radarBadges.near > 0 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+                ⚡{radarBadges.near}
+              </span>
+            )}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <BrokerContext.Provider value={{ broker, setBroker }}>
       <div className="flex h-screen overflow-hidden bg-background">
-        {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-sidebar shrink-0">
           <div className="p-5 border-b border-border">
             <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
               <span className="text-primary">CAP</span> Trading
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Sistema 1 — Trend Following</p>
+            <p className="text-xs text-muted-foreground mt-0.5">CAP Trend Following</p>
           </div>
           <nav className="flex-1 py-4 px-3 space-y-1">
-            {navItems.map(item => {
-              const isActive = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {navItems.map(item => renderNavItem(item))}
           </nav>
           <div className="p-4 border-t border-border space-y-2">
-            <div className="text-xs text-muted-foreground">Sistema 1 v2.0</div>
+            <div className="text-xs text-muted-foreground">CAP Trend Following v2.0</div>
             <SignOutButton />
           </div>
         </aside>
 
-        {/* Mobile menu overlay */}
         {mobileOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
@@ -84,30 +114,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <button onClick={() => setMobileOpen(false)} className="text-muted-foreground"><X className="w-5 h-5" /></button>
               </div>
               <nav className="space-y-1">
-                {navItems.map(item => {
-                  const isActive = location.pathname === item.to;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                        isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
+                {navItems.map(item => renderNavItem(item, () => setMobileOpen(false)))}
               </nav>
             </aside>
           </div>
         )}
 
-        {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top metrics bar */}
           <header className="border-b border-border bg-card shrink-0">
             <div className="flex items-center gap-2 px-4 py-2 lg:px-6">
               <button className="lg:hidden mr-2 p-2 -ml-1 text-muted-foreground" onClick={() => setMobileOpen(true)}>
@@ -131,7 +144,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          {/* Page content */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
           </main>
