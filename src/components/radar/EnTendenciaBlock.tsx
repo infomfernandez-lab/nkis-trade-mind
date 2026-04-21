@@ -211,6 +211,29 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
+export function normalizeStochEstado(raw: string | undefined, value: number | undefined, direction: string | undefined): StochEstado {
+  const r = (raw ?? '').toUpperCase().replace(/\s+/g, '_');
+  if (r === 'ZONA_ENTRADA' || r === 'ZONA_MEDIA' || r === 'SOBRECOMPRADO') return r;
+  if (value == null) return null;
+  const alcista = isAlcistaDir(direction ?? '');
+  if (alcista) {
+    if (value < 30) return 'ZONA_ENTRADA';
+    if (value > 70) return 'SOBRECOMPRADO';
+    return 'ZONA_MEDIA';
+  }
+  // bajista — invertido
+  if (value > 70) return 'ZONA_ENTRADA';
+  if (value < 30) return 'SOBRECOMPRADO';
+  return 'ZONA_MEDIA';
+}
+
+export function stochEstadoMeta(estado: StochEstado): { dot: string; label: string; color: string } {
+  if (estado === 'ZONA_ENTRADA') return { dot: '🟢', label: 'ZONA ENTRADA', color: 'text-success' };
+  if (estado === 'SOBRECOMPRADO') return { dot: '🔴', label: 'SOBRECOMPRADO', color: 'text-destructive' };
+  if (estado === 'ZONA_MEDIA') return { dot: '🟡', label: 'ZONA MEDIA', color: 'text-yellow-400' };
+  return { dot: '—', label: '—', color: 'text-muted-foreground' };
+}
+
 function useWatchAction(inst: UnifiedInstrument) {
   const add = useAddToWatchlist();
   const { user } = useAuth();
