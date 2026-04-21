@@ -198,6 +198,7 @@ const INSTRUMENTS: InstrumentRow[] = [
 const CURRENCY_BADGE: Record<Currency, string> = {
   USD: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   GBP: 'bg-emerald-700/20 text-emerald-400 border-emerald-700/40',
+  GBX: 'bg-amber-600/20 text-amber-300 border-amber-600/40',
   EUR: 'bg-indigo-600/15 text-indigo-300 border-indigo-600/30',
   JPY: 'bg-red-500/15 text-red-400 border-red-500/30',
   AUD: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
