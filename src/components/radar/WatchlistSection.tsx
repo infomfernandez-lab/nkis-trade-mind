@@ -1,6 +1,8 @@
-import { Eye, Trash2, TrendingUp, TrendingDown, Star, Zap, AlertCircle } from 'lucide-react';
+import { Eye, Trash2, TrendingUp, TrendingDown, Star, Zap } from 'lucide-react';
 import { useMemo } from 'react';
 import { useWatchlist, useDeleteWatchlistItem, useUpdateWatchlistItem, type WatchlistItem } from '@/hooks/use-watchlist';
+import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
+import { stochEstadoMeta, type StochEstado } from '@/components/radar/EnTendenciaBlock';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { toast } from 'sonner';
@@ -12,18 +14,11 @@ interface Props {
 
 interface EnrichedItem extends WatchlistItem {
   pullback: boolean;
-  stochZone: 'overbought' | 'mid' | 'entry' | 'unknown';
+  stochEstado: StochEstado;
   stochValue: number | null;
   signalNear: boolean;
   inEntryZone: boolean;
   inPosition: boolean;
-}
-
-function deriveStochZone(value: number | null): 'overbought' | 'mid' | 'entry' | 'unknown' {
-  if (value == null) return 'unknown';
-  if (value > 70) return 'overbought';
-  if (value < 30) return 'entry';
-  return 'mid';
 }
 
 function timeAgo(dateStr: string): string {
