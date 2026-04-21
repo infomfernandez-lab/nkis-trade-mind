@@ -20,12 +20,17 @@ interface Raw {
   distance_to_ma50?: number;
   pullback_active?: boolean;
   pullback_bars?: number;
+  pullback_velas?: number;
   stoch_k?: number;
+  stoch_estado?: string;
   atr?: number;
+  atr_value?: number;
   structure?: string;
   breakout?: string;
   volume?: number;
 }
+
+export type StochEstado = 'ZONA_ENTRADA' | 'ZONA_MEDIA' | 'SOBRECOMPRADO' | null;
 
 export interface UnifiedInstrument {
   symbol: string;
@@ -37,6 +42,7 @@ export interface UnifiedInstrument {
   pullback_active: boolean;
   pullback_bars: number | null;
   stoch_k: number | null;
+  stoch_estado: StochEstado;
   atr: number | null;
   structure: string | null;
   breakout: string | null;
@@ -87,9 +93,10 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
           adx_state: r.adx_state ?? null,
           distance_to_ma50: r.dist_ma50 ?? r.distance_to_ma50 ?? null,
           pullback_active: !!r.pullback_active,
-          pullback_bars: r.pullback_bars ?? null,
+          pullback_bars: r.pullback_velas ?? r.pullback_bars ?? null,
           stoch_k: r.stoch_k ?? null,
-          atr: r.atr ?? null,
+          stoch_estado: normalizeStochEstado(r.stoch_estado, r.stoch_k, r.direction),
+          atr: r.atr_value ?? r.atr ?? null,
           structure: r.structure ?? null,
           breakout: r.breakout ?? null,
           volume: r.volume ?? null,
