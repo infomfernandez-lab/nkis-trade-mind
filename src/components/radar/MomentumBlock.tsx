@@ -124,8 +124,7 @@ function useLatestMomentumSession() {
 
       if (latest.session_id) {
         query = query.eq('session_id', latest.session_id);
-      } else {
-        // fallback: same created_at minute
+      } else if (latest.created_at) {
         query = query.eq('created_at', latest.created_at);
       }
 
