@@ -16,7 +16,9 @@ export const Route = createFileRoute('/calculator')({
 type Account = 'darwinex' | 'fxpro';
 type Direction = 'BUY' | 'SELL';
 
-type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
+type Currency = 'USD' | 'GBP' | 'GBX' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
+
+const GBX_WARNING = '⚠️ Esta acción cotiza en peniques (GBX).\nEl precio en MT5 ya está en peniques — úsalo directamente en la calculadora sin convertir.\nEl beneficio/pérdida se calculará también en GBX.\nPara convertir a GBP divide entre 100.';
 
 type InstrumentRow = {
   symbol: string;
@@ -111,13 +113,28 @@ const INSTRUMENTS: InstrumentRow[] = [
   ] as const).map(([symbol, description]): InstrumentRow => ({
     broker: 'fxpro', group: 'Acciones USA', symbol, description, pointValue: 0.01, currency: 'USD',
   })),
+  // ===== FXPro — Acciones UK (cotizan en GBX, peniques) =====
+  ...([
+    ['HILS.L', 'Hill & Smith PLC'],
+    ['HLMA.L', 'Halma PLC'],
+    ['HIK.L', 'Hikma Pharmaceuticals'],
+    ['HICL.L', 'HICL Infrastructure'],
+    ['HFD.L', 'Halfords Group'],
+    ['HFEL.L', 'Henderson Far East'],
+    ['HFG.L', 'Hilton Food Group'],
+    ['HBR.L', 'Harbour Energy'],
+    ['HAYS.L', 'Hays PLC'],
+    ['SNR.L', 'Senior PLC'],
+    ['RR.L', 'Rolls-Royce'],
+    ['QQ.L', 'QinetiQ Group'],
+    ['BAES.L', 'BAE Systems'],
+    ['CHG.L', 'Chemring Group'],
+  ] as const).map(([symbol, description]): InstrumentRow => ({
+    broker: 'fxpro', group: 'Acciones UK', symbol, description, pointValue: 0.01, currency: 'GBX',
+    note: GBX_WARNING,
+  })),
   // ===== FXPro — Acciones Europeas =====
   ...([
-    ['HILS.L', 'Hill & Smith', 'GBP'], ['HLMA.L', 'Halma PLC', 'GBP'], ['HIK.L', 'Hikma Pharma', 'GBP'],
-    ['HICL.L', 'HICL Infrastructure', 'GBP'], ['HFD.L', 'Halfords', 'GBP'], ['HFEL.L', 'Henderson Far East', 'GBP'],
-    ['HFG.L', 'Hilton Food Group', 'GBP'], ['HBR.L', 'Harbour Energy', 'GBP'], ['HAYS.L', 'Hays PLC', 'GBP'],
-    ['SNR.L', 'Schneider Electric', 'GBP'], ['RR.L', 'Rolls-Royce', 'GBP'], ['QQ.L', 'QinetiQ', 'GBP'],
-    ['BAES.L', 'BAE Systems', 'GBP'],
     ['HEIJ.AS', 'Heineken Holding', 'EUR'], ['HEIN.AS', 'Heineken NV', 'EUR'], ['HEIO.AS', 'Heineken (alt)', 'EUR'],
     ['HLAN.AS', 'Holland Colours', 'EUR'], ['AMG.AS', 'AMG Critical Mat.', 'EUR'],
     ['LOTB.BR', 'Lotus Bakeries', 'EUR'],
@@ -128,7 +145,6 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['HLE.DE', 'Hella', 'EUR'], ['HLAG.DE', 'Hapag-Lloyd AG', 'EUR'],
   ] as const).map(([symbol, description, currency]): InstrumentRow => ({
     broker: 'fxpro', group: 'Acciones EU', symbol, description, pointValue: 0.01, currency: currency as Currency,
-    note: symbol.endsWith('.L') ? '⚠️ GBX (peniques): divide precio entre 100' : undefined,
   })),
   // ===== FXPro — ETFs USA =====
   ...([
@@ -182,6 +198,7 @@ const INSTRUMENTS: InstrumentRow[] = [
 const CURRENCY_BADGE: Record<Currency, string> = {
   USD: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   GBP: 'bg-emerald-700/20 text-emerald-400 border-emerald-700/40',
+  GBX: 'bg-amber-600/20 text-amber-300 border-amber-600/40',
   EUR: 'bg-indigo-600/15 text-indigo-300 border-indigo-600/30',
   JPY: 'bg-red-500/15 text-red-400 border-red-500/30',
   AUD: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
@@ -265,6 +282,12 @@ function CalculatorPage() {
     else onAccountChange('fxpro');
     setTableOpen(false);
     toast.success(`${row.symbol} cargado — valor punto: ${row.pointValue}`);
+    if (row.currency === 'GBX') {
+      toast.warning(`${row.symbol} cotiza en peniques (GBX)`, {
+        description: 'El precio en MT5 ya está en peniques — úsalo directamente. P/L también en GBX. Para convertir a GBP divide entre 100.',
+        duration: 8000,
+      });
+    }
   };
 
   const clearAll = () => {
@@ -651,6 +674,7 @@ function InstrumentTable({
                     <tr
                       key={`${r.broker}-${r.symbol}`}
                       onClick={() => onPick(r)}
+                      title={r.note || undefined}
                       className="cursor-pointer border-b border-border/50 hover:bg-primary/10 transition-colors"
                     >
                       <td className="px-3 py-2 font-data font-semibold whitespace-nowrap">
