@@ -674,6 +674,7 @@ function InstrumentTable({
                     <tr
                       key={`${r.broker}-${r.symbol}`}
                       onClick={() => onPick(r)}
+                      title={r.note || undefined}
                       className="cursor-pointer border-b border-border/50 hover:bg-primary/10 transition-colors"
                     >
                       <td className="px-3 py-2 font-data font-semibold whitespace-nowrap">
