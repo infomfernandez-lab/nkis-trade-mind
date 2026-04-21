@@ -33,6 +33,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
   const { data: items, isLoading } = useWatchlist();
   const deleteItem = useDeleteWatchlistItem();
   const updateItem = useUpdateWatchlistItem();
+  const scannerMap = useLatestScannerByKey();
 
   const enriched: EnrichedItem[] = useMemo(() => {
     let list = (items ?? []).filter(i =>
@@ -47,20 +48,23 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
     }
 
     return list.map(item => {
-      const pullback = (item.watch_reason ?? '').toLowerCase().includes('pullback');
-      const stochValue = item.stochastic_level;
-      const stochZone = deriveStochZone(stochValue);
+      const broker = (item.broker ?? 'darwinex').toLowerCase();
+      const scan = scannerMap.get(`${item.symbol}::${broker}`);
+      const pullback = scan?.pullback_active ?? (item.watch_reason ?? '').toLowerCase().includes('pullback');
+      const stochValue = scan?.stoch_k ?? item.stochastic_level;
+      const stochEstado: StochEstado = scan?.stoch_estado ?? null;
       const inPosition = openSymbols.has(item.symbol) || item.status === 'EN POSICIÓN' || item.status === 'Señal Dada — En posición';
-      const signalNear = stochZone === 'entry' || stochZone === 'overbought';
-      const inEntryZone = stochZone === 'entry' && !inPosition;
-      return { ...item, pullback, stochZone, stochValue, signalNear, inEntryZone, inPosition };
+      const signalNear = stochEstado === 'ZONA_ENTRADA' || pullback;
+      const inEntryZone = stochEstado === 'ZONA_ENTRADA' && !inPosition;
+      return { ...item, pullback, stochEstado, stochValue, signalNear, inEntryZone, inPosition };
     }).sort((a, b) => {
-      // Priority: pullback > signal near > score desc
       if (a.pullback !== b.pullback) return a.pullback ? -1 : 1;
-      if (a.signalNear !== b.signalNear) return a.signalNear ? -1 : 1;
+      const aEntry = a.stochEstado === 'ZONA_ENTRADA' ? 1 : 0;
+      const bEntry = b.stochEstado === 'ZONA_ENTRADA' ? 1 : 0;
+      if (aEntry !== bEntry) return bEntry - aEntry;
       return (b.scanner_score ?? 0) - (a.scanner_score ?? 0);
     });
-  }, [items, brokerFilter, openSymbols]);
+  }, [items, brokerFilter, openSymbols, scannerMap]);
 
   const nearCount = enriched.filter(i => (i.signalNear || i.pullback) && !i.inPosition).length;
 
@@ -184,7 +188,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
-                    <StochCell zone={item.stochZone} value={item.stochValue} pullback={item.pullback} />
+                    <StochCell estado={item.stochEstado} value={item.stochValue} pullback={item.pullback} />
                   </TableCell>
                   <TableCell className={`text-right font-data text-xs hidden lg:table-cell ${distColor}`}>
                     {distMa != null ? `${distMa}%` : '—'}
@@ -232,7 +236,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
   );
 }
 
-function StochCell({ zone, value, pullback }: { zone: 'overbought'|'mid'|'entry'|'unknown'; value: number|null; pullback: boolean }) {
+function StochCell({ estado, value, pullback }: { estado: StochEstado; value: number | null; pullback: boolean }) {
   if (pullback) {
     return (
       <div className="flex items-center gap-1.5">
@@ -241,17 +245,15 @@ function StochCell({ zone, value, pullback }: { zone: 'overbought'|'mid'|'entry'
       </div>
     );
   }
-  if (zone === 'unknown') {
+  if (estado == null) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
-  const dot = zone === 'overbought' ? '🔴' : zone === 'entry' ? '🟢' : '🟡';
-  const label = zone === 'overbought' ? 'SOBRECOMPRADO' : zone === 'entry' ? 'ZONA ENTRADA' : 'ZONA MEDIA';
-  const note = zone === 'overbought' ? 'esperar bajada' : zone === 'entry' ? '⚡ SEÑAL PRÓXIMA' : 'neutral';
-  const color = zone === 'overbought' ? 'text-destructive' : zone === 'entry' ? 'text-success' : 'text-yellow-400';
+  const m = stochEstadoMeta(estado);
+  const note = estado === 'SOBRECOMPRADO' ? 'esperar bajada' : estado === 'ZONA_ENTRADA' ? '⚡ SEÑAL PRÓXIMA' : 'neutral';
   return (
     <div className="leading-tight">
-      <div className={`text-[11px] font-bold ${color} flex items-center gap-1`}>
-        <span>{dot}</span>{label}
+      <div className={`text-[11px] font-bold ${m.color} flex items-center gap-1`}>
+        <span>{m.dot}</span>{m.label}
       </div>
       <div className="text-[10px] text-muted-foreground font-data">
         Stoch ~{value != null ? Math.round(value) : '?'} — {note}
