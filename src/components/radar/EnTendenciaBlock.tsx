@@ -140,6 +140,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             <th className="text-right px-2 py-2 w-[80px]">Score</th>
             <th className="text-left px-2 py-2 w-[120px]">ADX</th>
             <th className="text-left px-2 py-2 w-[120px]">Dist MA50</th>
+            <th className="text-left px-2 py-2 w-[140px]">Stoch</th>
             <th className="text-left px-2 py-2">Notas</th>
             <th className="px-2 py-2 w-[120px]"></th>
           </tr>
