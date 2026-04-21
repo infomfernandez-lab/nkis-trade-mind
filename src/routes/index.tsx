@@ -99,6 +99,9 @@ function Dashboard() {
         <OpenPositionsTable brokerFilter={broker} />
       </section>
 
+      {/* ⑤ Momentum */}
+      <MomentumSection broker={broker} />
+
       {/* KPIs resumidos */}
       {(closedTrades.length > 0 || openTrades.length > 0) && (
         <section className="space-y-2">
