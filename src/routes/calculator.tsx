@@ -16,7 +16,9 @@ export const Route = createFileRoute('/calculator')({
 type Account = 'darwinex' | 'fxpro';
 type Direction = 'BUY' | 'SELL';
 
-type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
+type Currency = 'USD' | 'GBP' | 'GBX' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
+
+const GBX_WARNING = '⚠️ Esta acción cotiza en peniques (GBX).\nEl precio en MT5 ya está en peniques — úsalo directamente en la calculadora sin convertir.\nEl beneficio/pérdida se calculará también en GBX.\nPara convertir a GBP divide entre 100.';
 
 type InstrumentRow = {
   symbol: string;
