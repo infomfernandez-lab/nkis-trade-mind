@@ -9,6 +9,7 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { filterByBroker } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { CollapsibleBlock } from '@/components/radar/CollapsibleBlock';
+import { MomentumBlock, useMomentumCount } from '@/components/radar/MomentumBlock';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
