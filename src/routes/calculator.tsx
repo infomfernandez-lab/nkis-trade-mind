@@ -113,13 +113,28 @@ const INSTRUMENTS: InstrumentRow[] = [
   ] as const).map(([symbol, description]): InstrumentRow => ({
     broker: 'fxpro', group: 'Acciones USA', symbol, description, pointValue: 0.01, currency: 'USD',
   })),
+  // ===== FXPro — Acciones UK (cotizan en GBX, peniques) =====
+  ...([
+    ['HILS.L', 'Hill & Smith PLC'],
+    ['HLMA.L', 'Halma PLC'],
+    ['HIK.L', 'Hikma Pharmaceuticals'],
+    ['HICL.L', 'HICL Infrastructure'],
+    ['HFD.L', 'Halfords Group'],
+    ['HFEL.L', 'Henderson Far East'],
+    ['HFG.L', 'Hilton Food Group'],
+    ['HBR.L', 'Harbour Energy'],
+    ['HAYS.L', 'Hays PLC'],
+    ['SNR.L', 'Senior PLC'],
+    ['RR.L', 'Rolls-Royce'],
+    ['QQ.L', 'QinetiQ Group'],
+    ['BAES.L', 'BAE Systems'],
+    ['CHG.L', 'Chemring Group'],
+  ] as const).map(([symbol, description]): InstrumentRow => ({
+    broker: 'fxpro', group: 'Acciones UK', symbol, description, pointValue: 0.01, currency: 'GBX',
+    note: GBX_WARNING,
+  })),
   // ===== FXPro — Acciones Europeas =====
   ...([
-    ['HILS.L', 'Hill & Smith', 'GBP'], ['HLMA.L', 'Halma PLC', 'GBP'], ['HIK.L', 'Hikma Pharma', 'GBP'],
-    ['HICL.L', 'HICL Infrastructure', 'GBP'], ['HFD.L', 'Halfords', 'GBP'], ['HFEL.L', 'Henderson Far East', 'GBP'],
-    ['HFG.L', 'Hilton Food Group', 'GBP'], ['HBR.L', 'Harbour Energy', 'GBP'], ['HAYS.L', 'Hays PLC', 'GBP'],
-    ['SNR.L', 'Schneider Electric', 'GBP'], ['RR.L', 'Rolls-Royce', 'GBP'], ['QQ.L', 'QinetiQ', 'GBP'],
-    ['BAES.L', 'BAE Systems', 'GBP'],
     ['HEIJ.AS', 'Heineken Holding', 'EUR'], ['HEIN.AS', 'Heineken NV', 'EUR'], ['HEIO.AS', 'Heineken (alt)', 'EUR'],
     ['HLAN.AS', 'Holland Colours', 'EUR'], ['AMG.AS', 'AMG Critical Mat.', 'EUR'],
     ['LOTB.BR', 'Lotus Bakeries', 'EUR'],
@@ -130,7 +145,6 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['HLE.DE', 'Hella', 'EUR'], ['HLAG.DE', 'Hapag-Lloyd AG', 'EUR'],
   ] as const).map(([symbol, description, currency]): InstrumentRow => ({
     broker: 'fxpro', group: 'Acciones EU', symbol, description, pointValue: 0.01, currency: currency as Currency,
-    note: symbol.endsWith('.L') ? '⚠️ GBX (peniques): divide precio entre 100' : undefined,
   })),
   // ===== FXPro — ETFs USA =====
   ...([
