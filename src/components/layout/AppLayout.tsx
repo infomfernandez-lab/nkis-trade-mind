@@ -8,6 +8,7 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchlist } from '@/hooks/use-watchlist';
+import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { BrokerSelector } from '@/components/BrokerSelector';
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
@@ -47,6 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [broker, setBroker] = useState<BrokerFilter>('all');
   const location = useLocation();
+  useRealtimeSync();
   const { closedTrades, openTrades } = useAllTrades();
   const filteredClosed = filterByBroker(closedTrades, broker);
   const filteredOpen = filterByBroker(openTrades, broker);
