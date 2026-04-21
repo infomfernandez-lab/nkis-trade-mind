@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      momentum_sessions: {
+        Row: {
+          adx: number | null
+          adx_prev: number | null
+          atr: number | null
+          broker: string
+          created_at: string | null
+          direccion: string
+          evento: string | null
+          id: string
+          ma200: number | null
+          ma50: number | null
+          precio_actual: number | null
+          score: number
+          session_id: string | null
+          stoch_d: number | null
+          stoch_d_prev: number | null
+          stoch_k: number | null
+          stoch_k_prev: number | null
+          symbol: string
+          timeframe: string
+          total_analyzed: number | null
+          vix_value: number | null
+        }
+        Insert: {
+          adx?: number | null
+          adx_prev?: number | null
+          atr?: number | null
+          broker: string
+          created_at?: string | null
+          direccion: string
+          evento?: string | null
+          id?: string
+          ma200?: number | null
+          ma50?: number | null
+          precio_actual?: number | null
+          score: number
+          session_id?: string | null
+          stoch_d?: number | null
+          stoch_d_prev?: number | null
+          stoch_k?: number | null
+          stoch_k_prev?: number | null
+          symbol: string
+          timeframe?: string
+          total_analyzed?: number | null
+          vix_value?: number | null
+        }
+        Update: {
+          adx?: number | null
+          adx_prev?: number | null
+          atr?: number | null
+          broker?: string
+          created_at?: string | null
+          direccion?: string
+          evento?: string | null
+          id?: string
+          ma200?: number | null
+          ma50?: number | null
+          precio_actual?: number | null
+          score?: number
+          session_id?: string | null
+          stoch_d?: number | null
+          stoch_d_prev?: number | null
+          stoch_k?: number | null
+          stoch_k_prev?: number | null
+          symbol?: string
+          timeframe?: string
+          total_analyzed?: number | null
+          vix_value?: number | null
+        }
+        Relationships: []
+      }
       scanner_sessions: {
         Row: {
           broker: string
