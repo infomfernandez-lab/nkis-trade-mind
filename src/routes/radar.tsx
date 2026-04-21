@@ -9,6 +9,7 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { filterByBroker } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { CollapsibleBlock } from '@/components/radar/CollapsibleBlock';
+import { MomentumBlock, useMomentumCount } from '@/components/radar/MomentumBlock';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -109,6 +110,23 @@ function RadarPage() {
           <ProximoEntradaBlock brokerFilter={broker} />
         </CollapsibleBlock>
       </div>
+
+      {/* ⑤ Momentum — siempre visible, debajo del ④ */}
+      <MomentumCollapsible broker={broker} />
     </div>
+  );
+}
+
+function MomentumCollapsible({ broker }: { broker: ReturnType<typeof useBrokerFilter>['broker'] }) {
+  const { total } = useMomentumCount(broker);
+  return (
+    <CollapsibleBlock
+      id="momentum"
+      title="⑤ MOMENTUM"
+      countLabel={`${total}`}
+      defaultOpen
+    >
+      <MomentumBlock brokerFilter={broker} />
+    </CollapsibleBlock>
   );
 }

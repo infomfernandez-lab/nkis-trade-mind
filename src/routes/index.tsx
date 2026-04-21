@@ -10,6 +10,7 @@ import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { ProximoEntradaBlock, useProximoEntradaCount } from '@/components/radar/ProximoEntradaBlock';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
+import { MomentumBlock, useMomentumCount } from '@/components/radar/MomentumBlock';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -98,6 +99,9 @@ function Dashboard() {
         <OpenPositionsTable brokerFilter={broker} />
       </section>
 
+      {/* ⑤ Momentum */}
+      <MomentumSection broker={broker} />
+
       {/* KPIs resumidos */}
       {(closedTrades.length > 0 || openTrades.length > 0) && (
         <section className="space-y-2">
@@ -120,6 +124,27 @@ function Dashboard() {
   );
 }
 
+function MomentumSection({ broker }: { broker: ReturnType<typeof useBrokerFilter>['broker'] }) {
+  const { total, long, short } = useMomentumCount(broker);
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card border-border flex-wrap">
+        <h2 className="font-display font-bold text-sm text-foreground">⑤ MOMENTUM</h2>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary text-muted-foreground border border-border">
+          {total}
+        </span>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">
+          LONG: {long}
+        </span>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-destructive/20 text-destructive border border-destructive/40">
+          SHORT: {short}
+        </span>
+      </div>
+      <MomentumBlock brokerFilter={broker} />
+    </section>
+  );
+}
+
 function StatCard({ label, value, sub, positive }: { label: string; value: string; sub?: string; positive?: boolean }) {
   return (
     <div className="rounded-lg border border-border bg-card p-3 card-hover">
@@ -129,3 +154,4 @@ function StatCard({ label, value, sub, positive }: { label: string; value: strin
     </div>
   );
 }
+
