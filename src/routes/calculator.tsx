@@ -641,7 +641,7 @@ function InstrumentTable({
                   <tr className="text-left text-[11px] text-muted-foreground border-b border-border">
                     <th className="px-3 py-1.5 font-medium">Símbolo</th>
                     <th className="px-3 py-1.5 font-medium">Descripción</th>
-                    <th className="px-3 py-1.5 font-medium">Tamaño</th>
+                    <th className="px-3 py-1.5 font-medium">Divisa</th>
                     <th className="px-3 py-1.5 font-medium text-right">Val/pto</th>
                     <th className="px-3 py-1.5"></th>
                   </tr>
@@ -653,13 +653,31 @@ function InstrumentTable({
                       onClick={() => onPick(r)}
                       className="cursor-pointer border-b border-border/50 hover:bg-primary/10 transition-colors"
                     >
-                      <td className="px-3 py-2 font-data font-semibold">{r.symbol}</td>
-                      <td className="px-3 py-2 text-muted-foreground hidden md:table-cell">{r.description}</td>
-                      <td className="px-3 py-2 text-muted-foreground font-data hidden md:table-cell">{r.size ?? '—'}</td>
-                      <td className="px-3 py-2 text-right font-data font-bold text-[#D4A017]">{r.pointValue}</td>
+                      <td className="px-3 py-2 font-data font-semibold whitespace-nowrap">
+                        {r.symbol}
+                        {r.variable && (
+                          <span
+                            title="El valor exacto depende del tipo de cambio actual. Usa este valor como aproximación."
+                            className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 align-middle"
+                          >VAR</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground hidden md:table-cell">
+                        {r.description}
+                        {r.note && <div className="text-[10px] text-orange-400/80 mt-0.5">{r.note}</div>}
+                      </td>
+                      <td className="px-3 py-2 hidden md:table-cell">
+                        {r.currency ? (
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border ${CURRENCY_BADGE[r.currency]}`}>
+                            {r.currency}
+                          </span>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right font-data font-bold text-[#D4A017] whitespace-nowrap">
+                        {r.variable ? `~${r.pointValue}` : r.pointValue}
+                      </td>
                       <td className="px-3 py-2 text-right">
                         <span className="text-xs text-primary md:hidden">Usar →</span>
-                        {r.note && <span className="hidden md:inline text-[10px] text-muted-foreground">{r.note}</span>}
                       </td>
                     </tr>
                   ))}
