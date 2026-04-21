@@ -16,6 +16,8 @@ export const Route = createFileRoute('/calculator')({
 type Account = 'darwinex' | 'fxpro';
 type Direction = 'BUY' | 'SELL';
 
+type Currency = 'USD' | 'GBP' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
+
 type InstrumentRow = {
   symbol: string;
   description: string;
@@ -24,6 +26,8 @@ type InstrumentRow = {
   note?: string;
   group: string;
   broker: 'darwinex' | 'fxpro';
+  currency?: Currency;
+  variable?: boolean;
 };
 
 const INSTRUMENTS: InstrumentRow[] = [
