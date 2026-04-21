@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useWatchlist } from '@/hooks/use-watchlist';
 import { Zap } from 'lucide-react';
+import { useWatchlist } from '@/hooks/use-watchlist';
+import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import type { BrokerFilter } from '@/lib/trade-utils';
 
 interface Props {
@@ -15,43 +16,74 @@ interface NearItem {
   stoch: number | null;
   pullback: boolean;
   pullbackBars: number | null;
+  atr: number | null;
+}
+
+function isAlcistaDir(d: string): boolean {
+  const v = (d ?? '').toLowerCase();
+  return v === 'alcista' || v === 'buy';
+}
+
+function buildNearItems(
+  brokerFilter: BrokerFilter,
+  scannerMap: Map<string, ReturnType<typeof useLatestScannerByKey> extends Map<string, infer V> ? V : never>,
+  watchlist: Array<{ id: string; symbol: string; broker: string; direction: string }>,
+): NearItem[] {
+  const out = new Map<string, NearItem>();
+
+  // 1) Scanner-driven: ZONA_ENTRADA OR pullback_active
+  for (const [key, inst] of scannerMap.entries()) {
+    if (brokerFilter !== 'all' && brokerFilter !== inst.broker) continue;
+    const matches = inst.pullback_active || inst.stoch_estado === 'ZONA_ENTRADA';
+    if (!matches) continue;
+    out.set(key, {
+      id: key,
+      symbol: inst.symbol,
+      broker: inst.broker,
+      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
+      stoch: inst.stoch_k,
+      pullback: inst.pullback_active,
+      pullbackBars: inst.pullback_bars,
+      atr: inst.atr,
+    });
+  }
+
+  // 2) Watchlist-driven (fallback for items without scanner match — kept for compatibility)
+  for (const w of watchlist) {
+    const broker = (w.broker ?? 'darwinex').toLowerCase() === 'fxpro' ? 'fxpro' : 'darwinex';
+    if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
+    const key = `${w.symbol}::${broker}`;
+    if (out.has(key)) continue;
+    const scan = scannerMap.get(key);
+    if (!scan) continue;
+    const matches = scan.pullback_active || scan.stoch_estado === 'ZONA_ENTRADA';
+    if (!matches) continue;
+    out.set(key, {
+      id: w.id,
+      symbol: w.symbol,
+      broker,
+      direction: isAlcistaDir(scan.direction) ? 'alcista' : 'bajista',
+      stoch: scan.stoch_k,
+      pullback: scan.pullback_active,
+      pullbackBars: scan.pullback_bars,
+      atr: scan.atr,
+    });
+  }
+
+  return Array.from(out.values()).sort((a, b) => {
+    if (a.pullback !== b.pullback) return a.pullback ? -1 : 1;
+    return 0;
+  });
 }
 
 export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
+  const scannerMap = useLatestScannerByKey();
 
-  const near: NearItem[] = useMemo(() => {
-    const list = (items ?? []).filter(i =>
-      i.status === 'Vigilando' || i.status === '⚡ Señal próxima' || i.status === '⭐ En zona entrada'
-    );
-    const filtered = brokerFilter === 'all'
-      ? list
-      : list.filter(i => (i.broker ?? 'darwinex').toLowerCase() === brokerFilter);
-    return filtered.flatMap(i => {
-      const dir = (i.direction ?? '').toLowerCase();
-      const alcista = dir === 'alcista' || dir === 'buy';
-      const stoch = i.stochastic_level;
-      const reason = (i.watch_reason ?? '').toLowerCase();
-      const pullback = reason.includes('pullback');
-      const matches = pullback
-        || (alcista && stoch != null && stoch < 35)
-        || (!alcista && stoch != null && stoch > 65);
-      if (!matches) return [];
-      const pbBars = pullback ? (reason.match(/(\d+)\s*v/)?.[1] ?? null) : null;
-      return [{
-        id: i.id,
-        symbol: i.symbol,
-        broker: ((i.broker ?? 'darwinex').toLowerCase() === 'fxpro' ? 'fxpro' : 'darwinex') as 'darwinex' | 'fxpro',
-        direction: (alcista ? 'alcista' : 'bajista') as 'alcista' | 'bajista',
-        stoch,
-        pullback,
-        pullbackBars: pbBars ? Number(pbBars) : null,
-      }];
-    }).sort((a, b) => {
-      if (a.pullback !== b.pullback) return a.pullback ? -1 : 1;
-      return 0;
-    });
-  }, [items, brokerFilter]);
+  const near: NearItem[] = useMemo(
+    () => buildNearItems(brokerFilter, scannerMap, items ?? []),
+    [brokerFilter, scannerMap, items],
+  );
 
   if (near.length === 0) {
     return (
@@ -94,11 +126,21 @@ function signalText(item: NearItem): string {
   return dir;
 }
 
+function formatAtr(atr: number | null): string {
+  if (atr == null) return '';
+  // 4 decimals for FX-like values, fewer for larger numbers
+  if (Math.abs(atr) >= 100) return atr.toFixed(2);
+  if (Math.abs(atr) >= 1) return atr.toFixed(3);
+  return atr.toFixed(4);
+}
+
 function whatToDo(item: NearItem): string {
-  if (item.direction === 'alcista') {
-    return 'Stoch(5,2,2) cruce AL ALZA nivel 30 → BUY. SL = entrada − (ATR14 × 1.5). Anotar en bitácora.';
-  }
-  return 'Stoch(5,2,2) cruce A LA BAJA nivel 70 → SELL. SL = entrada + (ATR14 × 1.5). Anotar en bitácora.';
+  const sign = item.direction === 'alcista' ? '−' : '+';
+  const cross = item.direction === 'alcista' ? 'AL ALZA nivel 30 → BUY' : 'A LA BAJA nivel 70 → SELL';
+  const atrPart = item.atr != null
+    ? `SL = entrada ${sign} ${formatAtr(item.atr)} (ATR × 1.5).`
+    : `SL = entrada ${sign} (ATR × 1.5).`;
+  return `Stoch(5,2,2) cruce ${cross}. ${atrPart} Anotar en bitácora.`;
 }
 
 function NearRow({ item }: { item: NearItem }) {
@@ -139,22 +181,9 @@ function NearMobileCard({ item }: { item: NearItem }) {
 
 export function useProximoEntradaCount(brokerFilter: BrokerFilter): number {
   const { data: items } = useWatchlist();
-  return useMemo(() => {
-    const list = (items ?? []).filter(i =>
-      i.status === 'Vigilando' || i.status === '⚡ Señal próxima' || i.status === '⭐ En zona entrada'
-    );
-    const filtered = brokerFilter === 'all'
-      ? list
-      : list.filter(i => (i.broker ?? 'darwinex').toLowerCase() === brokerFilter);
-    return filtered.filter(i => {
-      const dir = (i.direction ?? '').toLowerCase();
-      const alcista = dir === 'alcista' || dir === 'buy';
-      const reason = (i.watch_reason ?? '').toLowerCase();
-      const pullback = reason.includes('pullback');
-      const stoch = i.stochastic_level;
-      return pullback
-        || (alcista && stoch != null && stoch < 35)
-        || (!alcista && stoch != null && stoch > 65);
-    }).length;
-  }, [items, brokerFilter]);
+  const scannerMap = useLatestScannerByKey();
+  return useMemo(
+    () => buildNearItems(brokerFilter, scannerMap, items ?? []).length,
+    [brokerFilter, scannerMap, items],
+  );
 }

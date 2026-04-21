@@ -20,12 +20,17 @@ interface Raw {
   distance_to_ma50?: number;
   pullback_active?: boolean;
   pullback_bars?: number;
+  pullback_velas?: number;
   stoch_k?: number;
+  stoch_estado?: string;
   atr?: number;
+  atr_value?: number;
   structure?: string;
   breakout?: string;
   volume?: number;
 }
+
+export type StochEstado = 'ZONA_ENTRADA' | 'ZONA_MEDIA' | 'SOBRECOMPRADO' | null;
 
 export interface UnifiedInstrument {
   symbol: string;
@@ -37,6 +42,7 @@ export interface UnifiedInstrument {
   pullback_active: boolean;
   pullback_bars: number | null;
   stoch_k: number | null;
+  stoch_estado: StochEstado;
   atr: number | null;
   structure: string | null;
   breakout: string | null;
@@ -87,9 +93,10 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
           adx_state: r.adx_state ?? null,
           distance_to_ma50: r.dist_ma50 ?? r.distance_to_ma50 ?? null,
           pullback_active: !!r.pullback_active,
-          pullback_bars: r.pullback_bars ?? null,
+          pullback_bars: r.pullback_velas ?? r.pullback_bars ?? null,
           stoch_k: r.stoch_k ?? null,
-          atr: r.atr ?? null,
+          stoch_estado: normalizeStochEstado(r.stoch_estado, r.stoch_k, r.direction),
+          atr: r.atr_value ?? r.atr ?? null,
           structure: r.structure ?? null,
           breakout: r.breakout ?? null,
           volume: r.volume ?? null,
@@ -133,6 +140,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             <th className="text-right px-2 py-2 w-[80px]">Score</th>
             <th className="text-left px-2 py-2 w-[120px]">ADX</th>
             <th className="text-left px-2 py-2 w-[120px]">Dist MA50</th>
+            <th className="text-left px-2 py-2 w-[140px]">Stoch</th>
             <th className="text-left px-2 py-2">Notas</th>
             <th className="px-2 py-2 w-[120px]"></th>
           </tr>
@@ -202,6 +210,29 @@ function scoreColor(score: number): string {
 function isAlcistaDir(d: string) {
   const v = d.toLowerCase();
   return v === 'alcista' || v === 'buy';
+}
+
+export function normalizeStochEstado(raw: string | undefined, value: number | undefined, direction: string | undefined): StochEstado {
+  const r = (raw ?? '').toUpperCase().replace(/\s+/g, '_');
+  if (r === 'ZONA_ENTRADA' || r === 'ZONA_MEDIA' || r === 'SOBRECOMPRADO') return r;
+  if (value == null) return null;
+  const alcista = isAlcistaDir(direction ?? '');
+  if (alcista) {
+    if (value < 30) return 'ZONA_ENTRADA';
+    if (value > 70) return 'SOBRECOMPRADO';
+    return 'ZONA_MEDIA';
+  }
+  // bajista — invertido
+  if (value > 70) return 'ZONA_ENTRADA';
+  if (value < 30) return 'SOBRECOMPRADO';
+  return 'ZONA_MEDIA';
+}
+
+export function stochEstadoMeta(estado: StochEstado): { dot: string; label: string; color: string } {
+  if (estado === 'ZONA_ENTRADA') return { dot: '🟢', label: 'ZONA ENTRADA', color: 'text-success' };
+  if (estado === 'SOBRECOMPRADO') return { dot: '🔴', label: 'SOBRECOMPRADO', color: 'text-destructive' };
+  if (estado === 'ZONA_MEDIA') return { dot: '🟡', label: 'ZONA MEDIA', color: 'text-yellow-400' };
+  return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 
 function useWatchAction(inst: UnifiedInstrument) {
@@ -275,6 +306,21 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           </div>
           <div className={`text-[9px] font-semibold ${distColor(inst.distance_to_ma50)}`}>{distLabel(inst.distance_to_ma50)}</div>
         </div>
+      </td>
+      <td className="px-2 py-2">
+        {(() => {
+          const m = stochEstadoMeta(inst.stoch_estado);
+          return (
+            <div className="leading-tight">
+              <div className={`text-[11px] font-bold ${m.color} flex items-center gap-1`}>
+                <span>{m.dot}</span>{m.label}
+              </div>
+              {inst.stoch_k != null && (
+                <div className="text-[9px] text-muted-foreground font-data">~{Math.round(inst.stoch_k)}</div>
+              )}
+            </div>
+          );
+        })()}
       </td>
       <td className="px-2 py-2 text-[11px] text-muted-foreground">
         {inst.pullback_active && (
