@@ -13,6 +13,7 @@ const scannerSchema = z.object({
   // New metadata fields
   timeframe: z.string().max(20).nullable().optional(),
   vix: z.number().nullable().optional(),
+  vix_value: z.number().nullable().optional(),
   total_analyzed: z.number().int().nullable().optional(),
   discarded: z.number().int().nullable().optional(),
   tradeable: z.number().int().nullable().optional(),
@@ -49,7 +50,7 @@ export const Route = createFileRoute('/api/sync-scanner')({
             notes: parsed.data.notes ?? null,
             broker,
             timeframe: parsed.data.timeframe ?? null,
-            vix: parsed.data.vix ?? null,
+            vix: parsed.data.vix ?? parsed.data.vix_value ?? null,
             total_analyzed: parsed.data.total_analyzed ?? null,
             discarded: parsed.data.discarded ?? null,
             tradeable: parsed.data.tradeable ?? null,
