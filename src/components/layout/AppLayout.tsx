@@ -2,7 +2,7 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext, useMemo } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Radar, BarChart3
+  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
@@ -26,6 +26,7 @@ const navItems = [
   { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
   { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
+  { to: '/calculator' as const, label: 'Calculadora', icon: Calculator },
   { to: '/reports' as const, label: 'Informes', icon: FileText },
   { to: '/manual' as const, label: 'Manual', icon: BookMarked },
   { to: '/settings' as const, label: 'Ajustes', icon: Settings },
