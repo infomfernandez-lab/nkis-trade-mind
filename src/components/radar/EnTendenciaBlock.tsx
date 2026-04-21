@@ -307,6 +307,21 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           <div className={`text-[9px] font-semibold ${distColor(inst.distance_to_ma50)}`}>{distLabel(inst.distance_to_ma50)}</div>
         </div>
       </td>
+      <td className="px-2 py-2">
+        {(() => {
+          const m = stochEstadoMeta(inst.stoch_estado);
+          return (
+            <div className="leading-tight">
+              <div className={`text-[11px] font-bold ${m.color} flex items-center gap-1`}>
+                <span>{m.dot}</span>{m.label}
+              </div>
+              {inst.stoch_k != null && (
+                <div className="text-[9px] text-muted-foreground font-data">~{Math.round(inst.stoch_k)}</div>
+              )}
+            </div>
+          );
+        })()}
+      </td>
       <td className="px-2 py-2 text-[11px] text-muted-foreground">
         {inst.pullback_active && (
           <span className="mr-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
