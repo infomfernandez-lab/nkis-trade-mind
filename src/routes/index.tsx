@@ -10,6 +10,7 @@ import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { ProximoEntradaBlock, useProximoEntradaCount } from '@/components/radar/ProximoEntradaBlock';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
+import { MomentumBlock, useMomentumCount } from '@/components/radar/MomentumBlock';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
