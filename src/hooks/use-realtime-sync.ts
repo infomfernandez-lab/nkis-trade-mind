@@ -23,6 +23,9 @@ export function useRealtimeSync() {
         qc.invalidateQueries({ queryKey: ['scanner-sessions-all'] });
         qc.invalidateQueries({ queryKey: ['scanner-sessions'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'momentum_sessions' }, () => {
+        qc.invalidateQueries({ queryKey: ['momentum-sessions'] });
+      })
       .subscribe();
 
     return () => {
