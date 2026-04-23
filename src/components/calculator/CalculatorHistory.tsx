@@ -178,9 +178,8 @@ export function CalculatorHistory({ onRecover }: Props) {
                   const isOpen = expanded === r.id;
                   const isBuy = r.direccion === 'BUY';
                   return (
-                    <>
+                    <Fragment key={r.id}>
                       <tr
-                        key={r.id}
                         className="border-t border-border hover:bg-secondary/30 cursor-pointer"
                         onClick={() => setExpanded(isOpen ? null : r.id)}
                       >
