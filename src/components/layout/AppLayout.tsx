@@ -185,3 +185,29 @@ function SignOutButton() {
     </button>
   );
 }
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const isDark = theme === 'dark';
+  const nextLabel = isDark ? 'Cambiar a claro' : 'Cambiar a oscuro';
+  return (
+    <button
+      onClick={toggle}
+      title={nextLabel}
+      aria-label={nextLabel}
+      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium border border-border bg-secondary/40 text-foreground hover:bg-secondary transition-colors group"
+    >
+      {isDark ? (
+        <Moon className="w-3.5 h-3.5 text-primary" />
+      ) : (
+        <Sun className="w-3.5 h-3.5 text-primary" />
+      )}
+      <span className="flex-1 text-left">
+        <span className="group-hover:hidden">{isDark ? 'Oscuro' : 'Claro'}</span>
+        <span className="hidden group-hover:inline text-muted-foreground">
+          → {isDark ? 'Claro' : 'Oscuro'}
+        </span>
+      </span>
+    </button>
+  );
+}
