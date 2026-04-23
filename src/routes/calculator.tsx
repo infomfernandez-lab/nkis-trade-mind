@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
