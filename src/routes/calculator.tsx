@@ -211,6 +211,114 @@ const CURRENCY_BADGE: Record<Currency, string> = {
   HKD: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
 
+// ============================================================
+// AUTOCOMPLETE CATALOG — valores verificados oficialmente
+// (Darwinex Zero / CME — única fuente válida para el buscador)
+// ============================================================
+type AutocompleteEntry = {
+  symbol: string;        // símbolo individual ej "HG_K"
+  family: string;        // raíz para agrupar vencimientos ej "HG"
+  description: string;
+  pointValue: number;
+  currency: 'USD' | 'EUR' | 'GBX';
+  broker: 'darwinex' | 'fxpro';
+  group: string;
+  highValue?: boolean;   // ⚠⚠ VALOR ALTO
+};
+
+const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
+  const out: AutocompleteEntry[] = [];
+  const add = (
+    broker: 'darwinex' | 'fxpro',
+    group: string,
+    family: string,
+    expiries: string[],
+    description: string,
+    pointValue: number,
+    currency: 'USD' | 'EUR' | 'GBX',
+    highValue = false,
+  ) => {
+    if (expiries.length === 0) {
+      out.push({ symbol: family, family, description, pointValue, currency, broker, group, highValue });
+    } else {
+      for (const e of expiries) {
+        out.push({
+          symbol: `${family}_${e}`, family, description, pointValue, currency, broker, group, highValue,
+        });
+      }
+    }
+  };
+
+  // DARWINEX — Agrícolas
+  add('darwinex', 'Agrícolas', 'KE', ['K', 'N'], 'Hard Red Wheat', 50, 'USD');
+  add('darwinex', 'Agrícolas', 'ZC', ['K', 'N'], 'Corn', 50, 'USD');
+  add('darwinex', 'Agrícolas', 'ZL', ['K', 'N'], 'Soybean Oil', 600, 'USD');
+  add('darwinex', 'Agrícolas', 'ZM', ['K', 'N'], 'Soybean Meal', 100, 'USD');
+  add('darwinex', 'Agrícolas', 'ZS', ['K', 'N'], 'Soybeans', 50, 'USD');
+  // DARWINEX — Energía
+  add('darwinex', 'Energía', 'BZ', ['M', 'N'], 'Brent Crude Oil', 1000, 'USD');
+  add('darwinex', 'Energía', 'CL', ['M'], 'Light Sweet Crude', 1000, 'USD');
+  add('darwinex', 'Energía', 'HO', ['K', 'M'], 'Heating Oil', 42000, 'USD', true);
+  add('darwinex', 'Energía', 'NG', ['K', 'M'], 'Natural Gas', 10000, 'USD', true);
+  add('darwinex', 'Energía', 'RB', ['K', 'M'], 'RBOB Gasoline', 42000, 'USD', true);
+  // DARWINEX — Índices EU
+  add('darwinex', 'Índices EU', 'FDAX', ['M'], 'DAX Index', 25, 'EUR');
+  add('darwinex', 'Índices EU', 'FESX', ['M'], 'Euro Stoxx 50', 10, 'EUR');
+  add('darwinex', 'Índices EU', 'FGBL', ['M'], 'Bund', 1000, 'EUR');
+  // DARWINEX — FX
+  add('darwinex', 'FX Futuros', '6A', ['M'], 'Australian Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6B', ['M'], 'British Pound', 6.25, 'USD');
+  add('darwinex', 'FX Futuros', '6C', ['M'], 'Canadian Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6E', ['M'], 'EUR/USD', 12.5, 'USD');
+  add('darwinex', 'FX Futuros', '6J', ['M'], 'Japanese Yen', 12.5, 'USD');
+  add('darwinex', 'FX Futuros', '6N', ['M'], 'New Zealand Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6S', ['M'], 'Swiss Franc', 12.5, 'USD');
+  // DARWINEX — Índices USA
+  add('darwinex', 'Índices USA', 'ES', ['M'], 'E-mini S&P 500', 50, 'USD');
+  add('darwinex', 'Índices USA', 'NQ', ['M'], 'E-mini Nasdaq 100', 20, 'USD');
+  add('darwinex', 'Índices USA', 'RTY', ['M'], 'E-mini Russell 2000', 50, 'USD');
+  add('darwinex', 'Índices USA', 'YM', ['M'], 'Mini Dow Jones', 5, 'USD');
+  // DARWINEX — Carnes
+  add('darwinex', 'Carnes', 'HE', ['K'], 'Lean Hogs', 400, 'USD');
+  add('darwinex', 'Carnes', 'LE', ['M'], 'Live Cattle', 400, 'USD');
+  // DARWINEX — Metales
+  add('darwinex', 'Metales', 'GC', ['M'], 'Gold', 100, 'USD');
+  add('darwinex', 'Metales', 'HG', ['K', 'N'], 'Copper', 25000, 'USD', true);
+  add('darwinex', 'Metales', 'PL', ['N'], 'Platinum', 50, 'USD');
+  add('darwinex', 'Metales', 'SI', ['K', 'N'], 'Silver', 5000, 'USD', true);
+  add('darwinex', 'Bonos', 'ZN', ['M'], '10Y US Treasury Note', 1000, 'USD');
+
+  // FXPRO — CFDs
+  const fxpro = (symbol: string, description: string, pv: number, cur: 'USD' | 'EUR' | 'GBX', group = 'CFDs') => {
+    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'fxpro', group });
+  };
+  fxpro('EURUSD', 'Euro vs Dollar', 10, 'USD', 'Forex');
+  fxpro('GBPUSD', 'Pound vs Dollar', 10, 'USD', 'Forex');
+  fxpro('USDJPY', 'Dollar vs Yen (variable)', 10, 'USD', 'Forex');
+  fxpro('GOLD', 'Gold CFD', 1, 'USD', 'Metales');
+  fxpro('SILVER', 'Silver CFD', 5, 'USD', 'Metales');
+  fxpro('BITCOIN', 'Bitcoin CFD', 1, 'USD', 'Crypto');
+  fxpro('ETHEREUM', 'Ethereum CFD', 1, 'USD', 'Crypto');
+  fxpro('FILECOIN', 'Filecoin CFD', 1, 'USD', 'Crypto');
+  fxpro('#USNDAQ100', 'Nasdaq CFD', 1, 'USD', 'Índices');
+  fxpro('#USSPX500', 'S&P 500 CFD', 1, 'USD', 'Índices');
+  fxpro('#US30', 'Dow Jones CFD', 1, 'USD', 'Índices');
+  fxpro('#Japan225', 'Nikkei CFD', 1, 'USD', 'Índices');
+  fxpro('TSLA.O', 'Tesla', 1, 'USD', 'Acciones USA');
+  fxpro('WIX.O', 'Wix.com', 1, 'USD', 'Acciones USA');
+  fxpro('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 'ETFs');
+  fxpro('AMD.O', 'AMD', 1, 'USD', 'Acciones USA');
+  fxpro('GIS.N', 'General Mills', 1, 'USD', 'Acciones USA');
+  fxpro('HILS.L', 'Hill & Smith', 1, 'GBX', 'Acciones UK');
+  fxpro('HLMA.L', 'Halma PLC', 1, 'GBX', 'Acciones UK');
+  fxpro('ZINC', 'Zinc CFD', 6.25, 'USD', 'Metales Spot');
+  fxpro('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 'Metales Spot');
+  fxpro('COPPER', 'Copper CFD', 6.25, 'USD', 'Metales Spot');
+
+  return out;
+})();
+
+
 const fmt = (n: number, d = 4) => Number.isFinite(n) ? n.toFixed(d) : '—';
 const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
