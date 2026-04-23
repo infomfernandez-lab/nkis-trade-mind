@@ -712,8 +712,8 @@ function CalculatorPage() {
 
       {/* RESUMEN OPERATIVO */}
       <section
-        className="rounded-xl border-2 p-5 lg:p-7"
-        style={{ borderColor: '#D4A017', background: 'color-mix(in oklab, #D4A017 6%, var(--card))' }}
+        className="rounded-xl border-2 p-5 lg:p-7 bg-card"
+        style={{ borderColor: '#2962FF' }}
       >
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <h2 className="text-base font-bold uppercase tracking-wider flex items-center gap-2">
@@ -785,7 +785,7 @@ function BigStat({ label, value, hint }: { label: string; value: string; hint?: 
   return (
     <div className="text-center md:text-left">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className="font-data font-bold leading-none" style={{ fontSize: '2.25rem', color: '#D4A017' }}>{value}</div>
+      <div className="font-data font-bold leading-none text-foreground" style={{ fontSize: '2.25rem' }}>{value}</div>
       {hint && <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
     </div>
   );
@@ -795,7 +795,7 @@ function MidStat({ label, value, hint, hintClass }: { label: string; value: stri
   return (
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className={`font-data font-bold text-xl ${hintClass ?? ''}`} style={hintClass ? undefined : { color: '#D4A017' }}>{value}</div>
+      <div className={`font-data font-bold text-xl ${hintClass ?? 'text-foreground'}`}>{value}</div>
       {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
@@ -841,7 +841,7 @@ function Row({ label, children, className }: { label: string; children: React.Re
 }
 
 function Big({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={`font-data text-2xl md:text-3xl font-bold text-[#D4A017] ${className ?? ''}`}>{children}</span>;
+  return <span className={`font-data text-2xl md:text-3xl font-bold text-foreground ${className ?? ''}`}>{children}</span>;
 }
 
 function SumRow({ label, value }: { label: string; value: string }) {
@@ -934,7 +934,7 @@ function InstrumentTable({
                           </span>
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
-                      <td className="px-3 py-2 text-right font-data font-bold text-[#D4A017] whitespace-nowrap">
+                      <td className="px-3 py-2 text-right font-data font-bold text-foreground whitespace-nowrap">
                         {r.variable ? `~${r.pointValue}` : r.pointValue}
                       </td>
                       <td className="px-3 py-2 text-right">
@@ -1080,7 +1080,7 @@ function InstrumentAutocomplete({
                         className={`w-full text-left px-3 py-2 flex items-center gap-3 text-sm transition-colors ${
                           isHi ? '' : 'hover:bg-muted/40'
                         }`}
-                        style={isHi ? { background: 'color-mix(in oklab, #D4A017 18%, transparent)' } : undefined}
+                        style={isHi ? { background: 'color-mix(in oklab, var(--primary) 18%, transparent)' } : undefined}
                       >
                         <span className="font-data font-semibold w-20 shrink-0">{entry.symbol}</span>
                         <span className="flex-1 text-muted-foreground truncate">{entry.description}</span>

@@ -113,9 +113,9 @@
    Sidebar permanece oscuro intencionalmente.
    ============================================================ */
 .light {
-  --background: oklch(1 0 0);                  /* #FFFFFF */
+  --background: oklch(0.97 0.01 265);          /* #F0F3FA */
   --foreground: oklch(0.18 0.02 265);          /* #131722 */
-  --card: oklch(0.97 0.005 265);               /* #F0F3FA */
+  --card: oklch(1 0 0);                        /* #FFFFFF */
   --card-foreground: oklch(0.18 0.02 265);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.02 265);
@@ -130,9 +130,9 @@
   --accent: oklch(0.94 0.006 265);
   --accent-foreground: oklch(0.18 0.02 265);
 
-  --destructive: oklch(0.62 0.21 22);          /* #EF5350 */
+  --destructive: oklch(0.5 0.18 28);           /* #c0392b */
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.62 0.11 175);             /* #26A69A */
+  --success: oklch(0.5 0.13 152);              /* #1a7a4a */
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.7 0.15 70);
   --warning-foreground: oklch(1 0 0);
@@ -144,14 +144,14 @@
   --ring: oklch(0.58 0.22 265);
 
   --chart-1: oklch(0.58 0.22 265);
-  --chart-2: oklch(0.62 0.11 175);
-  --chart-3: oklch(0.62 0.21 22);
+  --chart-2: oklch(0.5 0.13 152);
+  --chart-3: oklch(0.5 0.18 28);
   --chart-4: oklch(0.7 0.15 70);
   --chart-5: oklch(0.4 0.012 260);
 
   /* Sidebar permanece oscuro intencionalmente */
-  --sidebar: oklch(0.22 0.02 265);
-  --sidebar-foreground: oklch(0.87 0.01 260);
+  --sidebar: oklch(0.22 0.02 265);             /* #1E222D */
+  --sidebar-foreground: oklch(0.87 0.01 260);  /* #D1D4DC */
   --sidebar-primary: oklch(0.58 0.22 265);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.27 0.018 265);

@@ -191,7 +191,7 @@ export function CalculatorHistory({ onRecover }: Props) {
                         <td className="px-3 py-2 text-right">{fmtN(r.precio_entrada)}</td>
                         <td className="px-3 py-2 text-right">{fmtN(r.stop_loss)}</td>
                         <td className="px-3 py-2 text-right">{fmtN(r.lotes, 2)}</td>
-                        <td className="px-3 py-2 text-right" style={{ color: '#D4A017' }}>
+                        <td className="px-3 py-2 text-right font-data font-semibold text-foreground">
                           {fmtEur(r.riesgo_real)}
                         </td>
                         <td className="px-3 py-2 text-right">
@@ -240,7 +240,7 @@ export function CalculatorHistory({ onRecover }: Props) {
           <div className="flex flex-wrap items-center justify-between gap-2 mt-3 text-xs text-muted-foreground">
             <div>
               Mostrados: <span className="text-foreground font-semibold">{filtered.length}</span> ·{' '}
-              Riesgo total: <span className="font-semibold" style={{ color: '#D4A017' }}>{fmtEur(totals.risk)}</span> ·{' '}
+              Riesgo total: <span className="font-semibold text-foreground">{fmtEur(totals.risk)}</span> ·{' '}
               <span className="text-success font-semibold">BUY: {totals.buy}</span> ·{' '}
               <span className="text-destructive font-semibold">SELL: {totals.sell}</span>
             </div>
