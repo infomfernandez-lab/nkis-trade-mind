@@ -121,6 +121,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <nav className="space-y-1">
                 {navItems.map(item => renderNavItem(item, () => setMobileOpen(false)))}
               </nav>
+              <div className="mt-6 pt-4 border-t border-border space-y-3">
+                <ThemeToggle />
+                <SignOutButton />
+              </div>
             </aside>
           </div>
         )}
