@@ -130,6 +130,11 @@ export function StatusBar({ brokerFilter }: Props) {
           )}
         </span>
 
+        <span className="text-muted-foreground/40 hidden lg:inline">|</span>
+        <span className="hidden lg:inline text-[10px] text-muted-foreground italic">
+          Scanner v18 — Medias+Estructura+Stoch(14,3,3)+ADX
+        </span>
+
         {((showDarwinex && dwStale) || (showFxpro && fxStale)) && (
           <span className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
             <AlertTriangle className="w-3 h-3" /> SCANNER DESACTUALIZADO
