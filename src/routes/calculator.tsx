@@ -503,7 +503,7 @@ function CalculatorPage() {
 
   const clearAll = () => {
     setInstrument(''); setEntry(''); setAtr(''); setRiskPct('1');
-    setPointValue('1'); setVix(''); setCurrentPrice(''); setTp('');
+    setPointValue('1'); setTickSize(null); setVix(''); setCurrentPrice(''); setTp('');
     toast.success('Calculadora limpiada');
   };
 
