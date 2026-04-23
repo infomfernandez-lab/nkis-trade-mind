@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
-import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle } from 'lucide-react';
+import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
@@ -223,6 +224,7 @@ function CalculatorPage() {
   const [tp, setTp] = useState<string>('');
   const [tableOpen, setTableOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const onAccountChange = (a: Account) => {
     setAccount(a);
@@ -312,6 +314,39 @@ function CalculatorPage() {
       toast.success('Resumen copiado al portapapeles');
     } catch {
       toast.error('No se pudo copiar');
+    }
+  };
+
+  const saveCalculation = async () => {
+    if (!(nEntry > 0) || !(slPrice > 0) || !(lots > 0) || !instrument.trim()) {
+      toast.error('Completa el cálculo antes de guardar');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any).from('calculadora_registro').insert({
+        instrumento: instrument.trim(),
+        broker: account,
+        direccion: direction,
+        precio_entrada: nEntry,
+        stop_loss: slPrice,
+        distancia_stop: slDist,
+        lotes: lots,
+        riesgo_real: realRisk,
+        breakeven_precio: beActivate,
+        breakeven_sl: beSl,
+        trailing_sl: Number.isFinite(trailSl) ? trailSl : null,
+        atr: nAtr,
+        valor_punto: nPv,
+        cuenta_balance: capital,
+        vix: nVix ?? null,
+      });
+      if (error) throw error;
+      toast.success('✓ Cálculo guardado', { duration: 2000 });
+    } catch (e: any) {
+      toast.error('✗ Error al guardar', { description: e?.message });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -556,6 +591,13 @@ function CalculatorPage() {
             <div className="flex gap-2">
               <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
                 <Copy className="w-3.5 h-3.5" /> Copiar resumen
+              </button>
+              <button
+                onClick={saveCalculation}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success/10 text-success text-xs font-medium hover:bg-success/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-3.5 h-3.5" /> {saving ? 'Guardando…' : 'Guardar cálculo'}
               </button>
               <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-muted-foreground text-xs font-medium hover:text-foreground">
                 <Trash2 className="w-3.5 h-3.5" /> Limpiar

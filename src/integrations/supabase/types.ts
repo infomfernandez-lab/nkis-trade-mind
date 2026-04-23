@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      calculadora_registro: {
+        Row: {
+          atr: number | null
+          breakeven_precio: number | null
+          breakeven_sl: number | null
+          broker: string | null
+          created_at: string | null
+          cuenta_balance: number | null
+          direccion: string | null
+          distancia_stop: number | null
+          id: string
+          instrumento: string | null
+          lotes: number | null
+          precio_entrada: number | null
+          riesgo_real: number | null
+          stop_loss: number | null
+          trailing_sl: number | null
+          valor_punto: number | null
+          vix: number | null
+        }
+        Insert: {
+          atr?: number | null
+          breakeven_precio?: number | null
+          breakeven_sl?: number | null
+          broker?: string | null
+          created_at?: string | null
+          cuenta_balance?: number | null
+          direccion?: string | null
+          distancia_stop?: number | null
+          id?: string
+          instrumento?: string | null
+          lotes?: number | null
+          precio_entrada?: number | null
+          riesgo_real?: number | null
+          stop_loss?: number | null
+          trailing_sl?: number | null
+          valor_punto?: number | null
+          vix?: number | null
+        }
+        Update: {
+          atr?: number | null
+          breakeven_precio?: number | null
+          breakeven_sl?: number | null
+          broker?: string | null
+          created_at?: string | null
+          cuenta_balance?: number | null
+          direccion?: string | null
+          distancia_stop?: number | null
+          id?: string
+          instrumento?: string | null
+          lotes?: number | null
+          precio_entrada?: number | null
+          riesgo_real?: number | null
+          stop_loss?: number | null
+          trailing_sl?: number | null
+          valor_punto?: number | null
+          vix?: number | null
+        }
+        Relationships: []
+      }
       momentum_sessions: {
         Row: {
           adx: number | null
