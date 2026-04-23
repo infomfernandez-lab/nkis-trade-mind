@@ -2,13 +2,14 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext, useMemo } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator
+  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator, Sun, Moon,
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
+import { useTheme } from '@/hooks/use-theme';
 import { BrokerSelector } from '@/components/BrokerSelector';
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
