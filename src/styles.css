@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -9,9 +10,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'Inconsolata', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', 'Trebuchet MS', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'IBM Plex Sans', 'Trebuchet MS', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -33,6 +34,10 @@
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-elite: var(--elite);
+  --color-elite-foreground: var(--elite-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -48,86 +53,112 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ============================================================
+   MODO OSCURO — Paleta TradingView
+   ============================================================ */
 :root {
-  --radius: 0.5rem;
-  --background: oklch(0.085 0.012 260);
-  --foreground: oklch(0.93 0.007 255);
-  --card: oklch(0.115 0.013 260);
-  --card-foreground: oklch(0.93 0.007 255);
-  --popover: oklch(0.115 0.013 260);
-  --popover-foreground: oklch(0.93 0.007 255);
-  --primary: oklch(0.74 0.11 85);
-  --primary-foreground: oklch(0.085 0.012 260);
-  --secondary: oklch(0.155 0.015 255);
-  --secondary-foreground: oklch(0.93 0.007 255);
-  --muted: oklch(0.155 0.015 255);
-  --muted-foreground: oklch(0.45 0.02 255);
-  --accent: oklch(0.19 0.017 250);
-  --accent-foreground: oklch(0.93 0.007 255);
-  --destructive: oklch(0.7 0.16 22);
-  --destructive-foreground: oklch(0.085 0.012 260);
-  --success: oklch(0.77 0.17 165);
-  --success-foreground: oklch(0.085 0.012 260);
-  --border: oklch(0.19 0.017 250);
-  --input: oklch(0.155 0.015 255);
-  --ring: oklch(0.74 0.11 85);
-  --chart-1: oklch(0.74 0.11 85);
-  --chart-2: oklch(0.77 0.17 165);
-  --chart-3: oklch(0.7 0.16 22);
-  --chart-4: oklch(0.7 0.025 255);
-  --chart-5: oklch(0.45 0.02 255);
-  --sidebar: oklch(0.095 0.013 260);
-  --sidebar-foreground: oklch(0.93 0.007 255);
-  --sidebar-primary: oklch(0.74 0.11 85);
-  --sidebar-primary-foreground: oklch(0.085 0.012 260);
-  --sidebar-accent: oklch(0.155 0.015 255);
-  --sidebar-accent-foreground: oklch(0.93 0.007 255);
-  --sidebar-border: oklch(0.19 0.017 250);
-  --sidebar-ring: oklch(0.74 0.11 85);
-  --text-secondary: oklch(0.7 0.025 255);
+  --radius: 0.25rem;
+  /* Surfaces */
+  --background: oklch(0.18 0.02 265);          /* #131722 */
+  --foreground: oklch(0.87 0.01 260);          /* #D1D4DC */
+  --card: oklch(0.22 0.02 265);                /* #1E222D */
+  --card-foreground: oklch(0.87 0.01 260);
+  --popover: oklch(0.22 0.02 265);
+  --popover-foreground: oklch(0.87 0.01 260);
+
+  /* Primary — TradingView blue */
+  --primary: oklch(0.58 0.22 265);             /* #2962FF */
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.27 0.018 265);          /* #2A2E39 */
+  --secondary-foreground: oklch(0.87 0.01 260);
+  --muted: oklch(0.27 0.018 265);
+  --muted-foreground: oklch(0.55 0.012 260);   /* #787B86 */
+  --accent: oklch(0.27 0.018 265);
+  --accent-foreground: oklch(0.87 0.01 260);
+
+  /* Status */
+  --destructive: oklch(0.66 0.21 22);          /* #EF5350 */
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.66 0.11 175);             /* #26A69A */
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.74 0.15 70);              /* #F5A623 */
+  --warning-foreground: oklch(0.18 0.02 265);
+  --elite: oklch(0.85 0.15 90);                /* #F7C948 */
+  --elite-foreground: oklch(0.18 0.02 265);
+
+  --border: oklch(0.27 0.018 265);             /* #2A2E39 */
+  --input: oklch(0.27 0.018 265);
+  --ring: oklch(0.58 0.22 265);
+
+  --chart-1: oklch(0.58 0.22 265);
+  --chart-2: oklch(0.66 0.11 175);
+  --chart-3: oklch(0.66 0.21 22);
+  --chart-4: oklch(0.74 0.15 70);
+  --chart-5: oklch(0.55 0.012 260);
+
+  --sidebar: oklch(0.22 0.02 265);             /* #1E222D */
+  --sidebar-foreground: oklch(0.87 0.01 260);
+  --sidebar-primary: oklch(0.58 0.22 265);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.27 0.018 265);
+  --sidebar-accent-foreground: oklch(0.87 0.01 260);
+  --sidebar-border: oklch(0.27 0.018 265);
+  --sidebar-ring: oklch(0.58 0.22 265);
+  --text-secondary: oklch(0.55 0.012 260);
 }
 
 /* ============================================================
-   MODO CLARO — paleta personalizada CAP Trading
-   Sidebar permanece oscuro en ambos modos por contraste.
+   MODO CLARO — Paleta TradingView light
+   Sidebar permanece oscuro intencionalmente.
    ============================================================ */
 .light {
-  --background: oklch(0.965 0.005 95);
-  --foreground: oklch(0.18 0.005 270);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.005 270);
+  --background: oklch(1 0 0);                  /* #FFFFFF */
+  --foreground: oklch(0.18 0.02 265);          /* #131722 */
+  --card: oklch(0.97 0.005 265);               /* #F0F3FA */
+  --card-foreground: oklch(0.18 0.02 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.005 270);
-  --primary: oklch(0.72 0.135 80);
+  --popover-foreground: oklch(0.18 0.02 265);
+
+  --primary: oklch(0.58 0.22 265);             /* #2962FF */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.945 0.005 95);
-  --secondary-foreground: oklch(0.18 0.005 270);
-  --muted: oklch(0.93 0.005 95);
-  --muted-foreground: oklch(0.46 0.005 270);
-  --accent: oklch(0.93 0.005 95);
-  --accent-foreground: oklch(0.18 0.005 270);
-  --destructive: oklch(0.52 0.18 28);
+
+  --secondary: oklch(0.97 0.005 265);          /* #F0F3FA */
+  --secondary-foreground: oklch(0.18 0.02 265);
+  --muted: oklch(0.94 0.006 265);              /* #E8EBF5 */
+  --muted-foreground: oklch(0.4 0.012 260);    /* #4C525E */
+  --accent: oklch(0.94 0.006 265);
+  --accent-foreground: oklch(0.18 0.02 265);
+
+  --destructive: oklch(0.62 0.21 22);          /* #EF5350 */
   --destructive-foreground: oklch(1 0 0);
-  --success: oklch(0.49 0.12 145);
+  --success: oklch(0.62 0.11 175);             /* #26A69A */
   --success-foreground: oklch(1 0 0);
-  --border: oklch(0.89 0.004 95);
-  --input: oklch(0.89 0.004 95);
-  --ring: oklch(0.72 0.135 80);
-  --chart-1: oklch(0.72 0.135 80);
-  --chart-2: oklch(0.49 0.12 145);
-  --chart-3: oklch(0.52 0.18 28);
-  --chart-4: oklch(0.46 0.005 270);
-  --chart-5: oklch(0.65 0.02 270);
+  --warning: oklch(0.7 0.15 70);
+  --warning-foreground: oklch(1 0 0);
+  --elite: oklch(0.82 0.15 90);
+  --elite-foreground: oklch(0.18 0.02 265);
+
+  --border: oklch(0.91 0.005 265);             /* #E0E3EB */
+  --input: oklch(0.91 0.005 265);
+  --ring: oklch(0.58 0.22 265);
+
+  --chart-1: oklch(0.58 0.22 265);
+  --chart-2: oklch(0.62 0.11 175);
+  --chart-3: oklch(0.62 0.21 22);
+  --chart-4: oklch(0.7 0.15 70);
+  --chart-5: oklch(0.4 0.012 260);
+
   /* Sidebar permanece oscuro intencionalmente */
-  --sidebar: oklch(0.18 0.025 270);
-  --sidebar-foreground: oklch(0.93 0.007 255);
-  --sidebar-primary: oklch(0.74 0.11 85);
-  --sidebar-primary-foreground: oklch(0.085 0.012 260);
-  --sidebar-accent: oklch(0.24 0.025 270);
-  --sidebar-accent-foreground: oklch(0.93 0.007 255);
-  --sidebar-border: oklch(0.28 0.02 270);
-  --sidebar-ring: oklch(0.74 0.11 85);
-  --text-secondary: oklch(0.46 0.005 270);
+  --sidebar: oklch(0.22 0.02 265);
+  --sidebar-foreground: oklch(0.87 0.01 260);
+  --sidebar-primary: oklch(0.58 0.22 265);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.27 0.018 265);
+  --sidebar-accent-foreground: oklch(0.87 0.01 260);
+  --sidebar-border: oklch(0.27 0.018 265);
+  --sidebar-ring: oklch(0.58 0.22 265);
+  --text-secondary: oklch(0.4 0.012 260);
 }
 
 /* Transición suave entre modos */
@@ -149,12 +180,35 @@ body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv01";
   }
 
-  /* Mejor legibilidad en móvil: fuente más grande, peso reforzado y mayor contraste */
+  /* Tipografía estilo TradingView */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* Scrollbars sutiles tipo TradingView */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted-foreground);
+  }
+
+  /* Mejor legibilidad en móvil */
   @media (max-width: 767px) {
     html {
-      font-size: 17px;
+      font-size: 16px;
     }
     body {
       font-weight: 500;
@@ -166,9 +220,6 @@ body {
     }
     .text-sm {
       font-size: 0.9375rem;
-    }
-    .text-muted-foreground {
-      color: oklch(0.62 0.02 255);
     }
     .font-data {
       font-weight: 600;
@@ -184,17 +235,51 @@ body {
   .font-data {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
+  /* Etiquetas estilo TradingView: pequeñas, mayúsculas, espaciado */
+  .label-tv {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-muted-foreground);
+    font-weight: 500;
+  }
+
+  /* Datos principales */
+  .data-lg {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Números grandes resumen operativo */
+  .data-xl {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Glow legacy mantenido por compatibilidad pero discreto */
   .gold-glow {
-    box-shadow: 0 0 20px oklch(0.74 0.11 85 / 0.15);
+    box-shadow: 0 0 0 1px oklch(0.58 0.22 265 / 0.2);
   }
 
   .card-hover {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
   }
   .card-hover:hover {
-    border-color: oklch(0.74 0.11 85 / 0.3);
-    box-shadow: 0 0 20px oklch(0.74 0.11 85 / 0.05);
+    border-color: oklch(0.58 0.22 265 / 0.4);
+    background-color: var(--color-secondary);
+  }
+
+  /* Sombra sutil tipo TradingView */
+  .shadow-tv {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   }
 }
