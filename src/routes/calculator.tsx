@@ -628,6 +628,7 @@ function CalculatorPage() {
               onSelect={(e) => {
                 setInstrument(e.symbol);
                 setPointValue(String(e.pointValue));
+                setTickSize(e.tickSize ?? null);
                 onAccountChange(e.broker);
                 toast.success(`${e.symbol} cargado — valor punto: ${e.pointValue} ${e.currency}`);
                 if (e.currency === 'GBX') {
