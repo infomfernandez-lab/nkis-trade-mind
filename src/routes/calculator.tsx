@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
@@ -315,6 +316,22 @@ function CalculatorPage() {
     } catch {
       toast.error('No se pudo copiar');
     }
+  };
+
+  const recoverCalculation = (r: CalcRecord) => {
+    if (r.broker === 'darwinex' || r.broker === 'fxpro') {
+      setAccount(r.broker);
+    }
+    if (r.cuenta_balance != null) setCapital(Number(r.cuenta_balance));
+    if (r.instrumento) setInstrument(r.instrumento);
+    if (r.direccion === 'BUY' || r.direccion === 'SELL') setDirection(r.direccion);
+    if (r.precio_entrada != null) setEntry(String(r.precio_entrada));
+    if (r.atr != null) setAtr(String(r.atr));
+    if (r.valor_punto != null) setPointValue(String(r.valor_punto));
+    setVix(r.vix != null ? String(r.vix) : '');
+    setCurrentPrice('');
+    setTp('');
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const saveCalculation = async () => {
@@ -637,6 +654,8 @@ function CalculatorPage() {
           </div>
         )}
       </section>
+
+      <CalculatorHistory onRecover={recoverCalculation} />
     </div>
   );
 }
