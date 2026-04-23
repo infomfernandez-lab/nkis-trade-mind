@@ -525,11 +525,21 @@ function CalculatorPage() {
 
           {/* Instrumento */}
           <Field label="Instrumento">
-            <input
+            <InstrumentAutocomplete
               value={instrument}
-              onChange={e => setInstrument(e.target.value)}
-              placeholder="LE_M, HILS.L, ZINC, #Japan225..."
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              onChange={setInstrument}
+              onSelect={(e) => {
+                setInstrument(e.symbol);
+                setPointValue(String(e.pointValue));
+                onAccountChange(e.broker);
+                toast.success(`${e.symbol} cargado — valor punto: ${e.pointValue} ${e.currency}`);
+                if (e.currency === 'GBX') {
+                  toast.warning(`${e.symbol} cotiza en peniques (GBX)`, {
+                    description: 'Usa el precio MT5 directamente. P/L en GBX. Divide entre 100 para GBP.',
+                    duration: 8000,
+                  });
+                }
+              }}
             />
           </Field>
 
