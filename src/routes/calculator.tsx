@@ -32,7 +32,10 @@ type InstrumentRow = {
   broker: 'darwinex' | 'fxpro';
   currency?: Currency;
   variable?: boolean;
+  warn?: boolean;
 };
+
+const HIGH_PV_WARNING = '⚠ Valor del punto muy alto — verificar lotes antes de operar';
 
 const INSTRUMENTS: InstrumentRow[] = [
   // Darwinex - Agrícolas
