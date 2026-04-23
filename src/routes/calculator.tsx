@@ -484,6 +484,11 @@ function CalculatorPage() {
   const pickInstrument = (row: InstrumentRow) => {
     setInstrument(row.symbol);
     setPointValue(String(row.pointValue));
+    // Try to find tickSize from autocomplete catalog by family/symbol match
+    const auto = AUTOCOMPLETE.find(
+      a => a.broker === row.broker && (a.symbol === row.symbol || a.family === row.symbol.split('_')[0]),
+    );
+    setTickSize(auto?.tickSize ?? null);
     if (row.broker === 'darwinex') onAccountChange('darwinex');
     else onAccountChange('fxpro');
     setTableOpen(false);
