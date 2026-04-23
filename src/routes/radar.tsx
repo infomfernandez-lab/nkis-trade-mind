@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Radar } from 'lucide-react';
+import { Radar, ChevronDown, ChevronUp } from 'lucide-react';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { EnTendenciaBlock, useEnTendenciaCount } from '@/components/radar/EnTendenciaBlock';
 import { ProximoEntradaBlock, useProximoEntradaCount } from '@/components/radar/ProximoEntradaBlock';
