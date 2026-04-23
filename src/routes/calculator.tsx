@@ -758,19 +758,34 @@ function CalculatorPage() {
         </ResultCard>
 
         <ResultCard title="Trailing Stop">
-          <div className="mb-3">
-            <label className="text-xs text-muted-foreground block mb-1">Precio actual</label>
-            <input
-              type="number" step="any" inputMode="decimal"
-              value={currentPrice} onChange={e => setCurrentPrice(e.target.value)}
-              placeholder="0.00"
-              className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm font-data"
-            />
-          </div>
-          <Row label={`SL trailing (precio ± ATR×3)`}><Big>{fmt(trailSl)}</Big></Row>
-          <Row label="Beneficio flotante">
-            <Big className={floatPnl >= 0 ? 'text-success' : 'text-destructive'}>{fmtEur(floatPnl)}</Big>
+          <Row label="Distancia (ATR × 3)">
+            <Big>{fmt(trailDist)}</Big>
           </Row>
+
+          <div className="mt-3 rounded-lg border border-success/40 bg-success/10 p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-success mb-1 flex items-center gap-1.5">
+              ✅ Puntos para MT5
+            </div>
+            <div
+              className="font-data font-bold text-success leading-none"
+              style={{ fontSize: '2.5rem' }}
+            >
+              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '—'}
+            </div>
+            {trailMt5Points == null && (
+              <div className="text-[11px] text-muted-foreground mt-2">
+                Selecciona un instrumento e introduce el ATR para ver los puntos.
+              </div>
+            )}
+          </div>
+
+          <div className="text-xs text-muted-foreground mt-3 leading-relaxed">
+            En MT5: clic derecho sobre la posición → <span className="text-foreground font-medium">Trailing Stop</span> → <span className="text-foreground font-medium">Personalizado</span> → introducir{' '}
+            <span className="text-success font-data font-semibold">
+              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '[puntos]'}
+            </span>{' '}
+            puntos.
+          </div>
         </ResultCard>
 
         <ResultCard title="Ratio Riesgo / Beneficio" className="md:col-span-2">
