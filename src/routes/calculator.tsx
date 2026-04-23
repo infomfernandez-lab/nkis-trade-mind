@@ -1080,7 +1080,7 @@ function InstrumentAutocomplete({
                         className={`w-full text-left px-3 py-2 flex items-center gap-3 text-sm transition-colors ${
                           isHi ? '' : 'hover:bg-muted/40'
                         }`}
-                        style={isHi ? { background: 'color-mix(in oklab, #D4A017 18%, transparent)' } : undefined}
+                        style={isHi ? { background: 'color-mix(in oklab, var(--primary) 18%, transparent)' } : undefined}
                       >
                         <span className="font-data font-semibold w-20 shrink-0">{entry.symbol}</span>
                         <span className="flex-1 text-muted-foreground truncate">{entry.description}</span>
