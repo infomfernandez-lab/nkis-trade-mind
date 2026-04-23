@@ -224,6 +224,7 @@ function CalculatorPage() {
   const [tp, setTp] = useState<string>('');
   const [tableOpen, setTableOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const onAccountChange = (a: Account) => {
     setAccount(a);
