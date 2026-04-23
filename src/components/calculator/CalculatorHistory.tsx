@@ -229,7 +229,7 @@ export function CalculatorHistory({ onRecover }: Props) {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
