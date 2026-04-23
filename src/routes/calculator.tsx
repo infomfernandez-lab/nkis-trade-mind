@@ -934,7 +934,7 @@ function InstrumentTable({
                           </span>
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
-                      <td className="px-3 py-2 text-right font-data font-bold text-[#D4A017] whitespace-nowrap">
+                      <td className="px-3 py-2 text-right font-data font-bold text-foreground whitespace-nowrap">
                         {r.variable ? `~${r.pointValue}` : r.pointValue}
                       </td>
                       <td className="px-3 py-2 text-right">
