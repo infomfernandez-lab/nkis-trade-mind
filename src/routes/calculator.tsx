@@ -418,6 +418,7 @@ function CalculatorPage() {
   const [atr, setAtr] = useState<string>('');
   const [riskPct, setRiskPct] = useState<string>('1');
   const [pointValue, setPointValue] = useState<string>('1');
+  const [tickSize, setTickSize] = useState<number | null>(null);
   const [vix, setVix] = useState<string>('');
   const [currentPrice, setCurrentPrice] = useState<string>('');
   const [tp, setTp] = useState<string>('');
