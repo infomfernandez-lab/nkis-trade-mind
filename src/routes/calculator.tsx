@@ -654,6 +654,8 @@ function CalculatorPage() {
           </div>
         )}
       </section>
+
+      <CalculatorHistory onRecover={recoverCalculation} />
     </div>
   );
 }
