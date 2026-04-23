@@ -955,3 +955,152 @@ function InstrumentTable({
     </div>
   );
 }
+
+// ============================================================
+// Autocomplete instrumento — buscador con dropdown
+// ============================================================
+function InstrumentAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (e: AutocompleteEntry) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const [selectedDesc, setSelectedDesc] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const q = value.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!q) return [];
+    return AUTOCOMPLETE.filter(
+      e =>
+        e.symbol.toLowerCase().includes(q) ||
+        e.family.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q),
+    ).slice(0, 60);
+  }, [q]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, AutocompleteEntry[]>();
+    for (const r of results) {
+      const key = `${r.broker}|${r.family}|${r.description}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    }
+    return Array.from(map.values());
+  }, [results]);
+
+  const flat = useMemo(() => grouped.flat(), [grouped]);
+
+  useEffect(() => { setHighlight(0); }, [q]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const handleSelect = (e: AutocompleteEntry) => {
+    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`);
+    setOpen(false);
+    onSelect(e);
+  };
+
+  const onKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
+    if (ev.key === 'Escape') { setOpen(false); return; }
+    if (!open && (ev.key === 'ArrowDown' || ev.key === 'Enter')) { setOpen(true); return; }
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      setHighlight(h => Math.min(h + 1, flat.length - 1));
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      setHighlight(h => Math.max(h - 1, 0));
+    } else if (ev.key === 'Enter' && flat[highlight]) {
+      ev.preventDefault();
+      handleSelect(flat[highlight]);
+    }
+  };
+
+  let flatIdx = -1;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          value={value}
+          onChange={e => { onChange(e.target.value); setOpen(true); setSelectedDesc(null); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder="Escribe símbolo... ej: HG, LE, ZL, copper"
+          autoComplete="off"
+          spellCheck={false}
+          className="w-full h-10 rounded-md border border-input bg-transparent pl-9 pr-3 text-sm font-data focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      {selectedDesc && !open && (
+        <div className="mt-1 text-[11px] text-muted-foreground truncate">{selectedDesc}</div>
+      )}
+
+      {open && q && (
+        <div className="absolute z-50 mt-1 w-full max-h-[360px] overflow-y-auto rounded-md border border-border bg-card shadow-xl">
+          {grouped.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+              Sin resultados para "{value}"
+            </div>
+          ) : (
+            grouped.map((group, gi) => {
+              const head = group[0];
+              return (
+                <div key={gi} className="border-b border-border/40 last:border-b-0">
+                  <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 flex items-center gap-2">
+                    <span>{head.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+                    <span>·</span>
+                    <span>{head.group}</span>
+                    {group.length > 1 && (
+                      <span className="ml-auto">{group.length} vencimientos</span>
+                    )}
+                  </div>
+                  {group.map(entry => {
+                    flatIdx++;
+                    const isHi = flatIdx === highlight;
+                    return (
+                      <button
+                        key={entry.symbol}
+                        type="button"
+                        onMouseEnter={() => setHighlight(flat.indexOf(entry))}
+                        onClick={() => handleSelect(entry)}
+                        className={`w-full text-left px-3 py-2 flex items-center gap-3 text-sm transition-colors ${
+                          isHi ? '' : 'hover:bg-muted/40'
+                        }`}
+                        style={isHi ? { background: 'color-mix(in oklab, #D4A017 18%, transparent)' } : undefined}
+                      >
+                        <span className="font-data font-semibold w-20 shrink-0">{entry.symbol}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{entry.description}</span>
+                        <span className="font-data text-xs tabular-nums whitespace-nowrap">
+                          {entry.pointValue.toLocaleString('en-US')} {entry.currency}
+                        </span>
+                        {entry.highValue && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-destructive/20 text-destructive border border-destructive/40 whitespace-nowrap">
+                            ⚠ VALOR ALTO
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
