@@ -237,84 +237,170 @@ const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
     description: string,
     pointValue: number,
     currency: 'USD' | 'EUR' | 'GBX',
+    tickSize: number,
     highValue = false,
   ) => {
     if (expiries.length === 0) {
-      out.push({ symbol: family, family, description, pointValue, currency, broker, group, highValue });
+      out.push({ symbol: family, family, description, pointValue, currency, broker, group, highValue, tickSize });
     } else {
       for (const e of expiries) {
         out.push({
-          symbol: `${family}_${e}`, family, description, pointValue, currency, broker, group, highValue,
+          symbol: `${family}_${e}`, family, description, pointValue, currency, broker, group, highValue, tickSize,
         });
       }
     }
   };
 
   // DARWINEX — Agrícolas
-  add('darwinex', 'Agrícolas', 'KE', ['K', 'N'], 'Hard Red Wheat', 50, 'USD');
-  add('darwinex', 'Agrícolas', 'ZC', ['K', 'N'], 'Corn', 50, 'USD');
-  add('darwinex', 'Agrícolas', 'ZL', ['K', 'N'], 'Soybean Oil', 600, 'USD');
-  add('darwinex', 'Agrícolas', 'ZM', ['K', 'N'], 'Soybean Meal', 100, 'USD');
-  add('darwinex', 'Agrícolas', 'ZS', ['K', 'N'], 'Soybeans', 50, 'USD');
+  add('darwinex', 'Agrícolas', 'KE', ['K', 'N'], 'Hard Red Wheat', 50, 'USD', 0.0025);
+  add('darwinex', 'Agrícolas', 'ZC', ['K', 'N'], 'Corn', 50, 'USD', 0.0025);
+  add('darwinex', 'Agrícolas', 'ZL', ['K', 'N'], 'Soybean Oil', 600, 'USD', 0.00001);
+  add('darwinex', 'Agrícolas', 'ZM', ['K', 'N'], 'Soybean Meal', 100, 'USD', 0.1);
+  add('darwinex', 'Agrícolas', 'ZS', ['K', 'N'], 'Soybeans', 50, 'USD', 0.0025);
+  add('darwinex', 'Agrícolas', 'ZO', ['K'], 'Oats', 50, 'USD', 0.0025);
+  add('darwinex', 'Agrícolas', 'ZR', ['K'], 'Rough Rice', 50, 'USD', 0.005);
+  add('darwinex', 'Agrícolas', 'ZW', ['K'], 'Wheat', 50, 'USD', 0.0025);
   // DARWINEX — Energía
-  add('darwinex', 'Energía', 'BZ', ['M', 'N'], 'Brent Crude Oil', 1000, 'USD');
-  add('darwinex', 'Energía', 'CL', ['M'], 'Light Sweet Crude', 1000, 'USD');
-  add('darwinex', 'Energía', 'HO', ['K', 'M'], 'Heating Oil', 42000, 'USD', true);
-  add('darwinex', 'Energía', 'NG', ['K', 'M'], 'Natural Gas', 10000, 'USD', true);
-  add('darwinex', 'Energía', 'RB', ['K', 'M'], 'RBOB Gasoline', 42000, 'USD', true);
+  add('darwinex', 'Energía', 'BZ', ['M', 'N'], 'Brent Crude Oil', 1000, 'USD', 0.01);
+  add('darwinex', 'Energía', 'CL', ['M', 'K'], 'Light Sweet Crude', 1000, 'USD', 0.01);
+  add('darwinex', 'Energía', 'HO', ['K', 'M'], 'Heating Oil', 42000, 'USD', 0.00001, true);
+  add('darwinex', 'Energía', 'NG', ['K', 'M'], 'Natural Gas', 10000, 'USD', 0.001, true);
+  add('darwinex', 'Energía', 'RB', ['K', 'M'], 'RBOB Gasoline', 42000, 'USD', 0.00001, true);
   // DARWINEX — Índices EU
-  add('darwinex', 'Índices EU', 'FDAX', ['M'], 'DAX Index', 25, 'EUR');
-  add('darwinex', 'Índices EU', 'FESX', ['M'], 'Euro Stoxx 50', 10, 'EUR');
-  add('darwinex', 'Índices EU', 'FGBL', ['M'], 'Bund', 1000, 'EUR');
+  add('darwinex', 'Índices EU', 'FDAX', ['M'], 'DAX Index', 25, 'EUR', 0.5);
+  add('darwinex', 'Índices EU', 'FESX', ['M'], 'Euro Stoxx 50', 10, 'EUR', 1.0);
+  add('darwinex', 'Índices EU', 'FGBL', ['M'], 'Bund', 1000, 'EUR', 0.01);
   // DARWINEX — FX
-  add('darwinex', 'FX Futuros', '6A', ['M'], 'Australian Dollar', 10, 'USD');
-  add('darwinex', 'FX Futuros', '6B', ['M'], 'British Pound', 6.25, 'USD');
-  add('darwinex', 'FX Futuros', '6C', ['M'], 'Canadian Dollar', 10, 'USD');
-  add('darwinex', 'FX Futuros', '6E', ['M'], 'EUR/USD', 12.5, 'USD');
-  add('darwinex', 'FX Futuros', '6J', ['M'], 'Japanese Yen', 12.5, 'USD');
-  add('darwinex', 'FX Futuros', '6N', ['M'], 'New Zealand Dollar', 10, 'USD');
-  add('darwinex', 'FX Futuros', '6S', ['M'], 'Swiss Franc', 12.5, 'USD');
+  add('darwinex', 'FX Futuros', '6A', ['M'], 'Australian Dollar', 10, 'USD', 0.0001);
+  add('darwinex', 'FX Futuros', '6B', ['M'], 'British Pound', 6.25, 'USD', 0.0001);
+  add('darwinex', 'FX Futuros', '6C', ['M'], 'Canadian Dollar', 10, 'USD', 0.0001);
+  add('darwinex', 'FX Futuros', '6E', ['M'], 'EUR/USD', 12.5, 'USD', 0.00005);
+  add('darwinex', 'FX Futuros', '6J', ['M'], 'Japanese Yen', 12.5, 'USD', 0.0000005);
+  add('darwinex', 'FX Futuros', '6N', ['M'], 'New Zealand Dollar', 10, 'USD', 0.0001);
+  add('darwinex', 'FX Futuros', '6S', ['M'], 'Swiss Franc', 12.5, 'USD', 0.0001);
   // DARWINEX — Índices USA
-  add('darwinex', 'Índices USA', 'ES', ['M'], 'E-mini S&P 500', 50, 'USD');
-  add('darwinex', 'Índices USA', 'NQ', ['M'], 'E-mini Nasdaq 100', 20, 'USD');
-  add('darwinex', 'Índices USA', 'RTY', ['M'], 'E-mini Russell 2000', 50, 'USD');
-  add('darwinex', 'Índices USA', 'YM', ['M'], 'Mini Dow Jones', 5, 'USD');
+  add('darwinex', 'Índices USA', 'ES', ['M'], 'E-mini S&P 500', 50, 'USD', 0.25);
+  add('darwinex', 'Índices USA', 'NQ', ['M'], 'E-mini Nasdaq 100', 20, 'USD', 0.25);
+  add('darwinex', 'Índices USA', 'RTY', ['M'], 'E-mini Russell 2000', 50, 'USD', 0.1);
+  add('darwinex', 'Índices USA', 'YM', ['M'], 'Mini Dow Jones', 5, 'USD', 1.0);
   // DARWINEX — Carnes
-  add('darwinex', 'Carnes', 'HE', ['K'], 'Lean Hogs', 400, 'USD');
-  add('darwinex', 'Carnes', 'LE', ['M'], 'Live Cattle', 400, 'USD');
+  add('darwinex', 'Carnes', 'HE', ['K', 'M'], 'Lean Hogs', 400, 'USD', 0.00025);
+  add('darwinex', 'Carnes', 'LE', ['M', 'N'], 'Live Cattle', 400, 'USD', 0.00025);
   // DARWINEX — Metales
-  add('darwinex', 'Metales', 'GC', ['M'], 'Gold', 100, 'USD');
-  add('darwinex', 'Metales', 'HG', ['K', 'N'], 'Copper', 25000, 'USD', true);
-  add('darwinex', 'Metales', 'PL', ['N'], 'Platinum', 50, 'USD');
-  add('darwinex', 'Metales', 'SI', ['K', 'N'], 'Silver', 5000, 'USD', true);
-  add('darwinex', 'Bonos', 'ZN', ['M'], '10Y US Treasury Note', 1000, 'USD');
+  add('darwinex', 'Metales', 'GC', ['M', 'N'], 'Gold', 100, 'USD', 0.1);
+  add('darwinex', 'Metales', 'HG', ['K', 'N'], 'Copper', 25000, 'USD', 0.0005, true);
+  add('darwinex', 'Metales', 'PL', ['N'], 'Platinum', 50, 'USD', 0.1);
+  add('darwinex', 'Metales', 'SI', ['K', 'N'], 'Silver', 5000, 'USD', 0.005, true);
+  add('darwinex', 'Bonos', 'ZN', ['M'], '10Y US Treasury Note', 1000, 'USD', 0.015625);
 
   // FXPRO — CFDs
-  const fxpro = (symbol: string, description: string, pv: number, cur: 'USD' | 'EUR' | 'GBX', group = 'CFDs') => {
-    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'fxpro', group });
+  const fxpro = (
+    symbol: string,
+    description: string,
+    pv: number,
+    cur: 'USD' | 'EUR' | 'GBX',
+    tickSize: number,
+    group = 'CFDs',
+  ) => {
+    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'fxpro', group, tickSize });
   };
-  fxpro('EURUSD', 'Euro vs Dollar', 10, 'USD', 'Forex');
-  fxpro('GBPUSD', 'Pound vs Dollar', 10, 'USD', 'Forex');
-  fxpro('USDJPY', 'Dollar vs Yen (variable)', 10, 'USD', 'Forex');
-  fxpro('GOLD', 'Gold CFD', 1, 'USD', 'Metales');
-  fxpro('SILVER', 'Silver CFD', 5, 'USD', 'Metales');
-  fxpro('BITCOIN', 'Bitcoin CFD', 1, 'USD', 'Crypto');
-  fxpro('ETHEREUM', 'Ethereum CFD', 1, 'USD', 'Crypto');
-  fxpro('FILECOIN', 'Filecoin CFD', 1, 'USD', 'Crypto');
-  fxpro('#USNDAQ100', 'Nasdaq CFD', 1, 'USD', 'Índices');
-  fxpro('#USSPX500', 'S&P 500 CFD', 1, 'USD', 'Índices');
-  fxpro('#US30', 'Dow Jones CFD', 1, 'USD', 'Índices');
-  fxpro('#Japan225', 'Nikkei CFD', 1, 'USD', 'Índices');
-  fxpro('TSLA.O', 'Tesla', 1, 'USD', 'Acciones USA');
-  fxpro('WIX.O', 'Wix.com', 1, 'USD', 'Acciones USA');
-  fxpro('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 'ETFs');
-  fxpro('AMD.O', 'AMD', 1, 'USD', 'Acciones USA');
-  fxpro('GIS.N', 'General Mills', 1, 'USD', 'Acciones USA');
-  fxpro('HILS.L', 'Hill & Smith', 1, 'GBX', 'Acciones UK');
-  fxpro('HLMA.L', 'Halma PLC', 1, 'GBX', 'Acciones UK');
-  fxpro('ZINC', 'Zinc CFD', 6.25, 'USD', 'Metales Spot');
-  fxpro('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 'Metales Spot');
-  fxpro('COPPER', 'Copper CFD', 6.25, 'USD', 'Metales Spot');
+  // Forex
+  fxpro('EURUSD', 'Euro vs Dollar', 10, 'USD', 0.00001, 'Forex');
+  fxpro('GBPUSD', 'Pound vs Dollar', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDJPY', 'Dollar vs Yen', 10, 'USD', 0.001, 'Forex');
+  fxpro('USDCHF', 'USD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('AUDUSD', 'AUD vs USD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('NZDUSD', 'NZD vs USD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDCAD', 'USD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('EURGBP', 'EUR vs GBP', 10, 'USD', 0.00001, 'Forex');
+  fxpro('EURJPY', 'EUR vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('GBPJPY', 'GBP vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('AUDJPY', 'AUD vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('CHFJPY', 'CHF vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('EURCHF', 'EUR vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('EURAUD', 'EUR vs AUD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('EURCAD', 'EUR vs CAD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('GBPAUD', 'GBP vs AUD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('GBPCAD', 'GBP vs CAD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('GBPCHF', 'GBP vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('AUDCAD', 'AUD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('AUDCHF', 'AUD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('AUDNZD', 'AUD vs NZD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('CADCHF', 'CAD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('CADJPY', 'CAD vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('NZDCAD', 'NZD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('NZDCHF', 'NZD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  fxpro('NZDJPY', 'NZD vs JPY', 10, 'USD', 0.001, 'Forex');
+  fxpro('EURNZD', 'EUR vs NZD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('GBPNZD', 'GBP vs NZD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDZAR', 'USD vs ZAR', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDMXN', 'USD vs MXN', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDNOK', 'USD vs NOK', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDSEK', 'USD vs SEK', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDSGD', 'USD vs SGD', 10, 'USD', 0.00001, 'Forex');
+  fxpro('USDTRY', 'USD vs TRY', 10, 'USD', 0.00001, 'Forex');
+  // Índices CFD
+  fxpro('#USSPX500', 'S&P 500 CFD', 1, 'USD', 0.01, 'Índices');
+  fxpro('#USNDAQ100', 'Nasdaq 100 CFD', 1, 'USD', 0.01, 'Índices');
+  fxpro('#US30', 'Dow Jones CFD', 1, 'USD', 1.0, 'Índices');
+  fxpro('#Japan225', 'Nikkei CFD', 1, 'USD', 1.0, 'Índices');
+  fxpro('#Germany40', 'DAX 40 CFD', 1, 'EUR', 0.1, 'Índices');
+  fxpro('#UK100', 'FTSE 100 CFD', 1, 'USD', 0.1, 'Índices');
+  fxpro('#France40', 'France 40 CFD', 1, 'EUR', 0.1, 'Índices');
+  fxpro('#Spain35', 'Spain 35 CFD', 1, 'EUR', 0.1, 'Índices');
+  fxpro('#Europe50', 'Euro Stoxx 50 CFD', 1, 'EUR', 0.1, 'Índices');
+  fxpro('#Australia200', 'ASX 200 CFD', 1, 'USD', 0.1, 'Índices');
+  fxpro('#HongKong50', 'Hang Seng CFD', 1, 'USD', 1.0, 'Índices');
+  fxpro('#China50', 'China A50 CFD', 1, 'USD', 1.0, 'Índices');
+  // Materias primas CFD
+  fxpro('GOLD', 'Gold CFD', 1, 'USD', 0.01, 'Metales');
+  fxpro('SILVER', 'Silver CFD', 5, 'USD', 0.001, 'Metales');
+  fxpro('COPPER', 'Copper CFD', 6.25, 'USD', 0.0001, 'Metales Spot');
+  fxpro('ZINC', 'Zinc CFD', 6.25, 'USD', 0.25, 'Metales Spot');
+  fxpro('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 0.25, 'Metales Spot');
+  fxpro('WTI', 'Crude Oil WTI CFD', 10, 'USD', 0.01, 'Energía');
+  fxpro('NAT.GAS', 'Natural Gas CFD', 10, 'USD', 0.001, 'Energía');
+  fxpro('BRENT', 'Brent Crude CFD', 10, 'USD', 0.01, 'Energía');
+  // Crypto
+  fxpro('BITCOIN', 'Bitcoin CFD', 1, 'USD', 1.0, 'Crypto');
+  fxpro('ETHEREUM', 'Ethereum CFD', 1, 'USD', 0.01, 'Crypto');
+  fxpro('LITECOIN', 'Litecoin CFD', 1, 'USD', 0.01, 'Crypto');
+  fxpro('RIPPLE', 'Ripple CFD', 1, 'USD', 0.0001, 'Crypto');
+  fxpro('FILECOIN', 'Filecoin CFD', 1, 'USD', 0.001, 'Crypto');
+  fxpro('AAVE', 'AAVE CFD', 1, 'USD', 0.01, 'Crypto');
+  // Acciones USA
+  fxpro('AAPL.O', 'Apple', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('MSFT.O', 'Microsoft', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('AMZN.O', 'Amazon', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('GOOGL.O', 'Alphabet', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('META.O', 'Meta Platforms', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('TSLA.O', 'Tesla', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('NVDA.O', 'NVIDIA', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('AMD.O', 'AMD', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('NFLX.O', 'Netflix', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('DIS.N', 'Disney', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('GIS.N', 'General Mills', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('WIX.O', 'Wix.com', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('BABA.N', 'Alibaba', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('TSM.N', 'TSMC', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('V.N', 'Visa', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('JPM.N', 'JPMorgan', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('BAC.N', 'Bank of America', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('GS.N', 'Goldman Sachs', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('XOM.N', 'ExxonMobil', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('CVX.N', 'Chevron', 1, 'USD', 0.01, 'Acciones USA');
+  fxpro('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 0.01, 'ETFs');
+  // Acciones UK (GBX)
+  fxpro('HILS.L', 'Hill & Smith', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('HLMA.L', 'Halma PLC', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('AZN.L', 'AstraZeneca', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('SHEL.L', 'Shell', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('HSBA.L', 'HSBC', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('BP.L', 'BP', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('VOD.L', 'Vodafone', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('LLOY.L', 'Lloyds Banking', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('RIO.L', 'Rio Tinto', 1, 'GBX', 0.01, 'Acciones UK');
+  fxpro('GLEN.L', 'Glencore', 1, 'GBX', 0.01, 'Acciones UK');
 
   return out;
 })();
