@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -211,6 +211,114 @@ const CURRENCY_BADGE: Record<Currency, string> = {
   HKD: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
 };
 
+// ============================================================
+// AUTOCOMPLETE CATALOG — valores verificados oficialmente
+// (Darwinex Zero / CME — única fuente válida para el buscador)
+// ============================================================
+type AutocompleteEntry = {
+  symbol: string;        // símbolo individual ej "HG_K"
+  family: string;        // raíz para agrupar vencimientos ej "HG"
+  description: string;
+  pointValue: number;
+  currency: 'USD' | 'EUR' | 'GBX';
+  broker: 'darwinex' | 'fxpro';
+  group: string;
+  highValue?: boolean;   // ⚠⚠ VALOR ALTO
+};
+
+const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
+  const out: AutocompleteEntry[] = [];
+  const add = (
+    broker: 'darwinex' | 'fxpro',
+    group: string,
+    family: string,
+    expiries: string[],
+    description: string,
+    pointValue: number,
+    currency: 'USD' | 'EUR' | 'GBX',
+    highValue = false,
+  ) => {
+    if (expiries.length === 0) {
+      out.push({ symbol: family, family, description, pointValue, currency, broker, group, highValue });
+    } else {
+      for (const e of expiries) {
+        out.push({
+          symbol: `${family}_${e}`, family, description, pointValue, currency, broker, group, highValue,
+        });
+      }
+    }
+  };
+
+  // DARWINEX — Agrícolas
+  add('darwinex', 'Agrícolas', 'KE', ['K', 'N'], 'Hard Red Wheat', 50, 'USD');
+  add('darwinex', 'Agrícolas', 'ZC', ['K', 'N'], 'Corn', 50, 'USD');
+  add('darwinex', 'Agrícolas', 'ZL', ['K', 'N'], 'Soybean Oil', 600, 'USD');
+  add('darwinex', 'Agrícolas', 'ZM', ['K', 'N'], 'Soybean Meal', 100, 'USD');
+  add('darwinex', 'Agrícolas', 'ZS', ['K', 'N'], 'Soybeans', 50, 'USD');
+  // DARWINEX — Energía
+  add('darwinex', 'Energía', 'BZ', ['M', 'N'], 'Brent Crude Oil', 1000, 'USD');
+  add('darwinex', 'Energía', 'CL', ['M'], 'Light Sweet Crude', 1000, 'USD');
+  add('darwinex', 'Energía', 'HO', ['K', 'M'], 'Heating Oil', 42000, 'USD', true);
+  add('darwinex', 'Energía', 'NG', ['K', 'M'], 'Natural Gas', 10000, 'USD', true);
+  add('darwinex', 'Energía', 'RB', ['K', 'M'], 'RBOB Gasoline', 42000, 'USD', true);
+  // DARWINEX — Índices EU
+  add('darwinex', 'Índices EU', 'FDAX', ['M'], 'DAX Index', 25, 'EUR');
+  add('darwinex', 'Índices EU', 'FESX', ['M'], 'Euro Stoxx 50', 10, 'EUR');
+  add('darwinex', 'Índices EU', 'FGBL', ['M'], 'Bund', 1000, 'EUR');
+  // DARWINEX — FX
+  add('darwinex', 'FX Futuros', '6A', ['M'], 'Australian Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6B', ['M'], 'British Pound', 6.25, 'USD');
+  add('darwinex', 'FX Futuros', '6C', ['M'], 'Canadian Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6E', ['M'], 'EUR/USD', 12.5, 'USD');
+  add('darwinex', 'FX Futuros', '6J', ['M'], 'Japanese Yen', 12.5, 'USD');
+  add('darwinex', 'FX Futuros', '6N', ['M'], 'New Zealand Dollar', 10, 'USD');
+  add('darwinex', 'FX Futuros', '6S', ['M'], 'Swiss Franc', 12.5, 'USD');
+  // DARWINEX — Índices USA
+  add('darwinex', 'Índices USA', 'ES', ['M'], 'E-mini S&P 500', 50, 'USD');
+  add('darwinex', 'Índices USA', 'NQ', ['M'], 'E-mini Nasdaq 100', 20, 'USD');
+  add('darwinex', 'Índices USA', 'RTY', ['M'], 'E-mini Russell 2000', 50, 'USD');
+  add('darwinex', 'Índices USA', 'YM', ['M'], 'Mini Dow Jones', 5, 'USD');
+  // DARWINEX — Carnes
+  add('darwinex', 'Carnes', 'HE', ['K'], 'Lean Hogs', 400, 'USD');
+  add('darwinex', 'Carnes', 'LE', ['M'], 'Live Cattle', 400, 'USD');
+  // DARWINEX — Metales
+  add('darwinex', 'Metales', 'GC', ['M'], 'Gold', 100, 'USD');
+  add('darwinex', 'Metales', 'HG', ['K', 'N'], 'Copper', 25000, 'USD', true);
+  add('darwinex', 'Metales', 'PL', ['N'], 'Platinum', 50, 'USD');
+  add('darwinex', 'Metales', 'SI', ['K', 'N'], 'Silver', 5000, 'USD', true);
+  add('darwinex', 'Bonos', 'ZN', ['M'], '10Y US Treasury Note', 1000, 'USD');
+
+  // FXPRO — CFDs
+  const fxpro = (symbol: string, description: string, pv: number, cur: 'USD' | 'EUR' | 'GBX', group = 'CFDs') => {
+    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'fxpro', group });
+  };
+  fxpro('EURUSD', 'Euro vs Dollar', 10, 'USD', 'Forex');
+  fxpro('GBPUSD', 'Pound vs Dollar', 10, 'USD', 'Forex');
+  fxpro('USDJPY', 'Dollar vs Yen (variable)', 10, 'USD', 'Forex');
+  fxpro('GOLD', 'Gold CFD', 1, 'USD', 'Metales');
+  fxpro('SILVER', 'Silver CFD', 5, 'USD', 'Metales');
+  fxpro('BITCOIN', 'Bitcoin CFD', 1, 'USD', 'Crypto');
+  fxpro('ETHEREUM', 'Ethereum CFD', 1, 'USD', 'Crypto');
+  fxpro('FILECOIN', 'Filecoin CFD', 1, 'USD', 'Crypto');
+  fxpro('#USNDAQ100', 'Nasdaq CFD', 1, 'USD', 'Índices');
+  fxpro('#USSPX500', 'S&P 500 CFD', 1, 'USD', 'Índices');
+  fxpro('#US30', 'Dow Jones CFD', 1, 'USD', 'Índices');
+  fxpro('#Japan225', 'Nikkei CFD', 1, 'USD', 'Índices');
+  fxpro('TSLA.O', 'Tesla', 1, 'USD', 'Acciones USA');
+  fxpro('WIX.O', 'Wix.com', 1, 'USD', 'Acciones USA');
+  fxpro('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 'ETFs');
+  fxpro('AMD.O', 'AMD', 1, 'USD', 'Acciones USA');
+  fxpro('GIS.N', 'General Mills', 1, 'USD', 'Acciones USA');
+  fxpro('HILS.L', 'Hill & Smith', 1, 'GBX', 'Acciones UK');
+  fxpro('HLMA.L', 'Halma PLC', 1, 'GBX', 'Acciones UK');
+  fxpro('ZINC', 'Zinc CFD', 6.25, 'USD', 'Metales Spot');
+  fxpro('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 'Metales Spot');
+  fxpro('COPPER', 'Copper CFD', 6.25, 'USD', 'Metales Spot');
+
+  return out;
+})();
+
+
 const fmt = (n: number, d = 4) => Number.isFinite(n) ? n.toFixed(d) : '—';
 const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
@@ -417,11 +525,21 @@ function CalculatorPage() {
 
           {/* Instrumento */}
           <Field label="Instrumento">
-            <input
+            <InstrumentAutocomplete
               value={instrument}
-              onChange={e => setInstrument(e.target.value)}
-              placeholder="LE_M, HILS.L, ZINC, #Japan225..."
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              onChange={setInstrument}
+              onSelect={(e) => {
+                setInstrument(e.symbol);
+                setPointValue(String(e.pointValue));
+                onAccountChange(e.broker);
+                toast.success(`${e.symbol} cargado — valor punto: ${e.pointValue} ${e.currency}`);
+                if (e.currency === 'GBX') {
+                  toast.warning(`${e.symbol} cotiza en peniques (GBX)`, {
+                    description: 'Usa el precio MT5 directamente. P/L en GBX. Divide entre 100 para GBP.',
+                    duration: 8000,
+                  });
+                }
+              }}
             />
           </Field>
 
@@ -834,6 +952,155 @@ function InstrumentTable({
         FXPro: con apalancamiento 1:30 el margen requerido = valor posición / 30. El riesgo se calcula sobre el capital real.
         El valor del punto exacto varía según el instrumento — consulta especificaciones en MT5 (clic derecho → Especificaciones).
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Autocomplete instrumento — buscador con dropdown
+// ============================================================
+function InstrumentAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (e: AutocompleteEntry) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const [selectedDesc, setSelectedDesc] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const q = value.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!q) return [];
+    return AUTOCOMPLETE.filter(
+      e =>
+        e.symbol.toLowerCase().includes(q) ||
+        e.family.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q),
+    ).slice(0, 60);
+  }, [q]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, AutocompleteEntry[]>();
+    for (const r of results) {
+      const key = `${r.broker}|${r.family}|${r.description}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    }
+    return Array.from(map.values());
+  }, [results]);
+
+  const flat = useMemo(() => grouped.flat(), [grouped]);
+
+  useEffect(() => { setHighlight(0); }, [q]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const handleSelect = (e: AutocompleteEntry) => {
+    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`);
+    setOpen(false);
+    onSelect(e);
+  };
+
+  const onKeyDown = (ev: React.KeyboardEvent<HTMLInputElement>) => {
+    if (ev.key === 'Escape') { setOpen(false); return; }
+    if (!open && (ev.key === 'ArrowDown' || ev.key === 'Enter')) { setOpen(true); return; }
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      setHighlight(h => Math.min(h + 1, flat.length - 1));
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      setHighlight(h => Math.max(h - 1, 0));
+    } else if (ev.key === 'Enter' && flat[highlight]) {
+      ev.preventDefault();
+      handleSelect(flat[highlight]);
+    }
+  };
+
+  let flatIdx = -1;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          value={value}
+          onChange={e => { onChange(e.target.value); setOpen(true); setSelectedDesc(null); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder="Escribe símbolo... ej: HG, LE, ZL, copper"
+          autoComplete="off"
+          spellCheck={false}
+          className="w-full h-10 rounded-md border border-input bg-transparent pl-9 pr-3 text-sm font-data focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      {selectedDesc && !open && (
+        <div className="mt-1 text-[11px] text-muted-foreground truncate">{selectedDesc}</div>
+      )}
+
+      {open && q && (
+        <div className="absolute z-50 mt-1 w-full max-h-[360px] overflow-y-auto rounded-md border border-border bg-card shadow-xl">
+          {grouped.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+              Sin resultados para "{value}"
+            </div>
+          ) : (
+            grouped.map((group, gi) => {
+              const head = group[0];
+              return (
+                <div key={gi} className="border-b border-border/40 last:border-b-0">
+                  <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 flex items-center gap-2">
+                    <span>{head.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+                    <span>·</span>
+                    <span>{head.group}</span>
+                    {group.length > 1 && (
+                      <span className="ml-auto">{group.length} vencimientos</span>
+                    )}
+                  </div>
+                  {group.map(entry => {
+                    flatIdx++;
+                    const isHi = flatIdx === highlight;
+                    return (
+                      <button
+                        key={entry.symbol}
+                        type="button"
+                        onMouseEnter={() => setHighlight(flat.indexOf(entry))}
+                        onClick={() => handleSelect(entry)}
+                        className={`w-full text-left px-3 py-2 flex items-center gap-3 text-sm transition-colors ${
+                          isHi ? '' : 'hover:bg-muted/40'
+                        }`}
+                        style={isHi ? { background: 'color-mix(in oklab, #D4A017 18%, transparent)' } : undefined}
+                      >
+                        <span className="font-data font-semibold w-20 shrink-0">{entry.symbol}</span>
+                        <span className="flex-1 text-muted-foreground truncate">{entry.description}</span>
+                        <span className="font-data text-xs tabular-nums whitespace-nowrap">
+                          {entry.pointValue.toLocaleString('en-US')} {entry.currency}
+                        </span>
+                        {entry.highValue && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-destructive/20 text-destructive border border-destructive/40 whitespace-nowrap">
+                            ⚠ VALOR ALTO
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
