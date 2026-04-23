@@ -334,6 +334,7 @@ function CalculatorPage() {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const saveCalculation = async () => {
     if (!(nEntry > 0) || !(slPrice > 0) || !(lots > 0) || !instrument.trim()) {
       toast.error('Completa el cálculo antes de guardar');
       return;
