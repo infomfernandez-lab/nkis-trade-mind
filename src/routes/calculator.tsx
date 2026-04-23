@@ -224,6 +224,7 @@ type AutocompleteEntry = {
   broker: 'darwinex' | 'fxpro';
   group: string;
   highValue?: boolean;   // ⚠⚠ VALOR ALTO
+  tickSize?: number;     // tamaño mínimo de movimiento de precio (para puntos MT5)
 };
 
 const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
