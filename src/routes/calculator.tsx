@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
-import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle } from 'lucide-react';
+import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
