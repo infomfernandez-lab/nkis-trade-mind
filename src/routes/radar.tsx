@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Radar } from 'lucide-react';
+import { Radar, ChevronDown, ChevronUp } from 'lucide-react';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { EnTendenciaBlock, useEnTendenciaCount } from '@/components/radar/EnTendenciaBlock';
 import { ProximoEntradaBlock, useProximoEntradaCount } from '@/components/radar/ProximoEntradaBlock';
@@ -30,7 +31,8 @@ function RadarPage() {
   const tendenciaCount = useEnTendenciaCount(broker);
   const proximoCount = useProximoEntradaCount(broker);
 
-  // Mobile order: ④ → ① → ③ → ②. Desktop order: ① → ② → ③ → ④
+  const [showMore, setShowMore] = useState(false);
+
   return (
     <div className="space-y-4">
       <StatusBar brokerFilter={broker} />
@@ -39,21 +41,6 @@ function RadarPage() {
         <Radar className="w-5 h-5 text-primary" />
         <h1 className="font-display text-xl font-bold">Centro de mando</h1>
       </div>
-
-      {/* Mobile: ④ first if there are signals */}
-      {proximoCount > 0 && (
-        <div className="md:hidden">
-          <CollapsibleBlock
-            id="proximo"
-            title="④ PRÓXIMO A ENTRADA"
-            countLabel={`${proximoCount}`}
-            tone="alert"
-            defaultOpen
-          >
-            <ProximoEntradaBlock brokerFilter={broker} />
-          </CollapsibleBlock>
-        </div>
-      )}
 
       {/* ① Posiciones abiertas */}
       <CollapsibleBlock
@@ -65,54 +52,53 @@ function RadarPage() {
         <OpenPositionsTable brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ② En tendencia (desktop primero, en móvil al final) */}
-      <div className="hidden md:block">
-        <CollapsibleBlock
-          id="tendencia"
-          title="② EN TENDENCIA"
-          countLabel={`${tendenciaCount} instrumentos`}
-          defaultOpen
-        >
-          <EnTendenciaBlock brokerFilter={broker} />
-        </CollapsibleBlock>
-      </div>
-
-      {/* ③ Vigilando */}
+      {/* ② En tendencia */}
       <CollapsibleBlock
-        id="vigilando"
-        title="③ VIGILANDO"
+        id="tendencia"
+        title="② EN TENDENCIA"
+        countLabel={`${tendenciaCount} instrumentos`}
         defaultOpen
       >
-        <WatchlistSection openSymbols={openSymbols} brokerFilter={broker} />
+        <EnTendenciaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ② En tendencia en móvil (al final) */}
-      <div className="md:hidden">
-        <CollapsibleBlock
-          id="tendencia-m"
-          title="② EN TENDENCIA"
-          countLabel={`${tendenciaCount}`}
-          defaultOpen={false}
+      {/* Separador "Más información" */}
+      <div className="pt-4">
+        <button
+          onClick={() => setShowMore(v => !v)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-dashed border-border text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
         >
-          <EnTendenciaBlock brokerFilter={broker} />
-        </CollapsibleBlock>
+          {showMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {showMore ? 'Ocultar más información' : '— Más información —'}
+        </button>
       </div>
 
-      {/* ④ Próximo a entrada — desktop al final (siempre visible) */}
-      <div className="hidden md:block">
-        <CollapsibleBlock
-          id="proximo-d"
-          title="④ PRÓXIMO A ENTRADA"
-          countLabel={proximoCount > 0 ? `${proximoCount} ⚡` : '0'}
-          tone={proximoCount > 0 ? 'alert' : undefined}
-          defaultOpen
-        >
-          <ProximoEntradaBlock brokerFilter={broker} />
-        </CollapsibleBlock>
-      </div>
+      {showMore && (
+        <div className="space-y-4">
+          {/* ③ Vigilando */}
+          <CollapsibleBlock
+            id="vigilando"
+            title="③ VIGILANDO"
+            defaultOpen
+          >
+            <WatchlistSection openSymbols={openSymbols} brokerFilter={broker} />
+          </CollapsibleBlock>
 
-      {/* ⑤ Momentum — siempre visible, debajo del ④ */}
-      <MomentumCollapsible broker={broker} />
+          {/* ④ Próximo a entrada */}
+          <CollapsibleBlock
+            id="proximo"
+            title="④ PRÓXIMO A ENTRADA"
+            countLabel={proximoCount > 0 ? `${proximoCount} ⚡` : '0'}
+            tone={proximoCount > 0 ? 'alert' : undefined}
+            defaultOpen
+          >
+            <ProximoEntradaBlock brokerFilter={broker} />
+          </CollapsibleBlock>
+
+          {/* ⑤ Momentum */}
+          <MomentumCollapsible broker={broker} />
+        </div>
+      )}
     </div>
   );
 }
