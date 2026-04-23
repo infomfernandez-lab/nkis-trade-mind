@@ -824,7 +824,7 @@ function NumInput({ value, onChange, className }: { value: number; onChange: (n:
 
 function ResultCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-[#111] p-4 ${className ?? ''}`}>
+    <div className={`rounded-xl border border-border bg-card p-4 ${className ?? ''}`}>
       <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">{title}</h3>
       <div className="space-y-2">{children}</div>
     </div>
