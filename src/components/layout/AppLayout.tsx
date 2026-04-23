@@ -2,13 +2,14 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext, useMemo } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator
+  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator, Sun, Moon,
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
+import { useTheme } from '@/hooks/use-theme';
 import { BrokerSelector } from '@/components/BrokerSelector';
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
@@ -102,7 +103,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 py-4 px-3 space-y-1">
             {navItems.map(item => renderNavItem(item))}
           </nav>
-          <div className="p-4 border-t border-border space-y-2">
+          <div className="p-4 border-t border-border space-y-3">
+            <ThemeToggle />
             <div className="text-xs text-muted-foreground">CAP Trend Following v2.0</div>
             <SignOutButton />
           </div>
@@ -119,6 +121,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <nav className="space-y-1">
                 {navItems.map(item => renderNavItem(item, () => setMobileOpen(false)))}
               </nav>
+              <div className="mt-6 pt-4 border-t border-border space-y-3">
+                <ThemeToggle />
+                <SignOutButton />
+              </div>
             </aside>
           </div>
         )}
@@ -176,6 +182,32 @@ function SignOutButton() {
     >
       <LogOut className="w-3.5 h-3.5" />
       Cerrar Sesión
+    </button>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const isDark = theme === 'dark';
+  const nextLabel = isDark ? 'Cambiar a claro' : 'Cambiar a oscuro';
+  return (
+    <button
+      onClick={toggle}
+      title={nextLabel}
+      aria-label={nextLabel}
+      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium border border-border bg-secondary/40 text-foreground hover:bg-secondary transition-colors group"
+    >
+      {isDark ? (
+        <Moon className="w-3.5 h-3.5 text-primary" />
+      ) : (
+        <Sun className="w-3.5 h-3.5 text-primary" />
+      )}
+      <span className="flex-1 text-left">
+        <span className="group-hover:hidden">{isDark ? 'Oscuro' : 'Claro'}</span>
+        <span className="hidden group-hover:inline text-muted-foreground">
+          → {isDark ? 'Claro' : 'Oscuro'}
+        </span>
+      </span>
     </button>
   );
 }
