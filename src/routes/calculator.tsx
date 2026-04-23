@@ -463,7 +463,7 @@ function CalculatorPage() {
         </ResultCard>
 
         <ResultCard title="Tamaño de posición">
-          <Row label={`Riesgo máximo (${nRisk}%)`}><Big>{fmtEur(riskEur)}</Big></Row>
+          <Row label="Riesgo real de la operación"><Big>{fmtEur(realRisk)}</Big></Row>
           <Row label="Lotes">
             <Big>{lots.toFixed(2)}</Big>
           </Row>
@@ -472,7 +472,8 @@ function CalculatorPage() {
               Lote mínimo — capital insuficiente para más
             </div>
           )}
-          <div className="text-[10px] text-muted-foreground mt-1">mínimo 0.01, máximo 10</div>
+          <div className="text-[10px] text-muted-foreground mt-2">Límite {nRisk}%: {fmtEur(riskEur)}</div>
+          <div className="text-[10px] text-muted-foreground">mínimo 0.01, máximo 10</div>
         </ResultCard>
 
         <ResultCard title="Breakeven">
