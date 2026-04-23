@@ -872,7 +872,11 @@ function CalculatorPage() {
             value={fmt(beActivate)}
             hint={`mover SL a ${fmt(beSl)} cuando llegue`}
           />
-          <MidStat label="TRAILING SL" value="ATR × 3" hint={`SL: ${fmt(trailSl)}`} />
+          <MidStat
+            label="TRAILING SL"
+            value={trailMt5Points != null ? `${trailMt5Points.toLocaleString('en-US')} pts` : 'ATR × 3'}
+            hint={trailMt5Points != null ? 'introducir en MT5' : `distancia: ${fmt(trailDist)}`}
+          />
         </div>
 
         {nTp != null && (
