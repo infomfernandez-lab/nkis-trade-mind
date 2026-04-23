@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, TrendingUp, TrendingDown, Eye, Check, ChevronDown, ChevronUp } from 'lucide-react';
@@ -16,21 +16,40 @@ interface Raw {
   adx?: number;
   adx_value?: number;
   adx_state?: string;
+  // legacy / v17
   dist_ma50?: number;
   distance_to_ma50?: number;
+  // v18 — pendiente MA50 en %
+  pend50_pct?: number;
+  pendiente_ma50?: number;
   pullback_active?: boolean;
   pullback_bars?: number;
   pullback_velas?: number;
   stoch_k?: number;
+  stoch_d?: number;
   stoch_estado?: string;
+  // v18 — dirección stoch
+  stoch_subiendo?: boolean;
+  // estructura
+  structure?: string;
+  estructura?: string;
+  breakout?: string;
+  ruptura?: string;
+  // divergencia v18
+  divergencia?: string; // 'ALCISTA' | 'BAJISTA' | 'NINGUNA'
+  // ATR
   atr?: number;
   atr_value?: number;
-  structure?: string;
-  breakout?: string;
+  atr_estado?: string; // 'BAJA' | 'COHERENTE' | 'ELEVADA' | 'ANORMAL'
+  vol_estado?: string;
   volume?: number;
+  momentum?: number;
 }
 
 export type StochEstado = 'ZONA_ENTRADA' | 'ZONA_MEDIA' | 'SOBRECOMPRADO' | null;
+export type EstructuraTipo = 'CONFIRMADA' | 'PARCIAL' | 'ROTA' | null;
+export type DivergenciaTipo = 'ALCISTA' | 'BAJISTA' | 'NINGUNA' | null;
+export type AtrEstadoTipo = 'BAJA' | 'COHERENTE' | 'ELEVADA' | 'ANORMAL' | null;
 
 export interface UnifiedInstrument {
   symbol: string;
@@ -38,7 +57,14 @@ export interface UnifiedInstrument {
   score: number;
   adx_value: number | null;
   adx_state: string | null;
+  // legacy
   distance_to_ma50: number | null;
+  // v18
+  pend50_pct: number | null;
+  estructura: EstructuraTipo;
+  divergencia: DivergenciaTipo;
+  atr_estado: AtrEstadoTipo;
+  stoch_subiendo: boolean | null;
   pullback_active: boolean;
   pullback_bars: number | null;
   stoch_k: number | null;
@@ -55,6 +81,33 @@ interface SessionRow {
   broker: string | null;
   top_instruments: unknown;
   created_at: string;
+}
+
+function normalizeEstructura(raw?: string): EstructuraTipo {
+  if (!raw) return null;
+  const r = raw.toUpperCase();
+  if (r.includes('CONFIRM') || r.includes('LIMPIA')) return 'CONFIRMADA';
+  if (r.includes('PARCIAL')) return 'PARCIAL';
+  if (r.includes('ROTA') || r.includes('ROMPE')) return 'ROTA';
+  return null;
+}
+
+function normalizeDivergencia(raw?: string): DivergenciaTipo {
+  if (!raw) return null;
+  const r = raw.toUpperCase();
+  if (r.includes('ALCISTA')) return 'ALCISTA';
+  if (r.includes('BAJISTA')) return 'BAJISTA';
+  return 'NINGUNA';
+}
+
+function normalizeAtrEstado(raw?: string): AtrEstadoTipo {
+  if (!raw) return null;
+  const r = raw.toUpperCase();
+  if (r.includes('BAJA') || r.includes('COMPRIMID')) return 'BAJA';
+  if (r.includes('COHEREN') || r.includes('NORMAL')) return 'COHERENTE';
+  if (r.includes('ELEVAD') || r.includes('ALTA')) return 'ELEVADA';
+  if (r.includes('ANORMAL') || r.includes('EXPLOSIV')) return 'ANORMAL';
+  return null;
 }
 
 function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] {
@@ -85,6 +138,10 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
       if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
       const arr = Array.isArray(row.top_instruments) ? (row.top_instruments as Raw[]) : [];
       for (const r of arr) {
+        const stochK = r.stoch_k ?? null;
+        let stochSub: boolean | null = null;
+        if (typeof r.stoch_subiendo === 'boolean') stochSub = r.stoch_subiendo;
+        else if (stochK != null && r.stoch_d != null) stochSub = stochK > r.stoch_d;
         out.push({
           symbol: r.symbol,
           direction: r.direction,
@@ -92,26 +149,40 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
           adx_value: r.adx ?? r.adx_value ?? null,
           adx_state: r.adx_state ?? null,
           distance_to_ma50: r.dist_ma50 ?? r.distance_to_ma50 ?? null,
+          pend50_pct: r.pend50_pct ?? r.pendiente_ma50 ?? null,
+          estructura: normalizeEstructura(r.estructura ?? r.structure),
+          divergencia: normalizeDivergencia(r.divergencia),
+          atr_estado: normalizeAtrEstado(r.atr_estado ?? r.vol_estado),
+          stoch_subiendo: stochSub,
           pullback_active: !!r.pullback_active,
           pullback_bars: r.pullback_velas ?? r.pullback_bars ?? null,
-          stoch_k: r.stoch_k ?? null,
-          stoch_estado: normalizeStochEstado(r.stoch_estado, r.stoch_k, r.direction),
+          stoch_k: stochK,
+          stoch_estado: normalizeStochEstado(r.stoch_estado, stochK ?? undefined, r.direction),
           atr: r.atr_value ?? r.atr ?? null,
-          structure: r.structure ?? null,
-          breakout: r.breakout ?? null,
+          structure: r.estructura ?? r.structure ?? null,
+          breakout: r.ruptura ?? r.breakout ?? null,
           volume: r.volume ?? null,
           broker,
         });
       }
     }
-    return out.sort((a, b) => {
-      if (a.pullback_active !== b.pullback_active) return a.pullback_active ? -1 : 1;
-      return b.score - a.score;
-    });
+    return out.sort((a, b) => b.score - a.score);
   }, [data, brokerFilter]);
 }
 
 interface Props { brokerFilter: BrokerFilter }
+
+type Tier = 'elite' | 'solido' | 'observar';
+function tierOf(score: number): Tier {
+  if (score >= 75) return 'elite';
+  if (score >= 60) return 'solido';
+  return 'observar';
+}
+const TIER_LABEL: Record<Tier, string> = {
+  elite: '★ ÉLITE — Score ≥ 75',
+  solido: '● SÓLIDO — Score 60-74',
+  observar: '◌ OBSERVAR — Score 40-59',
+};
 
 export function EnTendenciaBlock({ brokerFilter }: Props) {
   const items = useUnifiedInstruments(brokerFilter);
@@ -128,71 +199,129 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
     );
   }
 
+  // Group by tier preserving sort
+  const grouped: { tier: Tier; items: UnifiedInstrument[] }[] = [];
+  for (const it of items) {
+    const t = tierOf(it.score);
+    const last = grouped[grouped.length - 1];
+    if (last && last.tier === t) last.items.push(it);
+    else grouped.push({ tier: t, items: [it] });
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+        Scanner v18 — Medias + Estructura + Stoch(14,3,3) + ADX
+      </div>
+
       {/* Desktop table */}
-      <table className="w-full hidden md:table">
-        <thead>
-          <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <th className="text-left px-3 py-2">Símbolo</th>
-            <th className="text-left px-2 py-2 w-[90px]">Cuenta</th>
-            <th className="text-left px-2 py-2 w-[70px]">Dir</th>
-            <th className="text-right px-2 py-2 w-[80px]">Score</th>
-            <th className="text-left px-2 py-2 w-[120px]">ADX</th>
-            <th className="text-left px-2 py-2 w-[120px]">Dist MA50</th>
-            <th className="text-left px-2 py-2 w-[140px]">Stoch</th>
-            <th className="text-left px-2 py-2">Notas</th>
-            <th className="px-2 py-2 w-[120px]"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((inst, i) => (
-            <DesktopRow
-              key={`${inst.symbol}-${inst.broker}-${i}`}
-              inst={inst}
-              isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-              isOpen={openSymbols.has(inst.symbol)}
-            />
-          ))}
-        </tbody>
-      </table>
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="text-left px-3 py-2">Símbolo</th>
+              <th className="text-left px-2 py-2 w-[70px]">Dir</th>
+              <th className="text-center px-2 py-2 w-[80px]">Score</th>
+              <th className="text-left px-2 py-2 w-[100px]">ADX</th>
+              <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
+              <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
+              <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
+              <th className="text-left px-2 py-2 w-[80px]">Div</th>
+              <th className="text-left px-2 py-2 w-[100px]">ATR</th>
+              <th className="text-right px-2 py-2 w-[140px]">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grouped.map((g, gi) => (
+              <Fragment key={`${g.tier}-${gi}`}>
+                <tr className="bg-secondary/20">
+                  <td colSpan={10} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                    {TIER_LABEL[g.tier]}
+                  </td>
+                </tr>
+                {g.items.map((inst, i) => (
+                  <DesktopRow
+                    key={`${inst.symbol}-${inst.broker}-${i}`}
+                    inst={inst}
+                    isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
+                    isOpen={openSymbols.has(inst.symbol)}
+                  />
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden divide-y divide-border">
-        {items.map((inst, i) => (
-          <MobileCard
-            key={`${inst.symbol}-${inst.broker}-${i}`}
-            inst={inst}
-            isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-            isOpen={openSymbols.has(inst.symbol)}
-          />
+      <div className="md:hidden">
+        {grouped.map((g, gi) => (
+          <div key={`m-${g.tier}-${gi}`}>
+            <div className="px-3 py-1 bg-secondary/30 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+              {TIER_LABEL[g.tier]}
+            </div>
+            <div className="divide-y divide-border">
+              {g.items.map((inst, i) => (
+                <MobileCard
+                  key={`${inst.symbol}-${inst.broker}-${i}`}
+                  inst={inst}
+                  isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
+                  isOpen={openSymbols.has(inst.symbol)}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-function adxColor(state: string | null): string {
+// === Coloring helpers ===
+
+function adxAbbr(state: string | null): string {
   const s = (state ?? '').toUpperCase();
-  if (s === 'ACELERANDO') return 'text-success';
-  if (s === 'SUBIENDO') return 'text-yellow-400';
-  return 'text-muted-foreground';
+  if (s.startsWith('ACEL')) return 'ACEL';
+  if (s.startsWith('SUBI') || s.startsWith('BUEN')) return 'SUBI';
+  if (s.startsWith('ESTA') || s.startsWith('LATE')) return 'ESTA';
+  if (s.startsWith('AGOT') || s.startsWith('DEBI')) return 'AGOT';
+  return s.slice(0, 4);
 }
 
-function distColor(d: number | null): string {
-  if (d == null) return 'text-muted-foreground';
-  if (d < 5) return 'text-success';
-  if (d < 10) return 'text-blue-400';
-  if (d < 20) return 'text-orange-400';
+function adxColor(value: number | null): string {
+  if (value == null) return 'text-muted-foreground';
+  if (value > 30) return 'text-success';
+  if (value < 20) return 'text-yellow-400';
+  return 'text-foreground';
+}
+
+function pend50Color(p: number | null): string {
+  if (p == null) return 'text-muted-foreground';
+  const a = Math.abs(p);
+  if (a > 0.3) return 'text-success';
+  if (a >= 0.05) return 'text-yellow-400';
   return 'text-destructive';
 }
 
-function distLabel(d: number | null): string {
-  if (d == null) return '—';
-  if (d < 5) return 'MUY CERCA';
-  if (d < 10) return 'CERCA';
-  if (d < 20) return 'ALEJADO';
-  return 'SOBREEXT';
+function estructuraMeta(e: EstructuraTipo): { icon: string; label: string; color: string; bg: string } {
+  if (e === 'CONFIRMADA') return { icon: '✓', label: 'CONFIRMADA', color: 'text-success', bg: 'bg-success/10 border-success/30' };
+  if (e === 'PARCIAL') return { icon: '~', label: 'PARCIAL', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30' };
+  if (e === 'ROTA') return { icon: '✗', label: 'ROTA', color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' };
+  return { icon: '—', label: '—', color: 'text-muted-foreground', bg: '' };
+}
+
+function divMeta(d: DivergenciaTipo): { label: string; color: string } {
+  if (d === 'BAJISTA') return { label: '↘ BAJ', color: 'text-destructive' };
+  if (d === 'ALCISTA') return { label: '↗ ALC', color: 'text-success' };
+  return { label: '—', color: 'text-muted-foreground' };
+}
+
+function atrMeta(a: AtrEstadoTipo): { label: string; color: string } {
+  if (a === 'BAJA') return { label: 'BAJA', color: 'text-success' };
+  if (a === 'COHERENTE') return { label: 'COHERENTE', color: 'text-foreground' };
+  if (a === 'ELEVADA') return { label: 'ELEVADA', color: 'text-yellow-400' };
+  if (a === 'ANORMAL') return { label: 'ANORMAL', color: 'text-destructive' };
+  return { label: '—', color: 'text-muted-foreground' };
 }
 
 function scoreIcon(score: number): string {
@@ -201,15 +330,74 @@ function scoreIcon(score: number): string {
   return '◌';
 }
 
-function scoreColor(score: number): string {
-  if (score >= 75) return 'text-yellow-400';
-  if (score >= 60) return 'text-success';
-  return 'text-muted-foreground';
+function ScoreBadge({ score }: { score: number }) {
+  if (score >= 75) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-yellow-400 text-black border border-yellow-500">
+        ★ {score}
+      </span>
+    );
+  }
+  if (score >= 60) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-success/30 text-success border border-success/50">
+        ● {score}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-yellow-700/30 text-yellow-300 border border-yellow-700/50">
+      ◌ {score}
+    </span>
+  );
 }
 
 function isAlcistaDir(d: string) {
   const v = d.toLowerCase();
   return v === 'alcista' || v === 'buy';
+}
+
+function StochCell({ inst }: { inst: UnifiedInstrument }) {
+  const k = inst.stoch_k;
+  if (k == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const alcista = isAlcistaDir(inst.direction);
+  const sub = inst.stoch_subiendo;
+  // Apoya tendencia: alcista subiendo / bajista bajando
+  const apoya = sub == null ? null : (alcista ? sub : !sub);
+  const color = apoya == null ? 'text-foreground' : apoya ? 'text-success' : 'text-yellow-400';
+  const arrow = sub == null ? '' : sub ? '↑' : '↓';
+  return (
+    <span className={`font-data text-xs font-semibold ${color}`}>
+      {Math.round(k)} {arrow}
+    </span>
+  );
+}
+
+function AdxCell({ inst }: { inst: UnifiedInstrument }) {
+  if (inst.adx_value == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const v = inst.adx_value;
+  const low = v < 15;
+  return (
+    <div className="flex items-center gap-1 leading-tight">
+      <div>
+        <div className={`font-data text-xs font-semibold ${adxColor(v)}`}>{v}</div>
+        <div className="text-[9px] font-bold text-muted-foreground">{adxAbbr(inst.adx_state)}</div>
+      </div>
+      {low && (
+        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-destructive/20 text-destructive border border-destructive/40">⚠</span>
+      )}
+    </div>
+  );
+}
+
+function Pend50Cell({ inst }: { inst: UnifiedInstrument }) {
+  // Prefer v18 pend50_pct; fallback to legacy distance to give some context
+  const p = inst.pend50_pct;
+  if (p == null) {
+    if (inst.distance_to_ma50 == null) return <span className="text-xs text-muted-foreground text-right block">—</span>;
+    return <span className="text-xs text-muted-foreground font-data text-right block">d{inst.distance_to_ma50}%</span>;
+  }
+  return <span className={`text-xs font-data font-semibold ${pend50Color(p)} text-right block`}>{p.toFixed(2)}%</span>;
 }
 
 export function normalizeStochEstado(raw: string | undefined, value: number | undefined, direction: string | undefined): StochEstado {
@@ -222,7 +410,6 @@ export function normalizeStochEstado(raw: string | undefined, value: number | un
     if (value > 70) return 'SOBRECOMPRADO';
     return 'ZONA_MEDIA';
   }
-  // bajista — invertido
   if (value > 70) return 'ZONA_ENTRADA';
   if (value < 30) return 'SOBRECOMPRADO';
   return 'ZONA_MEDIA';
@@ -262,23 +449,44 @@ function useWatchAction(inst: UnifiedInstrument) {
   };
 }
 
-function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
+function ActionCell({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
   const onWatch = useWatchAction(inst);
+  return (
+    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+      {inst.pullback_active && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50">
+          ⭐ PULLBACK{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}
+        </span>
+      )}
+      {isOpen ? (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
+      ) : isWatched ? (
+        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />Vigilando</span>
+      ) : (
+        <button onClick={onWatch} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors">
+          <Eye className="w-3 h-3" /> Vigilar
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
-  const notes = [inst.structure, inst.breakout, inst.volume != null ? `Vol ${inst.volume}` : null].filter(Boolean).join(' · ');
+  const est = estructuraMeta(inst.estructura);
+  const div = divMeta(inst.divergencia);
+  const atr = atrMeta(inst.atr_estado);
 
   return (
-    <tr className={`border-t border-border text-sm ${inst.pullback_active ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
+    <tr className={`border-t border-border text-sm ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
-          {inst.pullback_active && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />}
+          {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />}
           {inst.symbol}
+          <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
+            inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+          }`}>{inst.broker === 'darwinex' ? 'DW' : 'FX'}</span>
         </div>
-      </td>
-      <td className="px-2 py-2">
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-        }`}>{inst.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
       </td>
       <td className="px-2 py-2">
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -288,75 +496,39 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           {alcista ? 'BUY' : 'SELL'}
         </span>
       </td>
-      <td className={`px-2 py-2 text-right font-data font-bold ${scoreColor(inst.score)}`}>
-        {scoreIcon(inst.score)} {inst.score}
+      <td className="px-2 py-2 text-center">
+        <ScoreBadge score={inst.score} />
       </td>
+      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
+      <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
       <td className="px-2 py-2">
-        {inst.adx_value != null ? (
-          <div className="leading-tight">
-            <div className="font-data text-xs text-foreground">{inst.adx_value}</div>
-            {inst.adx_state && <div className={`text-[10px] font-semibold ${adxColor(inst.adx_state)}`}>{inst.adx_state.slice(0, 4).toUpperCase()}</div>}
-          </div>
+        {inst.estructura ? (
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${est.bg} ${est.color}`}>
+            {est.icon} {est.label}
+          </span>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
-      <td className="px-2 py-2">
-        <div className="leading-tight">
-          <div className={`font-data text-xs ${distColor(inst.distance_to_ma50)}`}>
-            {inst.distance_to_ma50 != null ? `${inst.distance_to_ma50}%` : '—'}
-          </div>
-          <div className={`text-[9px] font-semibold ${distColor(inst.distance_to_ma50)}`}>{distLabel(inst.distance_to_ma50)}</div>
-        </div>
-      </td>
-      <td className="px-2 py-2">
-        {(() => {
-          const m = stochEstadoMeta(inst.stoch_estado);
-          return (
-            <div className="leading-tight">
-              <div className={`text-[11px] font-bold ${m.color} flex items-center gap-1`}>
-                <span>{m.dot}</span>{m.label}
-              </div>
-              {inst.stoch_k != null && (
-                <div className="text-[9px] text-muted-foreground font-data">~{Math.round(inst.stoch_k)}</div>
-              )}
-            </div>
-          );
-        })()}
-      </td>
-      <td className="px-2 py-2 text-[11px] text-muted-foreground">
-        {inst.pullback_active && (
-          <span className="mr-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
-            ⭐ PULLBACK{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}
-          </span>
-        )}
-        {notes || '—'}
-      </td>
-      <td className="px-2 py-2 text-right">
-        {isOpen ? (
-          <span className="text-[10px] text-yellow-400 font-bold">EN POS</span>
-        ) : isWatched ? (
-          <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />Vigilando</span>
-        ) : (
-          <button onClick={onWatch} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors">
-            <Eye className="w-3 h-3" /> Vigilar
-          </button>
-        )}
-      </td>
+      <td className="px-2 py-2"><StochCell inst={inst} /></td>
+      <td className={`px-2 py-2 text-[11px] font-bold ${div.color}`}>{div.label}</td>
+      <td className={`px-2 py-2 text-[11px] font-bold ${atr.color}`}>{atr.label}</td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isOpen={isOpen} /></td>
     </tr>
   );
 }
 
 function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
   const [open, setOpen] = useState(false);
-  const onWatch = useWatchAction(inst);
   const alcista = isAlcistaDir(inst.direction);
-  const notes = [inst.structure, inst.breakout, inst.volume != null ? `Vol ${inst.volume}` : null].filter(Boolean).join(' · ');
+  const est = estructuraMeta(inst.estructura);
+  const div = divMeta(inst.divergencia);
+  const atr = atrMeta(inst.atr_estado);
 
   return (
-    <div className={`p-3 ${inst.pullback_active ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2">
-        {inst.pullback_active && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
+    <div className={`p-3 ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
+        {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />}
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
-        <span className={`font-data font-bold text-sm ${scoreColor(inst.score)}`}>{scoreIcon(inst.score)} {inst.score}</span>
+        <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
         }`}>
@@ -364,32 +536,20 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           {alcista ? 'BUY' : 'SELL'}
         </span>
         {inst.pullback_active && (
-          <span className="text-[9px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 px-1 py-0.5 rounded">⭐ PB</span>
+          <span className="text-[9px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50 px-1 py-0.5 rounded">⭐ PB{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}</span>
         )}
         {open ? <ChevronUp className="w-4 h-4 ml-auto text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />}
       </button>
       {open && (
-        <div className="mt-2 space-y-1 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-              inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-            }`}>{inst.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
-            {inst.adx_value != null && (
-              <span>ADX <span className="font-data text-foreground">{inst.adx_value}</span> <span className={`font-semibold ${adxColor(inst.adx_state)}`}>{(inst.adx_state ?? '').toUpperCase()}</span></span>
-            )}
-            <span className={`font-data ${distColor(inst.distance_to_ma50)}`}>MA50 {inst.distance_to_ma50 != null ? `${inst.distance_to_ma50}%` : '—'}</span>
-          </div>
-          {notes && <div>{notes}</div>}
-          <div className="pt-1.5">
-            {isOpen ? (
-              <span className="text-[10px] text-yellow-400 font-bold">EN POSICIÓN</span>
-            ) : isWatched ? (
-              <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />En Vigilando</span>
-            ) : (
-              <button onClick={onWatch} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors">
-                <Eye className="w-3 h-3" /> Añadir a Vigilando
-              </button>
-            )}
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+          <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span className={`font-data font-semibold ${adxColor(inst.adx_value)}`}>{inst.adx_value ?? '—'} {adxAbbr(inst.adx_state)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span className={`font-data ${pend50Color(inst.pend50_pct)}`}>{inst.pend50_pct != null ? `${inst.pend50_pct.toFixed(2)}%` : (inst.distance_to_ma50 != null ? `d${inst.distance_to_ma50}%` : '—')}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Div</span><span className={`font-bold ${div.color}`}>{div.label}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span className={`font-bold ${atr.color}`}>{atr.label}</span></div>
+          <div className="col-span-2 pt-1.5 flex justify-end">
+            <ActionCell inst={inst} isWatched={isWatched} isOpen={isOpen} />
           </div>
         </div>
       )}
