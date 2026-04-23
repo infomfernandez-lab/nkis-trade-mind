@@ -103,7 +103,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 py-4 px-3 space-y-1">
             {navItems.map(item => renderNavItem(item))}
           </nav>
-          <div className="p-4 border-t border-border space-y-2">
+          <div className="p-4 border-t border-border space-y-3">
+            <ThemeToggle />
             <div className="text-xs text-muted-foreground">CAP Trend Following v2.0</div>
             <SignOutButton />
           </div>
