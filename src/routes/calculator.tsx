@@ -317,7 +317,38 @@ function CalculatorPage() {
     }
   };
 
-  return (
+  const saveCalculation = async () => {
+    if (!(nEntry > 0) || !(slPrice > 0) || !(lots > 0) || !instrument.trim()) {
+      toast.error('Completa el cálculo antes de guardar');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any).from('calculadora_registro').insert({
+        instrumento: instrument.trim(),
+        broker: account,
+        direccion: direction,
+        precio_entrada: nEntry,
+        stop_loss: slPrice,
+        distancia_stop: slDist,
+        lotes: lots,
+        riesgo_real: realRisk,
+        breakeven_precio: beActivate,
+        breakeven_sl: beSl,
+        trailing_sl: Number.isFinite(trailSl) ? trailSl : null,
+        atr: nAtr,
+        valor_punto: nPv,
+        cuenta_balance: capital,
+        vix: nVix ?? null,
+      });
+      if (error) throw error;
+      toast.success('✓ Cálculo guardado', { duration: 2000 });
+    } catch (e: any) {
+      toast.error('✗ Error al guardar', { description: e?.message });
+    } finally {
+      setSaving(false);
+    }
+  };
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Calculadora</h1>
