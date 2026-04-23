@@ -458,7 +458,11 @@ function CalculatorPage() {
   const beActivate = direction === 'BUY' ? nEntry + nAtr : nEntry - nAtr;
   const beSl = direction === 'BUY' ? nEntry + nAtr * 0.2 : nEntry - nAtr * 0.2;
 
-  const trailSl = direction === 'BUY' ? nCurrent - nAtr * 3 : nCurrent + nAtr * 3;
+  const trailDist = nAtr * 3;
+  const trailSl = direction === 'BUY' ? nCurrent - trailDist : nCurrent + trailDist;
+  const trailMt5Points = tickSize && tickSize > 0 && trailDist > 0
+    ? Math.round(trailDist / tickSize)
+    : null;
   const floatPnl = direction === 'BUY'
     ? (nCurrent - nEntry) * lots * nPv
     : (nEntry - nCurrent) * lots * nPv;
