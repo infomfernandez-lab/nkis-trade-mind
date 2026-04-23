@@ -805,7 +805,9 @@ function InstrumentTable({
                       </td>
                       <td className="px-3 py-2 text-muted-foreground hidden md:table-cell">
                         {r.description}
-                        {r.note && <div className="text-[10px] text-orange-400/80 mt-0.5">{r.note}</div>}
+                        {r.note && (
+                          <div className={`text-[10px] mt-0.5 font-semibold ${r.warn ? 'text-destructive' : 'text-orange-400/80'}`}>{r.note}</div>
+                        )}
                       </td>
                       <td className="px-3 py-2 hidden md:table-cell">
                         {r.currency ? (
