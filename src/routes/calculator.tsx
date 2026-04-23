@@ -298,14 +298,14 @@ function CalculatorPage() {
 
   const copySummary = async () => {
     const lines = [
-      `RESUMEN — ${instrument || '—'} ${direction} ${account === 'darwinex' ? 'Darwinex' : 'FXPro'}`,
-      `─────────────────────────────`,
-      `Entrada:      ${fmt(nEntry)}`,
-      `Stop Loss:    ${fmt(slPrice)}  (dist: ${fmt(slDist)})`,
-      `Lotes:        ${lots.toFixed(2)}  (riesgo: ${fmtEur(realRisk)})`,
-      `Breakeven en: ${fmt(beActivate)} → SL a ${fmt(beSl)}`,
-      `Trailing SL:  precio ± (ATR×3)`,
-      nTp != null ? `TP:           ${fmt(nTp)}  RR ${rr.toFixed(2)}:1` : '',
+      `INSTRUMENTO: ${instrument || '—'} — ${direction}`,
+      `Entrada:     ${fmt(nEntry)}`,
+      `Stop Loss:   ${fmt(slPrice)}`,
+      `Lotes:       ${lots.toFixed(2)}`,
+      `Riesgo:      ${fmtEur(realRisk)}`,
+      `Breakeven:   ${fmt(beActivate)} → mover SL a ${fmt(beSl)}`,
+      `Trailing:    ATR × 3`,
+      nTp != null ? `TP:          ${fmt(nTp)}  (RR ${rr.toFixed(2)}:1)` : '',
     ].filter(Boolean).join('\n');
     try {
       await navigator.clipboard.writeText(lines);
