@@ -298,14 +298,14 @@ function CalculatorPage() {
 
   const copySummary = async () => {
     const lines = [
-      `RESUMEN — ${instrument || '—'} ${direction} ${account === 'darwinex' ? 'Darwinex' : 'FXPro'}`,
-      `─────────────────────────────`,
-      `Entrada:      ${fmt(nEntry)}`,
-      `Stop Loss:    ${fmt(slPrice)}  (dist: ${fmt(slDist)})`,
-      `Lotes:        ${lots.toFixed(2)}  (riesgo: ${fmtEur(realRisk)})`,
-      `Breakeven en: ${fmt(beActivate)} → SL a ${fmt(beSl)}`,
-      `Trailing SL:  precio ± (ATR×3)`,
-      nTp != null ? `TP:           ${fmt(nTp)}  RR ${rr.toFixed(2)}:1` : '',
+      `INSTRUMENTO: ${instrument || '—'} — ${direction}`,
+      `Entrada:     ${fmt(nEntry)}`,
+      `Stop Loss:   ${fmt(slPrice)}`,
+      `Lotes:       ${lots.toFixed(2)}`,
+      `Riesgo:      ${fmtEur(realRisk)}`,
+      `Breakeven:   ${fmt(beActivate)} → mover SL a ${fmt(beSl)}`,
+      `Trailing:    ATR × 3`,
+      nTp != null ? `TP:          ${fmt(nTp)}  (RR ${rr.toFixed(2)}:1)` : '',
     ].filter(Boolean).join('\n');
     try {
       await navigator.clipboard.writeText(lines);
@@ -537,32 +537,84 @@ function CalculatorPage() {
         </ResultCard>
       </section>
 
-      {/* RESUMEN */}
-      <section className="rounded-xl border border-primary/30 bg-card p-4 lg:p-6">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wider">
-            Resumen — <span className="text-primary">{instrument || '—'}</span>{' '}
-            <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>{direction}</span>{' '}
-            <span className="text-muted-foreground">{account === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+      {/* RESUMEN OPERATIVO */}
+      <section
+        className="rounded-xl border-2 p-5 lg:p-7"
+        style={{ borderColor: '#D4A017', background: 'color-mix(in oklab, #D4A017 6%, var(--card))' }}
+      >
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <h2 className="text-base font-bold uppercase tracking-wider flex items-center gap-2">
+            📋 Resumen operativo
           </h2>
-          <div className="flex gap-2">
-            <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
-              <Copy className="w-3.5 h-3.5" /> Copiar resumen
-            </button>
-            <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-muted-foreground text-xs font-medium hover:text-foreground">
-              <Trash2 className="w-3.5 h-3.5" /> Limpiar
-            </button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-lg font-bold font-data">
+              <span className="text-foreground">{instrument || '—'}</span>{' '}
+              <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
+                {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
+                <Copy className="w-3.5 h-3.5" /> Copiar resumen
+              </button>
+              <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-muted-foreground text-xs font-medium hover:text-foreground">
+                <Trash2 className="w-3.5 h-3.5" /> Limpiar
+              </button>
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm font-data">
-          <SumRow label="Entrada" value={fmt(nEntry)} />
-          <SumRow label="Stop Loss" value={`${fmt(slPrice)} (d: ${fmt(slDist)})`} />
-          <SumRow label="Lotes" value={`${lots.toFixed(2)} (${fmtEur(realRisk)})`} />
-          <SumRow label="Breakeven" value={`${fmt(beActivate)} → SL ${fmt(beSl)}`} />
-          <SumRow label="Trailing SL" value="precio ± (ATR×3)" />
-          {nTp != null && <SumRow label="RR con TP" value={`${rr.toFixed(2)}:1`} />}
+
+        {/* Fila principal: Entrada / SL / Lotes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-5 border-b border-border">
+          <BigStat label="ENTRADA" value={fmt(nEntry)} hint="precio actual" />
+          <BigStat label="STOP LOSS" value={fmt(slPrice)} hint="precio exacto" />
+          <BigStat label="LOTES" value={lots.toFixed(2)} hint="en MT5" />
         </div>
+
+        {/* Fila secundaria: Riesgo / Breakeven / Trailing */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
+          <MidStat label="RIESGO REAL" value={fmtEur(realRisk)} />
+          <MidStat
+            label="BREAKEVEN"
+            value={fmt(beActivate)}
+            hint={`mover SL a ${fmt(beSl)} cuando llegue`}
+          />
+          <MidStat label="TRAILING SL" value="ATR × 3" hint={`SL: ${fmt(trailSl)}`} />
+        </div>
+
+        {nTp != null && (
+          <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4">
+            <MidStat label="TAKE PROFIT" value={fmt(nTp)} />
+            <MidStat label="RR RATIO" value={`${rr.toFixed(2)}:1`} hintClass={rrColor} />
+          </div>
+        )}
+
+        {vixInfo && (
+          <div className={`mt-5 text-sm ${vixInfo.color ?? 'text-muted-foreground'}`}>
+            ⚠ {vixInfo.msg}
+          </div>
+        )}
       </section>
+    </div>
+  );
+}
+
+function BigStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="text-center md:text-left">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="font-data font-bold leading-none" style={{ fontSize: '2.25rem', color: '#D4A017' }}>{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
+    </div>
+  );
+}
+
+function MidStat({ label, value, hint, hintClass }: { label: string; value: string; hint?: string; hintClass?: string }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className={`font-data font-bold text-xl ${hintClass ?? ''}`} style={hintClass ? undefined : { color: '#D4A017' }}>{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
