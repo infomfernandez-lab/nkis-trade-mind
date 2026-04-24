@@ -543,9 +543,8 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
   const atr = atrMeta(inst.atr_estado);
 
   return (
-    <div className={`p-3 ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
+    <div className="p-3">
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
-        {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />}
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -554,9 +553,6 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
           {alcista ? 'BUY' : 'SELL'}
         </span>
-        {inst.pullback_active && (
-          <span className="text-[9px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50 px-1 py-0.5 rounded">⭐ PB{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}</span>
-        )}
         {open ? <ChevronUp className="w-4 h-4 ml-auto text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />}
       </button>
       {open && (
