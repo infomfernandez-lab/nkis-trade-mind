@@ -498,10 +498,9 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
   const atr = atrMeta(inst.atr_estado);
 
   return (
-    <tr className={`border-t border-border text-sm ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
+    <tr className="border-t border-border text-sm">
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
-          {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />}
           {inst.symbol}
           <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
             inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
