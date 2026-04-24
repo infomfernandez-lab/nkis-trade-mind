@@ -770,7 +770,7 @@ function CalculatorPage() {
               className="font-data font-bold text-success leading-none"
               style={{ fontSize: '2.5rem' }}
             >
-              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '—'}
+              {trailMt5Points != null ? String(trailMt5Points) : '—'}
             </div>
             {trailMt5Points == null && (
               <div className="text-[11px] text-muted-foreground mt-2">
