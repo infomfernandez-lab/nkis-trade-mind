@@ -874,7 +874,7 @@ function CalculatorPage() {
           />
           <MidStat
             label="TRAILING SL"
-            value={trailMt5Points != null ? `${trailMt5Points.toLocaleString('en-US')} pts` : 'ATR × 3'}
+            value={trailMt5Points != null ? `${trailMt5Points} pts` : 'ATR × 3'}
             hint={trailMt5Points != null ? 'introducir en MT5' : `distancia: ${fmt(trailDist)}`}
           />
         </div>
