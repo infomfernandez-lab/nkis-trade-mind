@@ -782,7 +782,7 @@ function CalculatorPage() {
           <div className="text-xs text-muted-foreground mt-3 leading-relaxed">
             En MT5: clic derecho sobre la posición → <span className="text-foreground font-medium">Trailing Stop</span> → <span className="text-foreground font-medium">Personalizado</span> → introducir{' '}
             <span className="text-success font-data font-semibold">
-              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '[puntos]'}
+              {trailMt5Points != null ? String(trailMt5Points) : '[puntos]'}
             </span>{' '}
             puntos.
           </div>
