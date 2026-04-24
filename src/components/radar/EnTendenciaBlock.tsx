@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, TrendingUp, TrendingDown, Eye, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAuth } from '@/hooks/use-auth';
 import { useAllTrades } from '@/hooks/use-trades';
