@@ -27,7 +27,7 @@ function isAlcistaDir(d: string): boolean {
 function buildNearItems(
   brokerFilter: BrokerFilter,
   scannerMap: Map<string, ReturnType<typeof useLatestScannerByKey> extends Map<string, infer V> ? V : never>,
-  watchlist: Array<{ id: string; symbol: string; broker: string; direction: string }>,
+  watchlist: Array<{ id: string; symbol: string; broker: string; direction: string; status?: string }>,
 ): NearItem[] {
   const out = new Map<string, NearItem>();
 
@@ -48,25 +48,23 @@ function buildNearItems(
     });
   }
 
-  // 2) Watchlist-driven (fallback for items without scanner match — kept for compatibility)
+  // 2) Manually flagged from En tendencia (status='PROXIMO')
   for (const w of watchlist) {
+    if ((w.status ?? '').toUpperCase() !== 'PROXIMO') continue;
     const broker = (w.broker ?? 'darwinex').toLowerCase() === 'fxpro' ? 'fxpro' : 'darwinex';
     if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
     const key = `${w.symbol}::${broker}`;
     if (out.has(key)) continue;
     const scan = scannerMap.get(key);
-    if (!scan) continue;
-    const matches = scan.pullback_active || scan.stoch_estado === 'ZONA_ENTRADA';
-    if (!matches) continue;
     out.set(key, {
       id: w.id,
       symbol: w.symbol,
       broker,
-      direction: isAlcistaDir(scan.direction) ? 'alcista' : 'bajista',
-      stoch: scan.stoch_k,
-      pullback: scan.pullback_active,
-      pullbackBars: scan.pullback_bars,
-      atr: scan.atr,
+      direction: isAlcistaDir(scan?.direction ?? w.direction) ? 'alcista' : 'bajista',
+      stoch: scan?.stoch_k ?? null,
+      pullback: scan?.pullback_active ?? false,
+      pullbackBars: scan?.pullback_bars ?? null,
+      atr: scan?.atr ?? null,
     });
   }
 

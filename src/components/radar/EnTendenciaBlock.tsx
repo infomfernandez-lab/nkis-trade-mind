@@ -1,7 +1,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, TrendingUp, TrendingDown, Eye, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { useAuth } from '@/hooks/use-auth';
 import { useAllTrades } from '@/hooks/use-trades';
@@ -422,7 +422,7 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
   return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 
-function useWatchAction(inst: UnifiedInstrument) {
+function useSendToProximo(inst: UnifiedInstrument) {
   const add = useAddToWatchlist();
   const { user } = useAuth();
   return () => {
@@ -430,41 +430,34 @@ function useWatchAction(inst: UnifiedInstrument) {
     add.mutate({
       symbol: inst.symbol,
       direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
-      watch_reason: inst.pullback_active
-        ? `Pullback activo — Score ${inst.score}/100`
-        : `Desde Radar — Score ${inst.score}/100`,
+      watch_reason: `Marcado manualmente — Score ${inst.score}/100`,
       stochastic_level: inst.stoch_k ?? null,
       scanner_score: inst.score,
       adx_value: inst.adx_value,
       adx_state: inst.adx_state,
       distance_to_ma50: inst.distance_to_ma50,
-      status: 'Vigilando',
-      added_from_scanner: true,
+      status: 'PROXIMO',
+      added_from_scanner: false,
       trade_id: null,
       broker: inst.broker,
     }, {
-      onSuccess: () => toast.success(`${inst.symbol} añadido a Vigilando`),
+      onSuccess: () => toast.success(`${inst.symbol} → Entrada próxima`),
       onError: () => toast.error('Error al añadir'),
     });
   };
 }
 
 function ActionCell({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
-  const onWatch = useWatchAction(inst);
+  const onSendToProximo = useSendToProximo(inst);
   return (
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
-      {inst.pullback_active && (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50">
-          ⭐ PULLBACK{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}
-        </span>
-      )}
       {isOpen ? (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       ) : isWatched ? (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />Vigilando</span>
+        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />En entrada próxima</span>
       ) : (
-        <button onClick={onWatch} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors">
-          <Eye className="w-3 h-3" /> Vigilar
+        <button onClick={onSendToProximo} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors">
+          → Entrada próxima
         </button>
       )}
     </div>
@@ -478,10 +471,9 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
   const atr = atrMeta(inst.atr_estado);
 
   return (
-    <tr className={`border-t border-border text-sm ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
+    <tr className="border-t border-border text-sm">
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
-          {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />}
           {inst.symbol}
           <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
             inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -524,9 +516,8 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
   const atr = atrMeta(inst.atr_estado);
 
   return (
-    <div className={`p-3 ${inst.pullback_active ? 'bg-orange-500/[0.04] border-l-[3px] border-l-orange-400' : ''}`}>
+    <div className="p-3">
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
-        {inst.pullback_active && <Star className="w-3.5 h-3.5 text-orange-400 fill-orange-400 shrink-0" />}
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -535,9 +526,6 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
           {alcista ? 'BUY' : 'SELL'}
         </span>
-        {inst.pullback_active && (
-          <span className="text-[9px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50 px-1 py-0.5 rounded">⭐ PB{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}</span>
-        )}
         {open ? <ChevronUp className="w-4 h-4 ml-auto text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />}
       </button>
       {open && (

@@ -770,7 +770,7 @@ function CalculatorPage() {
               className="font-data font-bold text-success leading-none"
               style={{ fontSize: '2.5rem' }}
             >
-              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '—'}
+              {trailMt5Points != null ? String(trailMt5Points) : '—'}
             </div>
             {trailMt5Points == null && (
               <div className="text-[11px] text-muted-foreground mt-2">
@@ -782,7 +782,7 @@ function CalculatorPage() {
           <div className="text-xs text-muted-foreground mt-3 leading-relaxed">
             En MT5: clic derecho sobre la posición → <span className="text-foreground font-medium">Trailing Stop</span> → <span className="text-foreground font-medium">Personalizado</span> → introducir{' '}
             <span className="text-success font-data font-semibold">
-              {trailMt5Points != null ? trailMt5Points.toLocaleString('en-US') : '[puntos]'}
+              {trailMt5Points != null ? String(trailMt5Points) : '[puntos]'}
             </span>{' '}
             puntos.
           </div>
@@ -874,7 +874,7 @@ function CalculatorPage() {
           />
           <MidStat
             label="TRAILING SL"
-            value={trailMt5Points != null ? `${trailMt5Points.toLocaleString('en-US')} pts` : 'ATR × 3'}
+            value={trailMt5Points != null ? `${trailMt5Points} pts` : 'ATR × 3'}
             hint={trailMt5Points != null ? 'introducir en MT5' : `distancia: ${fmt(trailDist)}`}
           />
         </div>
