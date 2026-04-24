@@ -449,22 +449,42 @@ function useWatchAction(inst: UnifiedInstrument) {
   };
 }
 
+function useSendToProximo(inst: UnifiedInstrument) {
+  const add = useAddToWatchlist();
+  const { user } = useAuth();
+  return () => {
+    if (!user) return;
+    add.mutate({
+      symbol: inst.symbol,
+      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
+      watch_reason: `Marcado manualmente — Score ${inst.score}/100`,
+      stochastic_level: inst.stoch_k ?? null,
+      scanner_score: inst.score,
+      adx_value: inst.adx_value,
+      adx_state: inst.adx_state,
+      distance_to_ma50: inst.distance_to_ma50,
+      status: 'PROXIMO',
+      added_from_scanner: false,
+      trade_id: null,
+      broker: inst.broker,
+    }, {
+      onSuccess: () => toast.success(`${inst.symbol} → Entrada próxima`),
+      onError: () => toast.error('Error al añadir'),
+    });
+  };
+}
+
 function ActionCell({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
-  const onWatch = useWatchAction(inst);
+  const onSendToProximo = useSendToProximo(inst);
   return (
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
-      {inst.pullback_active && (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/50">
-          ⭐ PULLBACK{inst.pullback_bars ? ` ${inst.pullback_bars}v` : ''}
-        </span>
-      )}
       {isOpen ? (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       ) : isWatched ? (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />Vigilando</span>
+        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />En entrada próxima</span>
       ) : (
-        <button onClick={onWatch} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-400/40 text-yellow-400 hover:bg-yellow-400/10 transition-colors">
-          <Eye className="w-3 h-3" /> Vigilar
+        <button onClick={onSendToProximo} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors">
+          → Entrada próxima
         </button>
       )}
     </div>
