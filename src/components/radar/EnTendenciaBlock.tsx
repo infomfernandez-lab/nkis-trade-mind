@@ -422,33 +422,6 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
   return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 
-function useWatchAction(inst: UnifiedInstrument) {
-  const add = useAddToWatchlist();
-  const { user } = useAuth();
-  return () => {
-    if (!user) return;
-    add.mutate({
-      symbol: inst.symbol,
-      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
-      watch_reason: inst.pullback_active
-        ? `Pullback activo — Score ${inst.score}/100`
-        : `Desde Radar — Score ${inst.score}/100`,
-      stochastic_level: inst.stoch_k ?? null,
-      scanner_score: inst.score,
-      adx_value: inst.adx_value,
-      adx_state: inst.adx_state,
-      distance_to_ma50: inst.distance_to_ma50,
-      status: 'Vigilando',
-      added_from_scanner: true,
-      trade_id: null,
-      broker: inst.broker,
-    }, {
-      onSuccess: () => toast.success(`${inst.symbol} añadido a Vigilando`),
-      onError: () => toast.error('Error al añadir'),
-    });
-  };
-}
-
 function useSendToProximo(inst: UnifiedInstrument) {
   const add = useAddToWatchlist();
   const { user } = useAuth();
