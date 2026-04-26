@@ -59,7 +59,7 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'fxpro'; tr
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-secondary/30">
         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${headerColor}`}>
-          {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}
+          {broker === 'darwinex' ? 'NKIS' : 'OCTX'}
         </span>
         <span className="text-xs text-muted-foreground">{trades.length} pos</span>
       </div>
@@ -101,7 +101,7 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'fxpro'; tr
             </tr>
           ))}
           <tr className="border-t-2 border-border bg-secondary/30">
-            <td colSpan={6} className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</td>
+            <td colSpan={6} className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NKIS' : 'OCTX'}</td>
             <td className={`px-2 py-2 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
             <td></td>
           </tr>
@@ -112,7 +112,7 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'fxpro'; tr
       <div className="md:hidden divide-y divide-border">
         {trades.map(t => <MobileRow key={t.id} trade={t} />)}
         <div className="flex items-center justify-between px-3 py-2 bg-secondary/30 text-xs">
-          <span className="text-muted-foreground font-semibold">Total {broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+          <span className="text-muted-foreground font-semibold">Total {broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
           <span className={`font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</span>
         </div>
       </div>

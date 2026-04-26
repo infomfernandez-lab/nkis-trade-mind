@@ -95,13 +95,13 @@ export function StatusBar({ brokerFilter }: Props) {
         {/* Open positions per broker */}
         {showDarwinex && (
           <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 mr-1">Darwinex</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 mr-1">NKIS</span>
             <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
           </span>
         )}
         {showFxpro && (
           <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">FXPro</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">OCTX</span>
             <span className="font-data font-bold text-foreground">{fxOpen}</span> pos
           </span>
         )}
@@ -113,7 +113,7 @@ export function StatusBar({ brokerFilter }: Props) {
           Último scan:{' '}
           {showDarwinex && (
             <>
-              Darwinex{' '}
+              NKIS{' '}
               {darwinex ? (
                 <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(darwinex.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
@@ -122,7 +122,7 @@ export function StatusBar({ brokerFilter }: Props) {
           {showDarwinex && showFxpro && ' · '}
           {showFxpro && (
             <>
-              FXPro{' '}
+              OCTX{' '}
               {fxpro ? (
                 <span className={`font-data ${fxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(fxpro.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
