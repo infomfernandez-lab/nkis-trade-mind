@@ -2,8 +2,8 @@ import type { BrokerFilter } from '@/lib/trade-utils';
 
 const BROKER_OPTIONS: { value: BrokerFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
-  { value: 'darwinex', label: 'Darwinex' },
-  { value: 'fxpro', label: 'FXPro' },
+  { value: 'darwinex', label: 'NKIS' },
+  { value: 'fxpro', label: 'OCTX' },
 ];
 
 export function BrokerSelector({

@@ -51,7 +51,7 @@ function Dashboard() {
   const stats = computeStatsFromTrades(closedTrades, openTrades);
   const kpis = computeDashboardKpis(closedTrades, startingBalance);
 
-  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`;
+  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NKIS' : 'OCTX'}`;
 
   return (
     <div className="space-y-4">

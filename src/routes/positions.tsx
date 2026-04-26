@@ -58,8 +58,8 @@ function timeSinceText(dateStr: string): { text: string; stale: boolean } {
 
 const TAB_OPTIONS: { value: BrokerFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'darwinex', label: 'Darwinex' },
-  { value: 'fxpro', label: 'FXPro' },
+  { value: 'darwinex', label: 'NKIS' },
+  { value: 'fxpro', label: 'OCTX' },
 ];
 
 function InlineNotes({ trade }: { trade: Trade }) {

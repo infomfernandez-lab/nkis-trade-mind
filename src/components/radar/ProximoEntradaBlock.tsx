@@ -148,7 +148,7 @@ function NearRow({ item }: { item: NearItem }) {
       <td className="px-2 py-2">
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-        }`}>{item.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+        }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
       </td>
       <td className="px-2 py-2 text-xs">
         <span className={`font-bold ${item.direction === 'alcista' ? 'text-success' : 'text-destructive'}`}>
@@ -167,7 +167,7 @@ function NearMobileCard({ item }: { item: NearItem }) {
         <span className="font-bold text-sm text-foreground">{item.symbol}</span>
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-        }`}>{item.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+        }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
         <span className={`text-xs font-bold ${item.direction === 'alcista' ? 'text-success' : 'text-destructive'}`}>
           {signalText(item)}
         </span>
