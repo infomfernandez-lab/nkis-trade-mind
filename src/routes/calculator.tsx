@@ -605,7 +605,7 @@ function CalculatorPage() {
                   account === 'darwinex' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Darwinex Zero · €1.000.000
+                NKIS · €1.000.000
               </button>
               <button
                 type="button"
@@ -614,7 +614,7 @@ function CalculatorPage() {
                   account === 'fxpro' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                FXPro · €26.39
+                OCTX · €26.39
               </button>
             </div>
             <NumInput value={capital} onChange={setCapital} className="mt-2" />
@@ -687,7 +687,7 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="Valor del punto" hint="Para futuros Darwinex puede variar. Para CFDs FXPro usar 1 como aproximación o consultar especificaciones en MT5">
+          <Field label="Valor del punto" hint="Para futuros NKIS puede variar. Para CFDs OCTX usar 1 como aproximación o consultar especificaciones en MT5">
             <input
               type="number" step="any" inputMode="decimal"
               value={pointValue} onChange={e => setPointValue(e.target.value)}
@@ -981,7 +981,7 @@ function InstrumentTable({
   const grouped = useMemo(() => {
     const map = new Map<string, InstrumentRow[]>();
     rows.forEach(r => {
-      const key = `${r.broker === 'darwinex' ? 'Darwinex' : 'FXPro'} · ${r.group}`;
+      const key = `${r.broker === 'darwinex' ? 'NKIS' : 'OCTX'} · ${r.group}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(r);
     });
@@ -1066,7 +1066,7 @@ function InstrumentTable({
         ))}
       </div>
       <div className="p-3 border-t border-border text-[11px] text-muted-foreground">
-        FXPro: con apalancamiento 1:30 el margen requerido = valor posición / 30. El riesgo se calcula sobre el capital real.
+        OCTX: con apalancamiento 1:30 el margen requerido = valor posición / 30. El riesgo se calcula sobre el capital real.
         El valor del punto exacto varía según el instrumento — consulta especificaciones en MT5 (clic derecho → Especificaciones).
       </div>
     </div>
@@ -1124,7 +1124,7 @@ function InstrumentAutocomplete({
   }, []);
 
   const handleSelect = (e: AutocompleteEntry) => {
-    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}`);
+    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'NKIS' : 'OCTX'}`);
     setOpen(false);
     onSelect(e);
   };
@@ -1178,7 +1178,7 @@ function InstrumentAutocomplete({
               return (
                 <div key={gi} className="border-b border-border/40 last:border-b-0">
                   <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 flex items-center gap-2">
-                    <span>{head.broker === 'darwinex' ? 'Darwinex' : 'FXPro'}</span>
+                    <span>{head.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
                     <span>·</span>
                     <span>{head.group}</span>
                     {group.length > 1 && (
