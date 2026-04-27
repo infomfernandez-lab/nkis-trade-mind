@@ -22,6 +22,8 @@ function SettingsPage() {
   const [broker, setBroker] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [balance, setBalance] = useState('');
+  const [balanceNkis, setBalanceNkis] = useState('');
+  const [balanceOctx, setBalanceOctx] = useState('');
   const [riskPerTrade, setRiskPerTrade] = useState('');
   const [maxOpenPositions, setMaxOpenPositions] = useState('');
   const [vixBlock, setVixBlock] = useState('');
@@ -32,6 +34,8 @@ function SettingsPage() {
       setBroker(settings.broker ?? '');
       setAccountNumber(settings.account_number ?? '');
       setBalance(String(settings.balance ?? 0));
+      setBalanceNkis(String((settings as any).balance_nkis ?? 1000000));
+      setBalanceOctx(String((settings as any).balance_octx ?? 26.39));
       setRiskPerTrade(String(settings.risk_per_trade ?? 1));
       setMaxOpenPositions(String(settings.max_open_positions ?? 2));
       setVixBlock(String(settings.vix_block_threshold ?? 45));
