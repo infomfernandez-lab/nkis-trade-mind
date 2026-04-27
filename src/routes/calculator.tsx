@@ -518,16 +518,18 @@ function CalculatorPage() {
 
   const pickInstrument = (row: InstrumentRow) => {
     setInstrument(row.symbol);
-    setPointValue(String(row.pointValue));
     // Try to find tickSize from autocomplete catalog by family/symbol match
     const auto = AUTOCOMPLETE.find(
       a => a.broker === row.broker && (a.symbol === row.symbol || a.family === row.symbol.split('_')[0]),
     );
-    setTickSize(auto?.tickSize ?? null);
+    // Override with real MT5 contract spec if available
+    const resolved = resolveSpec(row.symbol, row.pointValue, auto?.tickSize ?? null);
+    setPointValue(String(resolved.pointValue));
+    setTickSize(resolved.tickSize);
     if (row.broker === 'darwinex') onAccountChange('darwinex');
     else onAccountChange('octx');
     setTableOpen(false);
-    toast.success(`${row.symbol} cargado — valor punto: ${row.pointValue}`);
+    toast.success(`${row.symbol} cargado — valor punto: ${resolved.pointValue}`);
     if (row.currency === 'GBX') {
       toast.warning(`${row.symbol} cotiza en peniques (GBX)`, {
         description: 'El precio en MT5 ya está en peniques — úsalo directamente. P/L también en GBX. Para convertir a GBP divide entre 100.',
