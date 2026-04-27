@@ -484,7 +484,12 @@ function CalculatorPage() {
   const slDist = nAtr * 1.5;
   const slPrice = direction === 'BUY' ? nEntry - slDist : nEntry + slDist;
   const riskEur = capital * (nRisk / 100);
-  const lotsRaw = slDist > 0 && nPv > 0 ? riskEur / (slDist * nPv) : 0;
+  // Si el instrumento existe en CONTRACT_SPECS usamos calcLots (tiene en cuenta volumeMin/step).
+  // Si no, fallback al cálculo simple con el pointValue resuelto.
+  const specLots = instrument && slDist > 0 ? calcLots(riskEur, slDist, instrument) : 0;
+  const lotsRaw = specLots > 0
+    ? specLots
+    : (slDist > 0 && nPv > 0 ? riskEur / (slDist * nPv) : 0);
   const lots = Math.max(0.01, Math.min(10, Math.round(lotsRaw * 100) / 100));
   const minLotWarning = lotsRaw > 0 && lotsRaw < 0.01;
 
