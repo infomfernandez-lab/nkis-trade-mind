@@ -912,16 +912,37 @@ export const CONTRACT_SPECS: ContractSpec[] = [
   { symbol: 'XLY', description: 'State Street Consumer Discretionary Select Sector SPDR', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
 ];
 
+// Buscar especificacion por simbolo
 export function getContractSpec(symbol: string): ContractSpec | undefined {
   return CONTRACT_SPECS.find(s => s.symbol === symbol);
 }
 
+// Filtrar por broker
 export function getContractsByBroker(broker: 'nkis' | 'octx'): ContractSpec[] {
   return CONTRACT_SPECS.filter(s => s.broker === broker);
 }
 
+// Valor del punto en USD por lote
+// Para futuros: tickValue / tickSize
+// Para forex CFD: tickValue / tickSize (ya normalizado por MT5)
 export function getPointValue(symbol: string): number {
   const spec = getContractSpec(symbol);
   if (!spec) return 1;
   return spec.tickValue / spec.tickSize;
+}
+
+// Calcular lotes dado riesgo en EUR, distancia SL en puntos y valor del punto
+export function calcLots(
+  riskEur: number,
+  slDistance: number,
+  symbol: string,
+  eurUsdRate = 1.08
+): number {
+  const spec = getContractSpec(symbol);
+  if (!spec || slDistance <= 0) return 0;
+  const pointValue = spec.tickValue / spec.tickSize;
+  const riskUsd = riskEur * eurUsdRate;
+  const lots = riskUsd / (slDistance * pointValue);
+  const step = spec.volumeStep;
+  return Math.max(spec.volumeMin, Math.floor(lots / step) * step);
 }

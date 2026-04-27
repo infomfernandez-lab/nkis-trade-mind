@@ -5,12 +5,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 import { useSettings } from '@/hooks/use-settings';
-import { getContractSpec } from '@/lib/contract-specs';
+import { getContractSpec, getPointValue, calcLots } from '@/lib/contract-specs';
 
 /**
  * Resolve point value and tick size from CONTRACT_SPECS (real MT5 specs).
- * Falls back to the catalog values if symbol isn't found in the specs file.
  * Tries the exact symbol first, then the family root (before "_") for futures.
+ * Falls back to the catalog values if symbol isn't found in the specs file.
  */
 function resolveSpec(
   symbol: string,
@@ -21,9 +21,7 @@ function resolveSpec(
   for (const c of candidates) {
     const spec = getContractSpec(c);
     if (spec && spec.tickSize > 0) {
-      // pointValue per 1.0 price unit = tickValue / tickSize
-      const pv = spec.tickValue / spec.tickSize;
-      return { pointValue: pv, tickSize: spec.tickSize };
+      return { pointValue: getPointValue(c), tickSize: spec.tickSize };
     }
   }
   return { pointValue: fallbackPv, tickSize: fallbackTickSize ?? null };
@@ -486,7 +484,12 @@ function CalculatorPage() {
   const slDist = nAtr * 1.5;
   const slPrice = direction === 'BUY' ? nEntry - slDist : nEntry + slDist;
   const riskEur = capital * (nRisk / 100);
-  const lotsRaw = slDist > 0 && nPv > 0 ? riskEur / (slDist * nPv) : 0;
+  // Si el instrumento existe en CONTRACT_SPECS usamos calcLots (tiene en cuenta volumeMin/step).
+  // Si no, fallback al cálculo simple con el pointValue resuelto.
+  const specLots = instrument && slDist > 0 ? calcLots(riskEur, slDist, instrument) : 0;
+  const lotsRaw = specLots > 0
+    ? specLots
+    : (slDist > 0 && nPv > 0 ? riskEur / (slDist * nPv) : 0);
   const lots = Math.max(0.01, Math.min(10, Math.round(lotsRaw * 100) / 100));
   const minLotWarning = lotsRaw > 0 && lotsRaw < 0.01;
 
@@ -730,11 +733,12 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="Valor del punto" hint="Para futuros NKIS puede variar. Para CFDs OCTX usar 1 como aproximación o consultar especificaciones en MT5">
+          <Field label="Valor del punto (auto)" hint="Cargado automáticamente desde las especificaciones MT5 al seleccionar el instrumento">
             <input
               type="number" step="any" inputMode="decimal"
-              value={pointValue} onChange={e => setPointValue(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              value={pointValue}
+              readOnly
+              className="w-full h-10 rounded-md border border-input bg-muted/40 px-3 text-sm font-data text-muted-foreground cursor-not-allowed"
             />
           </Field>
 
