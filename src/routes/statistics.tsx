@@ -171,7 +171,7 @@ function StatisticsPage() {
   const { broker } = useBrokerFilter();
 
   const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
-  const startingBalance = broker === 'fxpro' ? 30 : 1000000;
+  const startingBalance = broker === 'octx' ? 30 : 1000000;
   const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
 
   if (isLoading) {

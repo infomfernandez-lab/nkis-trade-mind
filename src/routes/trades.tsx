@@ -133,7 +133,7 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
     ? 'bg-success/[0.04] hover:bg-success/[0.08]'
     : 'bg-destructive/[0.04] hover:bg-destructive/[0.08]';
 
-  const brokerLabel = trade.broker === 'darwinex' ? 'NKIS' : trade.broker === 'fxpro' ? 'OCTX' : trade.broker;
+  const brokerLabel = trade.broker === 'darwinex' ? 'NKIS' : trade.broker === 'octx' ? 'OCTX' : trade.broker;
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden transition-colors">

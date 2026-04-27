@@ -15,7 +15,7 @@ export const Route = createFileRoute('/calculator')({
   component: CalculatorPage,
 });
 
-type Account = 'darwinex' | 'fxpro';
+type Account = 'darwinex' | 'octx';
 type Direction = 'BUY' | 'SELL';
 
 type Currency = 'USD' | 'GBP' | 'GBX' | 'EUR' | 'JPY' | 'AUD' | 'CHF' | 'HKD';
@@ -29,7 +29,7 @@ type InstrumentRow = {
   pointValue: number;
   note?: string;
   group: string;
-  broker: 'darwinex' | 'fxpro';
+  broker: 'darwinex' | 'octx';
   currency?: Currency;
   variable?: boolean;
   warn?: boolean;
@@ -76,31 +76,31 @@ const INSTRUMENTS: InstrumentRow[] = [
   { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6S_M', description: 'CHF/USD', pointValue: 12.5, currency: 'USD' },
   // Bonos
   { broker: 'darwinex', group: 'Bonos USA', symbol: 'ZN_M', description: '10Y T-Note', pointValue: 1000, currency: 'USD' },
-  // ===== FXPro — Metales Spot =====
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'ZINC', description: 'Zinc Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'ALUMINIUM', description: 'Aluminium Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'COPPER', description: 'Copper Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'GOLD', description: 'Gold Spot', pointValue: 1.0, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'SILVER', description: 'Silver Spot', pointValue: 5.0, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'PLATINUM', description: 'Platinum Spot', pointValue: 0.5, currency: 'USD' },
-  { broker: 'fxpro', group: 'Metales Spot', symbol: 'PALLADIUM', description: 'Palladium Spot', pointValue: 0.5, currency: 'USD' },
-  // ===== FXPro — Índices CFD =====
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Japan225', description: 'Japan 225 CFD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#USNDAQ100', description: 'US Nasdaq 100', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#USSPX500', description: 'US S&P 500', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#US30', description: 'US Dow Jones', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#UK100', description: 'UK 100', pointValue: 0.01, currency: 'GBP' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Germany40', description: 'DAX 40', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Euro50', description: 'Euro Stoxx 50', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#AUS200', description: 'Australia 200', pointValue: 0.01, currency: 'AUD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Spain35', description: 'Spain 35', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#France40', description: 'France 40', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Swiss20', description: 'Switzerland 20', pointValue: 0.01, currency: 'CHF' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#Holland25', description: 'Netherlands 25', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#HongKong50', description: 'Hong Kong 50', pointValue: 0.01, currency: 'HKD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#ChinaA50', description: 'China A50', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Índices CFD', symbol: '#ChinaHShar', description: 'China H-Shares', pointValue: 0.01, currency: 'HKD' },
-  // ===== FXPro — Acciones USA =====
+  // ===== OCTX — Metales Spot =====
+  { broker: 'octx', group: 'Metales Spot', symbol: 'ZINC', description: 'Zinc Spot', pointValue: 6.25, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'ALUMINIUM', description: 'Aluminium Spot', pointValue: 6.25, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'COPPER', description: 'Copper Spot', pointValue: 6.25, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'GOLD', description: 'Gold Spot', pointValue: 1.0, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'SILVER', description: 'Silver Spot', pointValue: 5.0, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'PLATINUM', description: 'Platinum Spot', pointValue: 0.5, currency: 'USD' },
+  { broker: 'octx', group: 'Metales Spot', symbol: 'PALLADIUM', description: 'Palladium Spot', pointValue: 0.5, currency: 'USD' },
+  // ===== OCTX — Índices CFD =====
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Japan225', description: 'Japan 225 CFD', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#USNDAQ100', description: 'US Nasdaq 100', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#USSPX500', description: 'US S&P 500', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#US30', description: 'US Dow Jones', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#UK100', description: 'UK 100', pointValue: 0.01, currency: 'GBP' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Germany40', description: 'DAX 40', pointValue: 0.01, currency: 'EUR' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Euro50', description: 'Euro Stoxx 50', pointValue: 0.01, currency: 'EUR' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#AUS200', description: 'Australia 200', pointValue: 0.01, currency: 'AUD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Spain35', description: 'Spain 35', pointValue: 0.01, currency: 'EUR' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#France40', description: 'France 40', pointValue: 0.01, currency: 'EUR' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Swiss20', description: 'Switzerland 20', pointValue: 0.01, currency: 'CHF' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#Holland25', description: 'Netherlands 25', pointValue: 0.01, currency: 'EUR' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#HongKong50', description: 'Hong Kong 50', pointValue: 0.01, currency: 'HKD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#ChinaA50', description: 'China A50', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Índices CFD', symbol: '#ChinaHShar', description: 'China H-Shares', pointValue: 0.01, currency: 'HKD' },
+  // ===== OCTX — Acciones USA =====
   ...([
     ['AMD.O', 'Advanced Micro Devices'], ['AAPL.O', 'Apple Inc'], ['AMZN.O', 'Amazon'],
     ['AXON.O', 'Axon Enterprise'], ['GD.N', 'General Dynamics'], ['GIS.N', 'General Mills'],
@@ -116,9 +116,9 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['TXT.N', 'Textron'], ['U.N', 'Unity Software'], ['VMC.N', 'Vulcan Materials'],
     ['WIX.O', 'Wix.com'],
   ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'fxpro', group: 'Acciones USA', symbol, description, pointValue: 0.01, currency: 'USD',
+    broker: 'octx', group: 'Acciones USA', symbol, description, pointValue: 0.01, currency: 'USD',
   })),
-  // ===== FXPro — Acciones UK (cotizan en GBX, peniques) =====
+  // ===== OCTX — Acciones UK (cotizan en GBX, peniques) =====
   ...([
     ['HILS.L', 'Hill & Smith PLC'],
     ['HLMA.L', 'Halma PLC'],
@@ -135,10 +135,10 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['BAES.L', 'BAE Systems'],
     ['CHG.L', 'Chemring Group'],
   ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'fxpro', group: 'Acciones UK', symbol, description, pointValue: 0.01, currency: 'GBX',
+    broker: 'octx', group: 'Acciones UK', symbol, description, pointValue: 0.01, currency: 'GBX',
     note: GBX_WARNING,
   })),
-  // ===== FXPro — Acciones Europeas =====
+  // ===== OCTX — Acciones Europeas =====
   ...([
     ['HEIJ.AS', 'Heineken Holding', 'EUR'], ['HEIN.AS', 'Heineken NV', 'EUR'], ['HEIO.AS', 'Heineken (alt)', 'EUR'],
     ['HLAN.AS', 'Holland Colours', 'EUR'], ['AMG.AS', 'AMG Critical Mat.', 'EUR'],
@@ -149,9 +149,9 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['HBH.DE', 'Hornbach', 'EUR'], ['HFGG.DE', 'Hugo Boss', 'EUR'], ['HHFGn.DE', 'Hapag-Lloyd', 'EUR'],
     ['HLE.DE', 'Hella', 'EUR'], ['HLAG.DE', 'Hapag-Lloyd AG', 'EUR'],
   ] as const).map(([symbol, description, currency]): InstrumentRow => ({
-    broker: 'fxpro', group: 'Acciones EU', symbol, description, pointValue: 0.01, currency: currency as Currency,
+    broker: 'octx', group: 'Acciones EU', symbol, description, pointValue: 0.01, currency: currency as Currency,
   })),
-  // ===== FXPro — ETFs USA =====
+  // ===== OCTX — ETFs USA =====
   ...([
     ['AGG.N', 'iShares Core US Aggregate Bond'], ['ARKB.N', 'ARK 21Shares Bitcoin ETF'],
     ['BIL.N', 'SPDR 1-3 Month T-Bill'], ['BND.O', 'Vanguard Total Bond Market'],
@@ -176,28 +176,28 @@ const INSTRUMENTS: InstrumentRow[] = [
     ['VWO.N', 'Vanguard FTSE Emerging Markets'], ['VXUS.O', 'Vanguard Total Intl Stock'],
     ['XLK.N', 'Technology Select Sector SPDR'], ['XLRE.N', 'Real Estate Select Sector SPDR'],
   ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'fxpro', group: 'ETFs USA', symbol, description, pointValue: 0.01, currency: 'USD',
+    broker: 'octx', group: 'ETFs USA', symbol, description, pointValue: 0.01, currency: 'USD',
   })),
-  // ===== FXPro — Criptomonedas =====
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'BITCOIN', description: 'Bitcoin vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'ETHEREUM', description: 'Ethereum vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'AAVE', description: 'AAVE vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'LITECOIN', description: 'Litecoin vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'FILECOIN', description: 'Filecoin vs USD', pointValue: 0.001, currency: 'USD' },
-  { broker: 'fxpro', group: 'Criptomonedas', symbol: 'XRP', description: 'XRP vs USD', pointValue: 0.001, currency: 'USD' },
-  // ===== FXPro — Forex =====
-  { broker: 'fxpro', group: 'Forex', symbol: 'EURUSD', description: 'Euro vs USD', pointValue: 10.0, currency: 'USD' },
-  { broker: 'fxpro', group: 'Forex', symbol: 'EURGBP', description: 'Euro vs GBP', pointValue: 8.33, currency: 'GBP', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'EURJPY', description: 'Euro vs JPY', pointValue: 8.33, currency: 'JPY', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'GBPJPY', description: 'GBP vs JPY', pointValue: 10.40, currency: 'JPY', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'AUDUSD', description: 'AUD vs USD', pointValue: 7.10, currency: 'USD', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'NZDUSD', description: 'NZD vs USD', pointValue: 6.00, currency: 'USD', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'USDCNH', description: 'USD vs CNH', pointValue: 1.38, currency: 'USD', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'USDMXN', description: 'USD vs MXN', pointValue: 10.00, currency: 'USD', variable: true },
-  { broker: 'fxpro', group: 'Forex', symbol: 'USDJPY', description: 'USD vs JPY', pointValue: 10.00, currency: 'USD', variable: true },
-  // ===== FXPro — Energía =====
-  { broker: 'fxpro', group: 'Energía', symbol: 'WTI', description: 'Crude Oil WTI', pointValue: 10.00, currency: 'USD' },
-  { broker: 'fxpro', group: 'Energía', symbol: 'NAT.GAS', description: 'Natural Gas', pointValue: 10.00, currency: 'USD' },
+  // ===== OCTX — Criptomonedas =====
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'BITCOIN', description: 'Bitcoin vs USD', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'ETHEREUM', description: 'Ethereum vs USD', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'AAVE', description: 'AAVE vs USD', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'LITECOIN', description: 'Litecoin vs USD', pointValue: 0.01, currency: 'USD' },
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'FILECOIN', description: 'Filecoin vs USD', pointValue: 0.001, currency: 'USD' },
+  { broker: 'octx', group: 'Criptomonedas', symbol: 'XRP', description: 'XRP vs USD', pointValue: 0.001, currency: 'USD' },
+  // ===== OCTX — Forex =====
+  { broker: 'octx', group: 'Forex', symbol: 'EURUSD', description: 'Euro vs USD', pointValue: 10.0, currency: 'USD' },
+  { broker: 'octx', group: 'Forex', symbol: 'EURGBP', description: 'Euro vs GBP', pointValue: 8.33, currency: 'GBP', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'EURJPY', description: 'Euro vs JPY', pointValue: 8.33, currency: 'JPY', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'GBPJPY', description: 'GBP vs JPY', pointValue: 10.40, currency: 'JPY', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'AUDUSD', description: 'AUD vs USD', pointValue: 7.10, currency: 'USD', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'NZDUSD', description: 'NZD vs USD', pointValue: 6.00, currency: 'USD', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'USDCNH', description: 'USD vs CNH', pointValue: 1.38, currency: 'USD', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'USDMXN', description: 'USD vs MXN', pointValue: 10.00, currency: 'USD', variable: true },
+  { broker: 'octx', group: 'Forex', symbol: 'USDJPY', description: 'USD vs JPY', pointValue: 10.00, currency: 'USD', variable: true },
+  // ===== OCTX — Energía =====
+  { broker: 'octx', group: 'Energía', symbol: 'WTI', description: 'Crude Oil WTI', pointValue: 10.00, currency: 'USD' },
+  { broker: 'octx', group: 'Energía', symbol: 'NAT.GAS', description: 'Natural Gas', pointValue: 10.00, currency: 'USD' },
 ];
 
 const CURRENCY_BADGE: Record<Currency, string> = {
@@ -221,7 +221,7 @@ type AutocompleteEntry = {
   description: string;
   pointValue: number;
   currency: 'USD' | 'EUR' | 'GBX';
-  broker: 'darwinex' | 'fxpro';
+  broker: 'darwinex' | 'octx';
   group: string;
   highValue?: boolean;   // ⚠⚠ VALOR ALTO
   tickSize?: number;     // tamaño mínimo de movimiento de precio (para puntos MT5)
@@ -230,7 +230,7 @@ type AutocompleteEntry = {
 const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
   const out: AutocompleteEntry[] = [];
   const add = (
-    broker: 'darwinex' | 'fxpro',
+    broker: 'darwinex' | 'octx',
     group: string,
     family: string,
     expiries: string[],
@@ -293,8 +293,8 @@ const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
   add('darwinex', 'Metales', 'SI', ['K', 'N'], 'Silver', 5000, 'USD', 0.005, true);
   add('darwinex', 'Bonos', 'ZN', ['M'], '10Y US Treasury Note', 1000, 'USD', 0.015625);
 
-  // FXPRO — CFDs
-  const fxpro = (
+  // OCTX — CFDs
+  const octx = (
     symbol: string,
     description: string,
     pv: number,
@@ -302,105 +302,105 @@ const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
     tickSize: number,
     group = 'CFDs',
   ) => {
-    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'fxpro', group, tickSize });
+    out.push({ symbol, family: symbol, description, pointValue: pv, currency: cur, broker: 'octx', group, tickSize });
   };
   // Forex
-  fxpro('EURUSD', 'Euro vs Dollar', 10, 'USD', 0.00001, 'Forex');
-  fxpro('GBPUSD', 'Pound vs Dollar', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDJPY', 'Dollar vs Yen', 10, 'USD', 0.001, 'Forex');
-  fxpro('USDCHF', 'USD vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('AUDUSD', 'AUD vs USD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('NZDUSD', 'NZD vs USD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDCAD', 'USD vs CAD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('EURGBP', 'EUR vs GBP', 10, 'USD', 0.00001, 'Forex');
-  fxpro('EURJPY', 'EUR vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('GBPJPY', 'GBP vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('AUDJPY', 'AUD vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('CHFJPY', 'CHF vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('EURCHF', 'EUR vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('EURAUD', 'EUR vs AUD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('EURCAD', 'EUR vs CAD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('GBPAUD', 'GBP vs AUD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('GBPCAD', 'GBP vs CAD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('GBPCHF', 'GBP vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('AUDCAD', 'AUD vs CAD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('AUDCHF', 'AUD vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('AUDNZD', 'AUD vs NZD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('CADCHF', 'CAD vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('CADJPY', 'CAD vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('NZDCAD', 'NZD vs CAD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('NZDCHF', 'NZD vs CHF', 10, 'USD', 0.00001, 'Forex');
-  fxpro('NZDJPY', 'NZD vs JPY', 10, 'USD', 0.001, 'Forex');
-  fxpro('EURNZD', 'EUR vs NZD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('GBPNZD', 'GBP vs NZD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDZAR', 'USD vs ZAR', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDMXN', 'USD vs MXN', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDNOK', 'USD vs NOK', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDSEK', 'USD vs SEK', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDSGD', 'USD vs SGD', 10, 'USD', 0.00001, 'Forex');
-  fxpro('USDTRY', 'USD vs TRY', 10, 'USD', 0.00001, 'Forex');
+  octx('EURUSD', 'Euro vs Dollar', 10, 'USD', 0.00001, 'Forex');
+  octx('GBPUSD', 'Pound vs Dollar', 10, 'USD', 0.00001, 'Forex');
+  octx('USDJPY', 'Dollar vs Yen', 10, 'USD', 0.001, 'Forex');
+  octx('USDCHF', 'USD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('AUDUSD', 'AUD vs USD', 10, 'USD', 0.00001, 'Forex');
+  octx('NZDUSD', 'NZD vs USD', 10, 'USD', 0.00001, 'Forex');
+  octx('USDCAD', 'USD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  octx('EURGBP', 'EUR vs GBP', 10, 'USD', 0.00001, 'Forex');
+  octx('EURJPY', 'EUR vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('GBPJPY', 'GBP vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('AUDJPY', 'AUD vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('CHFJPY', 'CHF vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('EURCHF', 'EUR vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('EURAUD', 'EUR vs AUD', 10, 'USD', 0.00001, 'Forex');
+  octx('EURCAD', 'EUR vs CAD', 10, 'USD', 0.00001, 'Forex');
+  octx('GBPAUD', 'GBP vs AUD', 10, 'USD', 0.00001, 'Forex');
+  octx('GBPCAD', 'GBP vs CAD', 10, 'USD', 0.00001, 'Forex');
+  octx('GBPCHF', 'GBP vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('AUDCAD', 'AUD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  octx('AUDCHF', 'AUD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('AUDNZD', 'AUD vs NZD', 10, 'USD', 0.00001, 'Forex');
+  octx('CADCHF', 'CAD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('CADJPY', 'CAD vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('NZDCAD', 'NZD vs CAD', 10, 'USD', 0.00001, 'Forex');
+  octx('NZDCHF', 'NZD vs CHF', 10, 'USD', 0.00001, 'Forex');
+  octx('NZDJPY', 'NZD vs JPY', 10, 'USD', 0.001, 'Forex');
+  octx('EURNZD', 'EUR vs NZD', 10, 'USD', 0.00001, 'Forex');
+  octx('GBPNZD', 'GBP vs NZD', 10, 'USD', 0.00001, 'Forex');
+  octx('USDZAR', 'USD vs ZAR', 10, 'USD', 0.00001, 'Forex');
+  octx('USDMXN', 'USD vs MXN', 10, 'USD', 0.00001, 'Forex');
+  octx('USDNOK', 'USD vs NOK', 10, 'USD', 0.00001, 'Forex');
+  octx('USDSEK', 'USD vs SEK', 10, 'USD', 0.00001, 'Forex');
+  octx('USDSGD', 'USD vs SGD', 10, 'USD', 0.00001, 'Forex');
+  octx('USDTRY', 'USD vs TRY', 10, 'USD', 0.00001, 'Forex');
   // Índices CFD
-  fxpro('#USSPX500', 'S&P 500 CFD', 1, 'USD', 0.01, 'Índices');
-  fxpro('#USNDAQ100', 'Nasdaq 100 CFD', 1, 'USD', 0.01, 'Índices');
-  fxpro('#US30', 'Dow Jones CFD', 1, 'USD', 1.0, 'Índices');
-  fxpro('#Japan225', 'Nikkei CFD', 1, 'USD', 1.0, 'Índices');
-  fxpro('#Germany40', 'DAX 40 CFD', 1, 'EUR', 0.1, 'Índices');
-  fxpro('#UK100', 'FTSE 100 CFD', 1, 'USD', 0.1, 'Índices');
-  fxpro('#France40', 'France 40 CFD', 1, 'EUR', 0.1, 'Índices');
-  fxpro('#Spain35', 'Spain 35 CFD', 1, 'EUR', 0.1, 'Índices');
-  fxpro('#Europe50', 'Euro Stoxx 50 CFD', 1, 'EUR', 0.1, 'Índices');
-  fxpro('#Australia200', 'ASX 200 CFD', 1, 'USD', 0.1, 'Índices');
-  fxpro('#HongKong50', 'Hang Seng CFD', 1, 'USD', 1.0, 'Índices');
-  fxpro('#China50', 'China A50 CFD', 1, 'USD', 1.0, 'Índices');
+  octx('#USSPX500', 'S&P 500 CFD', 1, 'USD', 0.01, 'Índices');
+  octx('#USNDAQ100', 'Nasdaq 100 CFD', 1, 'USD', 0.01, 'Índices');
+  octx('#US30', 'Dow Jones CFD', 1, 'USD', 1.0, 'Índices');
+  octx('#Japan225', 'Nikkei CFD', 1, 'USD', 1.0, 'Índices');
+  octx('#Germany40', 'DAX 40 CFD', 1, 'EUR', 0.1, 'Índices');
+  octx('#UK100', 'FTSE 100 CFD', 1, 'USD', 0.1, 'Índices');
+  octx('#France40', 'France 40 CFD', 1, 'EUR', 0.1, 'Índices');
+  octx('#Spain35', 'Spain 35 CFD', 1, 'EUR', 0.1, 'Índices');
+  octx('#Europe50', 'Euro Stoxx 50 CFD', 1, 'EUR', 0.1, 'Índices');
+  octx('#Australia200', 'ASX 200 CFD', 1, 'USD', 0.1, 'Índices');
+  octx('#HongKong50', 'Hang Seng CFD', 1, 'USD', 1.0, 'Índices');
+  octx('#China50', 'China A50 CFD', 1, 'USD', 1.0, 'Índices');
   // Materias primas CFD
-  fxpro('GOLD', 'Gold CFD', 1, 'USD', 0.01, 'Metales');
-  fxpro('SILVER', 'Silver CFD', 5, 'USD', 0.001, 'Metales');
-  fxpro('COPPER', 'Copper CFD', 6.25, 'USD', 0.0001, 'Metales Spot');
-  fxpro('ZINC', 'Zinc CFD', 6.25, 'USD', 0.25, 'Metales Spot');
-  fxpro('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 0.25, 'Metales Spot');
-  fxpro('WTI', 'Crude Oil WTI CFD', 10, 'USD', 0.01, 'Energía');
-  fxpro('NAT.GAS', 'Natural Gas CFD', 10, 'USD', 0.001, 'Energía');
-  fxpro('BRENT', 'Brent Crude CFD', 10, 'USD', 0.01, 'Energía');
+  octx('GOLD', 'Gold CFD', 1, 'USD', 0.01, 'Metales');
+  octx('SILVER', 'Silver CFD', 5, 'USD', 0.001, 'Metales');
+  octx('COPPER', 'Copper CFD', 6.25, 'USD', 0.0001, 'Metales Spot');
+  octx('ZINC', 'Zinc CFD', 6.25, 'USD', 0.25, 'Metales Spot');
+  octx('ALUMINIUM', 'Aluminium CFD', 6.25, 'USD', 0.25, 'Metales Spot');
+  octx('WTI', 'Crude Oil WTI CFD', 10, 'USD', 0.01, 'Energía');
+  octx('NAT.GAS', 'Natural Gas CFD', 10, 'USD', 0.001, 'Energía');
+  octx('BRENT', 'Brent Crude CFD', 10, 'USD', 0.01, 'Energía');
   // Crypto
-  fxpro('BITCOIN', 'Bitcoin CFD', 1, 'USD', 1.0, 'Crypto');
-  fxpro('ETHEREUM', 'Ethereum CFD', 1, 'USD', 0.01, 'Crypto');
-  fxpro('LITECOIN', 'Litecoin CFD', 1, 'USD', 0.01, 'Crypto');
-  fxpro('RIPPLE', 'Ripple CFD', 1, 'USD', 0.0001, 'Crypto');
-  fxpro('FILECOIN', 'Filecoin CFD', 1, 'USD', 0.001, 'Crypto');
-  fxpro('AAVE', 'AAVE CFD', 1, 'USD', 0.01, 'Crypto');
+  octx('BITCOIN', 'Bitcoin CFD', 1, 'USD', 1.0, 'Crypto');
+  octx('ETHEREUM', 'Ethereum CFD', 1, 'USD', 0.01, 'Crypto');
+  octx('LITECOIN', 'Litecoin CFD', 1, 'USD', 0.01, 'Crypto');
+  octx('RIPPLE', 'Ripple CFD', 1, 'USD', 0.0001, 'Crypto');
+  octx('FILECOIN', 'Filecoin CFD', 1, 'USD', 0.001, 'Crypto');
+  octx('AAVE', 'AAVE CFD', 1, 'USD', 0.01, 'Crypto');
   // Acciones USA
-  fxpro('AAPL.O', 'Apple', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('MSFT.O', 'Microsoft', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('AMZN.O', 'Amazon', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('GOOGL.O', 'Alphabet', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('META.O', 'Meta Platforms', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('TSLA.O', 'Tesla', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('NVDA.O', 'NVIDIA', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('AMD.O', 'AMD', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('NFLX.O', 'Netflix', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('DIS.N', 'Disney', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('GIS.N', 'General Mills', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('WIX.O', 'Wix.com', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('BABA.N', 'Alibaba', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('TSM.N', 'TSMC', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('V.N', 'Visa', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('JPM.N', 'JPMorgan', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('BAC.N', 'Bank of America', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('GS.N', 'Goldman Sachs', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('XOM.N', 'ExxonMobil', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('CVX.N', 'Chevron', 1, 'USD', 0.01, 'Acciones USA');
-  fxpro('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 0.01, 'ETFs');
+  octx('AAPL.O', 'Apple', 1, 'USD', 0.01, 'Acciones USA');
+  octx('MSFT.O', 'Microsoft', 1, 'USD', 0.01, 'Acciones USA');
+  octx('AMZN.O', 'Amazon', 1, 'USD', 0.01, 'Acciones USA');
+  octx('GOOGL.O', 'Alphabet', 1, 'USD', 0.01, 'Acciones USA');
+  octx('META.O', 'Meta Platforms', 1, 'USD', 0.01, 'Acciones USA');
+  octx('TSLA.O', 'Tesla', 1, 'USD', 0.01, 'Acciones USA');
+  octx('NVDA.O', 'NVIDIA', 1, 'USD', 0.01, 'Acciones USA');
+  octx('AMD.O', 'AMD', 1, 'USD', 0.01, 'Acciones USA');
+  octx('NFLX.O', 'Netflix', 1, 'USD', 0.01, 'Acciones USA');
+  octx('DIS.N', 'Disney', 1, 'USD', 0.01, 'Acciones USA');
+  octx('GIS.N', 'General Mills', 1, 'USD', 0.01, 'Acciones USA');
+  octx('WIX.O', 'Wix.com', 1, 'USD', 0.01, 'Acciones USA');
+  octx('BABA.N', 'Alibaba', 1, 'USD', 0.01, 'Acciones USA');
+  octx('TSM.N', 'TSMC', 1, 'USD', 0.01, 'Acciones USA');
+  octx('V.N', 'Visa', 1, 'USD', 0.01, 'Acciones USA');
+  octx('JPM.N', 'JPMorgan', 1, 'USD', 0.01, 'Acciones USA');
+  octx('BAC.N', 'Bank of America', 1, 'USD', 0.01, 'Acciones USA');
+  octx('GS.N', 'Goldman Sachs', 1, 'USD', 0.01, 'Acciones USA');
+  octx('XOM.N', 'ExxonMobil', 1, 'USD', 0.01, 'Acciones USA');
+  octx('CVX.N', 'Chevron', 1, 'USD', 0.01, 'Acciones USA');
+  octx('VOO.N', 'Vanguard S&P 500 ETF', 1, 'USD', 0.01, 'ETFs');
   // Acciones UK (GBX)
-  fxpro('HILS.L', 'Hill & Smith', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('HLMA.L', 'Halma PLC', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('AZN.L', 'AstraZeneca', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('SHEL.L', 'Shell', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('HSBA.L', 'HSBC', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('BP.L', 'BP', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('VOD.L', 'Vodafone', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('LLOY.L', 'Lloyds Banking', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('RIO.L', 'Rio Tinto', 1, 'GBX', 0.01, 'Acciones UK');
-  fxpro('GLEN.L', 'Glencore', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('HILS.L', 'Hill & Smith', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('HLMA.L', 'Halma PLC', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('AZN.L', 'AstraZeneca', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('SHEL.L', 'Shell', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('HSBA.L', 'HSBC', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('BP.L', 'BP', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('VOD.L', 'Vodafone', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('LLOY.L', 'Lloyds Banking', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('RIO.L', 'Rio Tinto', 1, 'GBX', 0.01, 'Acciones UK');
+  octx('GLEN.L', 'Glencore', 1, 'GBX', 0.01, 'Acciones UK');
 
   return out;
 })();
@@ -490,7 +490,7 @@ function CalculatorPage() {
     );
     setTickSize(auto?.tickSize ?? null);
     if (row.broker === 'darwinex') onAccountChange('darwinex');
-    else onAccountChange('fxpro');
+    else onAccountChange('octx');
     setTableOpen(false);
     toast.success(`${row.symbol} cargado — valor punto: ${row.pointValue}`);
     if (row.currency === 'GBX') {
@@ -527,7 +527,7 @@ function CalculatorPage() {
   };
 
   const recoverCalculation = (r: CalcRecord) => {
-    if (r.broker === 'darwinex' || r.broker === 'fxpro') {
+    if (r.broker === 'darwinex' || r.broker === 'octx') {
       setAccount(r.broker);
     }
     if (r.cuenta_balance != null) setCapital(Number(r.cuenta_balance));
@@ -609,9 +609,9 @@ function CalculatorPage() {
               </button>
               <button
                 type="button"
-                onClick={() => onAccountChange('fxpro')}
+                onClick={() => onAccountChange('octx')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
-                  account === 'fxpro' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
+                  account === 'octx' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
                 OCTX · €26.39

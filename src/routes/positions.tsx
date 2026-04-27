@@ -59,7 +59,7 @@ function timeSinceText(dateStr: string): { text: string; stale: boolean } {
 const TAB_OPTIONS: { value: BrokerFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
   { value: 'darwinex', label: 'NKIS' },
-  { value: 'fxpro', label: 'OCTX' },
+  { value: 'octx', label: 'OCTX' },
 ];
 
 function InlineNotes({ trade }: { trade: Trade }) {
@@ -127,7 +127,7 @@ function PositionsPage() {
 
   const totalPnl = openTrades.reduce((s, t) => s + t.netPnl, 0);
   const darwinexPnl = allOpen.filter(t => t.broker === 'darwinex').reduce((s, t) => s + t.netPnl, 0);
-  const fxproPnl = allOpen.filter(t => t.broker === 'fxpro').reduce((s, t) => s + t.netPnl, 0);
+  const octxPnl = allOpen.filter(t => t.broker === 'octx').reduce((s, t) => s + t.netPnl, 0);
 
   // Find most recent updated_at from open trades for sync indicator
   const lastSync = allOpen.length > 0
@@ -205,7 +205,7 @@ function PositionsPage() {
             {allOpen.some(t => t.broker === 'darwinex') && (
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/30">DARWINEX</span>
             )}
-            {allOpen.some(t => t.broker === 'fxpro') && (
+            {allOpen.some(t => t.broker === 'octx') && (
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">OCTX</span>
             )}
             {allOpen.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
@@ -375,8 +375,8 @@ function PositionsPage() {
                     {allOpen.some(t => t.broker === 'darwinex') && (
                       <span>DRW: <span className={`font-data font-semibold ${darwinexPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(darwinexPnl)}</span></span>
                     )}
-                    {allOpen.some(t => t.broker === 'fxpro') && (
-                      <span>FXP: <span className={`font-data font-semibold ${fxproPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(fxproPnl)}</span></span>
+                    {allOpen.some(t => t.broker === 'octx') && (
+                      <span>FXP: <span className={`font-data font-semibold ${octxPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(octxPnl)}</span></span>
                     )}
                   </div>
                 </TableCell>

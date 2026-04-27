@@ -73,7 +73,7 @@ export interface UnifiedInstrument {
   structure: string | null;
   breakout: string | null;
   volume: number | null;
-  broker: 'darwinex' | 'fxpro';
+  broker: 'darwinex' | 'octx';
 }
 
 interface SessionRow {
@@ -127,10 +127,10 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
 
   return useMemo(() => {
     if (!data) return [];
-    const latestByBroker = new Map<'darwinex' | 'fxpro', SessionRow>();
+    const latestByBroker = new Map<'darwinex' | 'octx', SessionRow>();
     for (const row of data) {
       const v = (row.broker ?? '').toLowerCase();
-      const key: 'darwinex' | 'fxpro' = (v.includes('fxpro') || v.includes('octx')) ? 'fxpro' : 'darwinex';
+      const key: 'darwinex' | 'octx' = (v.includes('octx') || v.includes('octx')) ? 'octx' : 'darwinex';
       if (!latestByBroker.has(key)) latestByBroker.set(key, row);
     }
     const out: UnifiedInstrument[] = [];

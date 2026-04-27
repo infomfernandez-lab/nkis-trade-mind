@@ -15,7 +15,7 @@ const BROKER_LABELS: Record<BrokerFilter, string> = {
   all: 'Todos los brokers',
   darwinex: 'NKIS',
   nkis: 'NKIS',
-  fxpro: 'OCTX',
+  octx: 'OCTX',
   octx: 'OCTX',
 };
 

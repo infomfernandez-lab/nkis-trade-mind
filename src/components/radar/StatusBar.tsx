@@ -29,10 +29,10 @@ function useLatestScannerSessions() {
   });
 }
 
-function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'fxpro') {
+function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'octx') {
   return rows.find(r => {
     const v = (r.broker ?? '').toLowerCase();
-    if (broker === 'fxpro') return v.includes('fxpro') || v.includes('octx');
+    if (broker === 'octx') return v.includes('octx') || v.includes('octx');
     return v.includes('darwinex') || v.includes('nkis') || v === '';
   }) ?? null;
 }
@@ -55,10 +55,10 @@ export function StatusBar({ brokerFilter }: Props) {
   const { openTrades } = useAllTrades();
 
   const darwinex = sessions ? latestForBroker(sessions, 'darwinex') : null;
-  const fxpro = sessions ? latestForBroker(sessions, 'fxpro') : null;
+  const octx = sessions ? latestForBroker(sessions, 'octx') : null;
 
   // VIX comes from whichever scanner ran today; prefer the active broker's scan
-  const vixSource = brokerFilter === 'fxpro' ? fxpro : (darwinex ?? fxpro);
+  const vixSource = brokerFilter === 'octx' ? octx : (darwinex ?? octx);
   const vix = vixSource?.vix ?? null;
 
   const vixColor = vix == null ? 'text-muted-foreground'
@@ -71,12 +71,12 @@ export function StatusBar({ brokerFilter }: Props) {
     : 'BLOQUEADO ✗';
 
   const dwOpen = filterByBroker(openTrades, 'darwinex').length;
-  const fxOpen = filterByBroker(openTrades, 'fxpro').length;
+  const fxOpen = filterByBroker(openTrades, 'octx').length;
 
   const dwStale = darwinex ? isStale(darwinex.created_at) : true;
-  const fxStale = fxpro ? isStale(fxpro.created_at) : true;
+  const fxStale = octx ? isStale(octx.created_at) : true;
 
-  const showDarwinex = brokerFilter !== 'fxpro';
+  const showDarwinex = brokerFilter !== 'octx';
   const showFxpro = brokerFilter !== 'darwinex';
 
   return (
@@ -123,8 +123,8 @@ export function StatusBar({ brokerFilter }: Props) {
           {showFxpro && (
             <>
               OCTX{' '}
-              {fxpro ? (
-                <span className={`font-data ${fxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(fxpro.created_at)}</span>
+              {octx ? (
+                <span className={`font-data ${fxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(octx.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}

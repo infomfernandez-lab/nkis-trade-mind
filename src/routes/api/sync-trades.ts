@@ -33,15 +33,15 @@ const tradeSchema = z.object({
   stochastic_k: z.number().nullable().optional(),
   scanner_rank: z.number().int().nullable().optional(),
   vix_at_entry: z.number().nullable().optional(),
-  broker: z.enum(['darwinex', 'fxpro', 'nkis', 'octx']).optional().default('darwinex')
-    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'fxpro' : v)),
+  broker: z.enum(['darwinex', 'octx', 'nkis', 'octx']).optional().default('darwinex')
+    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'octx' : v)),
 });
 
 const requestSchema = z.object({
   trades: z.array(tradeSchema).min(1).max(500),
   close_stale: z.boolean().optional().default(false),
-  broker: z.enum(['darwinex', 'fxpro', 'nkis', 'octx']).optional()
-    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'fxpro' : v)),
+  broker: z.enum(['darwinex', 'octx', 'nkis', 'octx']).optional()
+    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'octx' : v)),
   open_tickets: z.array(z.number().int()).optional(),
 });
 

@@ -11,7 +11,7 @@ interface Props {
 interface NearItem {
   id: string;
   symbol: string;
-  broker: 'darwinex' | 'fxpro';
+  broker: 'darwinex' | 'octx';
   direction: 'alcista' | 'bajista';
   stoch: number | null;
   pullback: boolean;
@@ -51,7 +51,7 @@ function buildNearItems(
   // 2) Manually flagged from En tendencia (status='PROXIMO')
   for (const w of watchlist) {
     if ((w.status ?? '').toUpperCase() !== 'PROXIMO') continue;
-    const broker = normalizeBroker(w.broker) === 'fxpro' ? 'fxpro' : 'darwinex';
+    const broker = normalizeBroker(w.broker) === 'octx' ? 'octx' : 'darwinex';
     if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
     const key = `${w.symbol}::${broker}`;
     if (out.has(key)) continue;
