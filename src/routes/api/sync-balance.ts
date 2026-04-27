@@ -29,11 +29,14 @@ export const Route = createFileRoute('/api/sync-balance')({
           }
 
           const { broker, balance } = parsed.data;
+          const updates = broker === 'darwinex'
+            ? { balance_nkis: balance }
+            : { balance_octx: balance };
           const column = broker === 'darwinex' ? 'balance_nkis' : 'balance_octx';
 
           const { error } = await supabaseAdmin
             .from('user_settings')
-            .update({ [column]: balance })
+            .update(updates)
             .eq('user_id', userId);
 
           if (error) {
