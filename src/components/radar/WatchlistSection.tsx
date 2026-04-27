@@ -45,11 +45,11 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
       i.status === 'Señal Dada — En posición'
     );
     if (brokerFilter !== 'all') {
-      list = list.filter(i => (i.broker ?? 'darwinex').toLowerCase() === brokerFilter);
+      list = list.filter(i => normalizeBroker(i.broker) === brokerFilter);
     }
 
     return list.map(item => {
-      const broker = (item.broker ?? 'darwinex').toLowerCase();
+      const broker = normalizeBroker(item.broker);
       const scan = scannerMap.get(`${item.symbol}::${broker}`);
       const pullback = scan?.pullback_active ?? (item.watch_reason ?? '').toLowerCase().includes('pullback');
       const stochValue = scan?.stoch_k ?? item.stochastic_level;
