@@ -432,8 +432,13 @@ const fmt = (n: number, d = 4) => Number.isFinite(n) ? n.toFixed(d) : '—';
 const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
 function CalculatorPage() {
+  const { data: settings } = useSettings();
+  const balanceNkis = settings?.balance_nkis != null ? Number(settings.balance_nkis) : 1_000_000;
+  const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 26.39;
+
   const [account, setAccount] = useState<Account>('darwinex');
-  const [capital, setCapital] = useState<number>(1_000_000);
+  const [capital, setCapital] = useState<number>(balanceNkis);
+  const [capitalManual, setCapitalManual] = useState(false);
   const [instrument, setInstrument] = useState('');
   const [direction, setDirection] = useState<Direction>('BUY');
   const [entry, setEntry] = useState<string>('');
@@ -448,9 +453,17 @@ function CalculatorPage() {
   const [tableSearch, setTableSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Sync balance from Supabase whenever settings load/change, unless the user
+  // overrode the value manually for this session.
+  useEffect(() => {
+    if (capitalManual) return;
+    setCapital(account === 'darwinex' ? balanceNkis : balanceOctx);
+  }, [account, balanceNkis, balanceOctx, capitalManual]);
+
   const onAccountChange = (a: Account) => {
     setAccount(a);
-    setCapital(a === 'darwinex' ? 1_000_000 : 26.39);
+    setCapitalManual(false);
+    setCapital(a === 'darwinex' ? balanceNkis : balanceOctx);
   };
 
   const nEntry = parseFloat(entry) || 0;
