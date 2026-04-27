@@ -109,7 +109,7 @@ export function rowToTrade(row: TradeRow): Trade {
     postTradeNotes: row.post_trade_notes,
     status: row.is_open ? 'open' : 'closed',
     isWin: row.is_win ?? false,
-    broker: (row as any).broker ?? 'darwinex',
+    broker: normalizeBroker((row as any).broker),
     updatedAt: row.updated_at,
   };
 }
