@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Zap } from 'lucide-react';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
-import type { BrokerFilter } from '@/lib/trade-utils';
+import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -51,7 +51,7 @@ function buildNearItems(
   // 2) Manually flagged from En tendencia (status='PROXIMO')
   for (const w of watchlist) {
     if ((w.status ?? '').toUpperCase() !== 'PROXIMO') continue;
-    const broker = (w.broker ?? 'darwinex').toLowerCase() === 'fxpro' ? 'fxpro' : 'darwinex';
+    const broker = normalizeBroker(w.broker) === 'fxpro' ? 'fxpro' : 'darwinex';
     if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
     const key = `${w.symbol}::${broker}`;
     if (out.has(key)) continue;

@@ -32,8 +32,8 @@ function useLatestScannerSessions() {
 function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'fxpro') {
   return rows.find(r => {
     const v = (r.broker ?? '').toLowerCase();
-    if (broker === 'fxpro') return v.includes('fxpro');
-    return v.includes('darwinex') || v === '';
+    if (broker === 'fxpro') return v.includes('fxpro') || v.includes('octx');
+    return v.includes('darwinex') || v.includes('nkis') || v === '';
   }) ?? null;
 }
 

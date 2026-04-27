@@ -130,7 +130,7 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
     const latestByBroker = new Map<'darwinex' | 'fxpro', SessionRow>();
     for (const row of data) {
       const v = (row.broker ?? '').toLowerCase();
-      const key: 'darwinex' | 'fxpro' = v.includes('fxpro') ? 'fxpro' : 'darwinex';
+      const key: 'darwinex' | 'fxpro' = (v.includes('fxpro') || v.includes('octx')) ? 'fxpro' : 'darwinex';
       if (!latestByBroker.has(key)) latestByBroker.set(key, row);
     }
     const out: UnifiedInstrument[] = [];

@@ -5,6 +5,7 @@ import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { stochEstadoMeta, type StochEstado } from '@/components/radar/EnTendenciaBlock';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { normalizeBroker } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 
 interface Props {
@@ -44,11 +45,11 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
       i.status === 'Señal Dada — En posición'
     );
     if (brokerFilter !== 'all') {
-      list = list.filter(i => (i.broker ?? 'darwinex').toLowerCase() === brokerFilter);
+      list = list.filter(i => normalizeBroker(i.broker) === brokerFilter);
     }
 
     return list.map(item => {
-      const broker = (item.broker ?? 'darwinex').toLowerCase();
+      const broker = normalizeBroker(item.broker);
       const scan = scannerMap.get(`${item.symbol}::${broker}`);
       const pullback = scan?.pullback_active ?? (item.watch_reason ?? '').toLowerCase().includes('pullback');
       const stochValue = scan?.stoch_k ?? item.stochastic_level;
@@ -160,11 +161,11 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                      (item.broker ?? 'darwinex') === 'darwinex'
+                      normalizeBroker(item.broker) === 'darwinex'
                         ? 'bg-blue-950 text-blue-300 border border-blue-800'
                         : 'bg-orange-900/40 text-orange-300 border border-orange-700/50'
                     }`}>
-                      {(item.broker ?? 'darwinex') === 'darwinex' ? 'NKIS' : 'OCTX'}
+                      {normalizeBroker(item.broker) === 'darwinex' ? 'NKIS' : 'OCTX'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">

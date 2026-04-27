@@ -206,7 +206,7 @@ function PositionsPage() {
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/30">DARWINEX</span>
             )}
             {allOpen.some(t => t.broker === 'fxpro') && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">FXPRO</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">OCTX</span>
             )}
             {allOpen.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
           </div>
