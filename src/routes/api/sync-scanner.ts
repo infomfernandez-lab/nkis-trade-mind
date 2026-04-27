@@ -6,7 +6,7 @@ import { CORS_HEADERS, withCors } from '@/lib/cors';
 
 const scannerSchema = z.object({
   session_date: z.string().min(1).max(50).optional(),
-  top_instruments: z.array(z.record(z.unknown())).max(50).optional(),
+  top_instruments: z.array(z.record(z.unknown())).max(1000).optional(),
   correlations_detected: z.array(z.record(z.unknown())).max(50).optional(),
   notes: z.string().max(5000).nullable().optional(),
   broker: z.string().max(50).optional(),
