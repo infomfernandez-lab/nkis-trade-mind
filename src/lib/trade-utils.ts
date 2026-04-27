@@ -7,6 +7,17 @@ export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
 export type BrokerFilter = 'all' | 'darwinex' | 'fxpro';
 
+/**
+ * Normalize broker values from the DB. Accepts new aliases ('nkis', 'octx')
+ * and maps them back to the canonical internal values used across the UI.
+ */
+export function normalizeBroker(raw: string | null | undefined): string {
+  const v = (raw ?? '').toString().toLowerCase().trim();
+  if (v === 'nkis' || v === 'darwinex') return 'darwinex';
+  if (v === 'octx' || v === 'fxpro') return 'fxpro';
+  return v || 'darwinex';
+}
+
 // Legacy Trade interface for compatibility with UI components
 export interface Trade {
   id: string;
