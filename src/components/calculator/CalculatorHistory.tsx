@@ -88,7 +88,10 @@ export function CalculatorHistory({ onRecover }: Props) {
 
   const filtered = useMemo(() => {
     return rows.filter(r =>
-      (brokerFilter === 'all' || r.broker === brokerFilter) &&
+      (brokerFilter === 'all'
+        || r.broker === brokerFilter
+        || (brokerFilter === 'darwinex' && r.broker === 'nkis')
+        || (brokerFilter === 'fxpro' && r.broker === 'octx')) &&
       (dirFilter === 'all' || r.direccion === dirFilter),
     );
   }, [rows, brokerFilter, dirFilter]);
