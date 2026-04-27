@@ -668,10 +668,12 @@ function CalculatorPage() {
               onChange={setInstrument}
               onSelect={(e) => {
                 setInstrument(e.symbol);
-                setPointValue(String(e.pointValue));
-                setTickSize(e.tickSize ?? null);
+                // Override with real MT5 contract spec if available
+                const resolved = resolveSpec(e.symbol, e.pointValue, e.tickSize ?? null);
+                setPointValue(String(resolved.pointValue));
+                setTickSize(resolved.tickSize);
                 onAccountChange(e.broker);
-                toast.success(`${e.symbol} cargado — valor punto: ${e.pointValue} ${e.currency}`);
+                toast.success(`${e.symbol} cargado — valor punto: ${resolved.pointValue} ${e.currency}`);
                 if (e.currency === 'GBX') {
                   toast.warning(`${e.symbol} cotiza en peniques (GBX)`, {
                     description: 'Usa el precio MT5 directamente. P/L en GBX. Divide entre 100 para GBP.',
