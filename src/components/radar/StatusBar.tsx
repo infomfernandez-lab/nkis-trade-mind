@@ -29,10 +29,10 @@ function useLatestScannerSessions() {
   });
 }
 
-function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'fxpro') {
+function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'octx') {
   return rows.find(r => {
     const v = (r.broker ?? '').toLowerCase();
-    if (broker === 'fxpro') return v.includes('fxpro') || v.includes('octx');
+    if (broker === 'octx') return v.includes('octx') || v.includes('octx');
     return v.includes('darwinex') || v.includes('nkis') || v === '';
   }) ?? null;
 }
@@ -55,10 +55,10 @@ export function StatusBar({ brokerFilter }: Props) {
   const { openTrades } = useAllTrades();
 
   const darwinex = sessions ? latestForBroker(sessions, 'darwinex') : null;
-  const fxpro = sessions ? latestForBroker(sessions, 'fxpro') : null;
+  const octx = sessions ? latestForBroker(sessions, 'octx') : null;
 
   // VIX comes from whichever scanner ran today; prefer the active broker's scan
-  const vixSource = brokerFilter === 'fxpro' ? fxpro : (darwinex ?? fxpro);
+  const vixSource = brokerFilter === 'octx' ? octx : (darwinex ?? octx);
   const vix = vixSource?.vix ?? null;
 
   const vixColor = vix == null ? 'text-muted-foreground'
@@ -71,13 +71,13 @@ export function StatusBar({ brokerFilter }: Props) {
     : 'BLOQUEADO ✗';
 
   const dwOpen = filterByBroker(openTrades, 'darwinex').length;
-  const fxOpen = filterByBroker(openTrades, 'fxpro').length;
+  const fxOpen = filterByBroker(openTrades, 'octx').length;
 
   const dwStale = darwinex ? isStale(darwinex.created_at) : true;
-  const fxStale = fxpro ? isStale(fxpro.created_at) : true;
+  const octxStale = octx ? isStale(octx.created_at) : true;
 
-  const showDarwinex = brokerFilter !== 'fxpro';
-  const showFxpro = brokerFilter !== 'darwinex';
+  const showDarwinex = brokerFilter !== 'octx';
+  const showOctx = brokerFilter !== 'darwinex';
 
   return (
     <div className="sticky top-0 z-30 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/85 backdrop-blur-md border-b border-border">
@@ -99,7 +99,7 @@ export function StatusBar({ brokerFilter }: Props) {
             <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
           </span>
         )}
-        {showFxpro && (
+        {showOctx && (
           <span className="text-muted-foreground">
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">OCTX</span>
             <span className="font-data font-bold text-foreground">{fxOpen}</span> pos
@@ -119,12 +119,12 @@ export function StatusBar({ brokerFilter }: Props) {
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
-          {showDarwinex && showFxpro && ' · '}
-          {showFxpro && (
+          {showDarwinex && showOctx && ' · '}
+          {showOctx && (
             <>
               OCTX{' '}
-              {fxpro ? (
-                <span className={`font-data ${fxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(fxpro.created_at)}</span>
+              {octx ? (
+                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(octx.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
@@ -135,7 +135,7 @@ export function StatusBar({ brokerFilter }: Props) {
           Scanner v18 — Medias+Estructura+Stoch(14,3,3)+ADX
         </span>
 
-        {((showDarwinex && dwStale) || (showFxpro && fxStale)) && (
+        {((showDarwinex && dwStale) || (showOctx && octxStale)) && (
           <span className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
             <AlertTriangle className="w-3 h-3" /> SCANNER DESACTUALIZADO
           </span>

@@ -66,9 +66,9 @@ function eventoMeta(e: Evento | null): { label: string; cls: string } | null {
   }
 }
 
-function brokerKey(b: string | null): 'darwinex' | 'fxpro' {
+function brokerKey(b: string | null): 'darwinex' | 'octx' {
   const v = (b ?? '').toLowerCase();
-  return v.includes('fxpro') || v.includes('octx') ? 'fxpro' : 'darwinex';
+  return v.includes('octx') || v.includes('octx') ? 'octx' : 'darwinex';
 }
 
 function dirIcon(d: string) {
@@ -250,7 +250,7 @@ export function MomentumBlock({ brokerFilter }: Props) {
                       ? 'bg-blue-950 text-blue-300 border-blue-800'
                       : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
                   }`}>
-                    {bk === 'darwinex' ? 'DWX' : 'FXPRO'}
+                    {bk === 'darwinex' ? 'DWX' : 'OCTX'}
                   </span>
 
                   {/* Score bar pushed to right on desktop */}

@@ -36,12 +36,12 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
   }
 
   const dwTrades = filtered.filter(t => t.broker === 'darwinex');
-  const fxTrades = filtered.filter(t => t.broker === 'fxpro');
+  const fxTrades = filtered.filter(t => t.broker === 'octx');
 
   return (
     <div className="space-y-4">
       {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} />}
-      {fxTrades.length > 0 && <BrokerSubsection broker="fxpro" trades={fxTrades} />}
+      {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} />}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
         Las posiciones abiertas solo las cierra el SL. El scanner no tiene autoridad sobre trades ya abiertos.
       </p>
@@ -49,7 +49,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
   );
 }
 
-function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'fxpro'; trades: Trade[] }) {
+function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'octx'; trades: Trade[] }) {
   const total = trades.reduce((s, t) => s + t.netPnl, 0);
   const headerColor = broker === 'darwinex'
     ? 'bg-blue-950 text-blue-300 border-blue-800'

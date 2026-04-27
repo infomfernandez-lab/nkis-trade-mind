@@ -5,16 +5,18 @@ export type TradeRow = Tables<'trades'>;
 export type UserSettingsRow = Tables<'user_settings'>;
 export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
-export type BrokerFilter = 'all' | 'darwinex' | 'fxpro' | 'nkis' | 'octx';
+export type BrokerFilter = 'all' | 'darwinex' | 'octx';
 
 /**
- * Normalize broker values from the DB. Accepts new aliases ('nkis', 'octx')
- * and maps them back to the canonical internal values used across the UI.
+ * Normalize broker values from the DB.
+ * - 'nkis' / 'darwinex'  → 'darwinex' (cuenta NKIS, futuros)
+ * - 'octx'  / 'fxpro'    → 'octx'     (cuenta OCTX, CFDs)
+ * Legacy 'fxpro' rows in the database are treated as 'octx'.
  */
 export function normalizeBroker(raw: string | null | undefined): string {
   const v = (raw ?? '').toString().toLowerCase().trim();
   if (v === 'nkis' || v === 'darwinex') return 'darwinex';
-  if (v === 'octx' || v === 'fxpro') return 'fxpro';
+  if (v === 'octx' || v === 'fxpro') return 'octx';
   return v || 'darwinex';
 }
 
@@ -117,11 +119,11 @@ export function rowToTrade(row: TradeRow): Trade {
 /** Filter trades by broker */
 export function filterByBroker(trades: Trade[], broker: BrokerFilter): Trade[] {
   if (broker === 'all') return trades;
-  if (broker === 'darwinex' || broker === 'nkis') {
+  if (broker === 'darwinex') {
     return trades.filter(t => t.broker === 'darwinex' || t.broker === 'nkis');
   }
-  if (broker === 'fxpro' || broker === 'octx') {
-    return trades.filter(t => t.broker === 'fxpro' || t.broker === 'octx');
+  if (broker === 'octx') {
+    return trades.filter(t => t.broker === 'octx' || t.broker === 'fxpro');
   }
   return trades.filter(t => t.broker === broker);
 }

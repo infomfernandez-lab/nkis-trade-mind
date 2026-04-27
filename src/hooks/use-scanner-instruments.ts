@@ -53,10 +53,10 @@ export function useLatestScannerByKey(): Map<string, UnifiedInstrument> {
   return useMemo(() => {
     const map = new Map<string, UnifiedInstrument>();
     if (!data) return map;
-    const latestByBroker = new Map<'darwinex' | 'fxpro', SessionRow>();
+    const latestByBroker = new Map<'darwinex' | 'octx', SessionRow>();
     for (const row of data) {
       const v = (row.broker ?? '').toLowerCase();
-      const key: 'darwinex' | 'fxpro' = (v.includes('fxpro') || v.includes('octx')) ? 'fxpro' : 'darwinex';
+      const key: 'darwinex' | 'octx' = (v.includes('octx') || v.includes('octx')) ? 'octx' : 'darwinex';
       if (!latestByBroker.has(key)) latestByBroker.set(key, row);
     }
     for (const [broker, row] of latestByBroker.entries()) {
