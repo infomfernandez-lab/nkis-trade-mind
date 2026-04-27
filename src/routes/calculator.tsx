@@ -183,7 +183,6 @@ const INSTRUMENTS: InstrumentRow[] = [
   { broker: 'octx', group: 'Criptomonedas', symbol: 'ETHEREUM', description: 'Ethereum vs USD', pointValue: 0.01, currency: 'USD' },
   { broker: 'octx', group: 'Criptomonedas', symbol: 'AAVE', description: 'AAVE vs USD', pointValue: 0.01, currency: 'USD' },
   { broker: 'octx', group: 'Criptomonedas', symbol: 'LITECOIN', description: 'Litecoin vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'FILECOIN', description: 'Filecoin vs USD', pointValue: 0.001, currency: 'USD' },
   { broker: 'octx', group: 'Criptomonedas', symbol: 'XRP', description: 'XRP vs USD', pointValue: 0.001, currency: 'USD' },
   // ===== OCTX — Forex =====
   { broker: 'octx', group: 'Forex', symbol: 'EURUSD', description: 'Euro vs USD', pointValue: 10.0, currency: 'USD' },
@@ -366,7 +365,6 @@ const AUTOCOMPLETE: AutocompleteEntry[] = (() => {
   octx('ETHEREUM', 'Ethereum CFD', 1, 'USD', 0.01, 'Crypto');
   octx('LITECOIN', 'Litecoin CFD', 1, 'USD', 0.01, 'Crypto');
   octx('RIPPLE', 'Ripple CFD', 1, 'USD', 0.0001, 'Crypto');
-  octx('FILECOIN', 'Filecoin CFD', 1, 'USD', 0.001, 'Crypto');
   octx('AAVE', 'AAVE CFD', 1, 'USD', 0.01, 'Crypto');
   // Acciones USA
   octx('AAPL.O', 'Apple', 1, 'USD', 0.01, 'Acciones USA');
