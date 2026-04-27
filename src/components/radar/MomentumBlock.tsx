@@ -67,7 +67,8 @@ function eventoMeta(e: Evento | null): { label: string; cls: string } | null {
 }
 
 function brokerKey(b: string | null): 'darwinex' | 'fxpro' {
-  return (b ?? '').toLowerCase().includes('fxpro') ? 'fxpro' : 'darwinex';
+  const v = (b ?? '').toLowerCase();
+  return v.includes('fxpro') || v.includes('octx') ? 'fxpro' : 'darwinex';
 }
 
 function dirIcon(d: string) {
