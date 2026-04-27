@@ -4,6 +4,30 @@ import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } fro
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
+import { useSettings } from '@/hooks/use-settings';
+import { getContractSpec } from '@/lib/contract-specs';
+
+/**
+ * Resolve point value and tick size from CONTRACT_SPECS (real MT5 specs).
+ * Falls back to the catalog values if symbol isn't found in the specs file.
+ * Tries the exact symbol first, then the family root (before "_") for futures.
+ */
+function resolveSpec(
+  symbol: string,
+  fallbackPv: number,
+  fallbackTickSize: number | null | undefined,
+): { pointValue: number; tickSize: number | null } {
+  const candidates = [symbol, symbol.split('_')[0]];
+  for (const c of candidates) {
+    const spec = getContractSpec(c);
+    if (spec && spec.tickSize > 0) {
+      // pointValue per 1.0 price unit = tickValue / tickSize
+      const pv = spec.tickValue / spec.tickSize;
+      return { pointValue: pv, tickSize: spec.tickSize };
+    }
+  }
+  return { pointValue: fallbackPv, tickSize: fallbackTickSize ?? null };
+}
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
@@ -408,8 +432,13 @@ const fmt = (n: number, d = 4) => Number.isFinite(n) ? n.toFixed(d) : '—';
 const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
 function CalculatorPage() {
+  const { data: settings } = useSettings();
+  const balanceNkis = settings?.balance_nkis != null ? Number(settings.balance_nkis) : 1_000_000;
+  const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 26.39;
+
   const [account, setAccount] = useState<Account>('darwinex');
-  const [capital, setCapital] = useState<number>(1_000_000);
+  const [capital, setCapital] = useState<number>(balanceNkis);
+  const [capitalManual, setCapitalManual] = useState(false);
   const [instrument, setInstrument] = useState('');
   const [direction, setDirection] = useState<Direction>('BUY');
   const [entry, setEntry] = useState<string>('');
@@ -424,9 +453,17 @@ function CalculatorPage() {
   const [tableSearch, setTableSearch] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Sync balance from Supabase whenever settings load/change, unless the user
+  // overrode the value manually for this session.
+  useEffect(() => {
+    if (capitalManual) return;
+    setCapital(account === 'darwinex' ? balanceNkis : balanceOctx);
+  }, [account, balanceNkis, balanceOctx, capitalManual]);
+
   const onAccountChange = (a: Account) => {
     setAccount(a);
-    setCapital(a === 'darwinex' ? 1_000_000 : 26.39);
+    setCapitalManual(false);
+    setCapital(a === 'darwinex' ? balanceNkis : balanceOctx);
   };
 
   const nEntry = parseFloat(entry) || 0;
@@ -481,16 +518,18 @@ function CalculatorPage() {
 
   const pickInstrument = (row: InstrumentRow) => {
     setInstrument(row.symbol);
-    setPointValue(String(row.pointValue));
     // Try to find tickSize from autocomplete catalog by family/symbol match
     const auto = AUTOCOMPLETE.find(
       a => a.broker === row.broker && (a.symbol === row.symbol || a.family === row.symbol.split('_')[0]),
     );
-    setTickSize(auto?.tickSize ?? null);
+    // Override with real MT5 contract spec if available
+    const resolved = resolveSpec(row.symbol, row.pointValue, auto?.tickSize ?? null);
+    setPointValue(String(resolved.pointValue));
+    setTickSize(resolved.tickSize);
     if (row.broker === 'darwinex') onAccountChange('darwinex');
     else onAccountChange('octx');
     setTableOpen(false);
-    toast.success(`${row.symbol} cargado — valor punto: ${row.pointValue}`);
+    toast.success(`${row.symbol} cargado — valor punto: ${resolved.pointValue}`);
     if (row.currency === 'GBX') {
       toast.warning(`${row.symbol} cotiza en peniques (GBX)`, {
         description: 'El precio en MT5 ya está en peniques — úsalo directamente. P/L también en GBX. Para convertir a GBP divide entre 100.',
@@ -603,7 +642,7 @@ function CalculatorPage() {
                   account === 'darwinex' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                NKIS · €1.000.000
+                NKIS · €{balanceNkis.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
               </button>
               <button
                 type="button"
@@ -612,10 +651,14 @@ function CalculatorPage() {
                   account === 'octx' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                OCTX · €26.39
+                OCTX · €{balanceOctx.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
               </button>
             </div>
-            <NumInput value={capital} onChange={setCapital} className="mt-2" />
+            <NumInput
+              value={capital}
+              onChange={(n) => { setCapital(n); setCapitalManual(true); }}
+              className="mt-2"
+            />
           </Field>
 
           {/* Instrumento */}
@@ -625,10 +668,12 @@ function CalculatorPage() {
               onChange={setInstrument}
               onSelect={(e) => {
                 setInstrument(e.symbol);
-                setPointValue(String(e.pointValue));
-                setTickSize(e.tickSize ?? null);
+                // Override with real MT5 contract spec if available
+                const resolved = resolveSpec(e.symbol, e.pointValue, e.tickSize ?? null);
+                setPointValue(String(resolved.pointValue));
+                setTickSize(resolved.tickSize);
                 onAccountChange(e.broker);
-                toast.success(`${e.symbol} cargado — valor punto: ${e.pointValue} ${e.currency}`);
+                toast.success(`${e.symbol} cargado — valor punto: ${resolved.pointValue} ${e.currency}`);
                 if (e.currency === 'GBX') {
                   toast.warning(`${e.symbol} cotiza en peniques (GBX)`, {
                     description: 'Usa el precio MT5 directamente. P/L en GBX. Divide entre 100 para GBP.',

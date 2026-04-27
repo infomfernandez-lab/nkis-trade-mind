@@ -22,6 +22,8 @@ function SettingsPage() {
   const [broker, setBroker] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [balance, setBalance] = useState('');
+  const [balanceNkis, setBalanceNkis] = useState('');
+  const [balanceOctx, setBalanceOctx] = useState('');
   const [riskPerTrade, setRiskPerTrade] = useState('');
   const [maxOpenPositions, setMaxOpenPositions] = useState('');
   const [vixBlock, setVixBlock] = useState('');
@@ -32,6 +34,8 @@ function SettingsPage() {
       setBroker(settings.broker ?? '');
       setAccountNumber(settings.account_number ?? '');
       setBalance(String(settings.balance ?? 0));
+      setBalanceNkis(String((settings as any).balance_nkis ?? 1000000));
+      setBalanceOctx(String((settings as any).balance_octx ?? 26.39));
       setRiskPerTrade(String(settings.risk_per_trade ?? 1));
       setMaxOpenPositions(String(settings.max_open_positions ?? 2));
       setVixBlock(String(settings.vix_block_threshold ?? 45));
@@ -61,11 +65,13 @@ function SettingsPage() {
       broker,
       account_number: accountNumber,
       balance: parseFloat(balance) || 0,
+      balance_nkis: parseFloat(balanceNkis) || 0,
+      balance_octx: parseFloat(balanceOctx) || 0,
       risk_per_trade: parseFloat(riskPerTrade) || 1,
       max_open_positions: parseInt(maxOpenPositions) || 2,
       vix_block_threshold: parseFloat(vixBlock) || 45,
       vix_caution_threshold: parseFloat(vixCaution) || 25,
-    }, {
+    } as any, {
       onSuccess: () => toast.success('Ajustes guardados'),
       onError: (e) => toast.error(`Error al guardar: ${e.message}`),
     });
@@ -92,7 +98,9 @@ function SettingsPage() {
         <FieldGroup>
           <InputField label="Broker" value={broker} onChange={setBroker} />
           <InputField label="Número de Cuenta" value={accountNumber} onChange={setAccountNumber} />
-          <InputField label="Balance" value={balance} onChange={setBalance} />
+          <InputField label="Balance (legacy)" value={balance} onChange={setBalance} />
+          <InputField label="Balance NKIS (€)" value={balanceNkis} onChange={setBalanceNkis} />
+          <InputField label="Balance OCTX (€)" value={balanceOctx} onChange={setBalanceOctx} />
         </FieldGroup>
       </SettingsCard>
 
