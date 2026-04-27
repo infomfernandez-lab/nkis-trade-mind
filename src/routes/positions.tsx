@@ -373,10 +373,10 @@ function PositionsPage() {
                 <TableCell colSpan={4} className="text-xs text-muted-foreground">
                   <div className="flex gap-3">
                     {allOpen.some(t => t.broker === 'darwinex') && (
-                      <span>DRW: <span className={`font-data font-semibold ${darwinexPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(darwinexPnl)}</span></span>
+                      <span>NKIS: <span className={`font-data font-semibold ${darwinexPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(darwinexPnl)}</span></span>
                     )}
                     {allOpen.some(t => t.broker === 'octx') && (
-                      <span>FXP: <span className={`font-data font-semibold ${octxPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(octxPnl)}</span></span>
+                      <span>OCTX: <span className={`font-data font-semibold ${octxPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(octxPnl)}</span></span>
                     )}
                   </div>
                 </TableCell>
