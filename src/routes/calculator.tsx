@@ -642,7 +642,7 @@ function CalculatorPage() {
                   account === 'darwinex' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                NKIS · €1.000.000
+                NKIS · €{balanceNkis.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
               </button>
               <button
                 type="button"
@@ -651,10 +651,14 @@ function CalculatorPage() {
                   account === 'octx' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                OCTX · €26.39
+                OCTX · €{balanceOctx.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
               </button>
             </div>
-            <NumInput value={capital} onChange={setCapital} className="mt-2" />
+            <NumInput
+              value={capital}
+              onChange={(n) => { setCapital(n); setCapitalManual(true); }}
+              className="mt-2"
+            />
           </Field>
 
           {/* Instrumento */}
