@@ -14,7 +14,9 @@ import { AnchorNav } from '@/components/radar/AnchorNav';
 const BROKER_LABELS: Record<BrokerFilter, string> = {
   all: 'Todos los brokers',
   darwinex: 'NKIS',
+  nkis: 'NKIS',
   fxpro: 'OCTX',
+  octx: 'OCTX',
 };
 
 const PATTERN_ANCHORS = [
