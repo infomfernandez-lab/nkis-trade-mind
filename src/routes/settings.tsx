@@ -98,7 +98,9 @@ function SettingsPage() {
         <FieldGroup>
           <InputField label="Broker" value={broker} onChange={setBroker} />
           <InputField label="Número de Cuenta" value={accountNumber} onChange={setAccountNumber} />
-          <InputField label="Balance" value={balance} onChange={setBalance} />
+          <InputField label="Balance (legacy)" value={balance} onChange={setBalance} />
+          <InputField label="Balance NKIS (€)" value={balanceNkis} onChange={setBalanceNkis} />
+          <InputField label="Balance OCTX (€)" value={balanceOctx} onChange={setBalanceOctx} />
         </FieldGroup>
       </SettingsCard>
 
