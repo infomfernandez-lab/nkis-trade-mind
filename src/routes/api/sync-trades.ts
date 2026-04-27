@@ -40,7 +40,8 @@ const tradeSchema = z.object({
 const requestSchema = z.object({
   trades: z.array(tradeSchema).min(1).max(500),
   close_stale: z.boolean().optional().default(false),
-  broker: z.enum(['darwinex', 'fxpro']).optional(),
+  broker: z.enum(['darwinex', 'fxpro', 'nkis', 'octx']).optional()
+    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'fxpro' : v)),
   open_tickets: z.array(z.number().int()).optional(),
 });
 
