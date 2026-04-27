@@ -434,7 +434,7 @@ const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 function CalculatorPage() {
   const { data: settings } = useSettings();
   const balanceNkis = settings?.balance_nkis != null ? Number(settings.balance_nkis) : 1_000_000;
-  const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 26.39;
+  const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 0;
 
   const [account, setAccount] = useState<Account>('darwinex');
   const [capital, setCapital] = useState<number>(balanceNkis);
