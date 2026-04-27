@@ -4,6 +4,30 @@ import { Copy, Trash2, ChevronDown, ChevronUp, Search, AlertTriangle, Save } fro
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
+import { useSettings } from '@/hooks/use-settings';
+import { getContractSpec } from '@/lib/contract-specs';
+
+/**
+ * Resolve point value and tick size from CONTRACT_SPECS (real MT5 specs).
+ * Falls back to the catalog values if symbol isn't found in the specs file.
+ * Tries the exact symbol first, then the family root (before "_") for futures.
+ */
+function resolveSpec(
+  symbol: string,
+  fallbackPv: number,
+  fallbackTickSize: number | null | undefined,
+): { pointValue: number; tickSize: number | null } {
+  const candidates = [symbol, symbol.split('_')[0]];
+  for (const c of candidates) {
+    const spec = getContractSpec(c);
+    if (spec && spec.tickSize > 0) {
+      // pointValue per 1.0 price unit = tickValue / tickSize
+      const pv = spec.tickValue / spec.tickSize;
+      return { pointValue: pv, tickSize: spec.tickSize };
+    }
+  }
+  return { pointValue: fallbackPv, tickSize: fallbackTickSize ?? null };
+}
 
 export const Route = createFileRoute('/calculator')({
   head: () => ({
