@@ -89,9 +89,8 @@ export function CalculatorHistory({ onRecover }: Props) {
   const filtered = useMemo(() => {
     return rows.filter(r =>
       (brokerFilter === 'all'
-        || r.broker === brokerFilter
-        || (brokerFilter === 'darwinex' && r.broker === 'nkis')
-        || (brokerFilter === 'octx' && r.broker === 'octx')) &&
+        || (brokerFilter === 'darwinex' && (r.broker === 'darwinex' || r.broker === 'nkis'))
+        || (brokerFilter === 'octx' && (r.broker === 'octx' || r.broker === 'fxpro'))) &&
       (dirFilter === 'all' || r.direccion === dirFilter),
     );
   }, [rows, brokerFilter, dirFilter]);
