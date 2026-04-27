@@ -119,11 +119,11 @@ export function rowToTrade(row: TradeRow): Trade {
 /** Filter trades by broker */
 export function filterByBroker(trades: Trade[], broker: BrokerFilter): Trade[] {
   if (broker === 'all') return trades;
-  if (broker === 'darwinex' || broker === 'nkis') {
+  if (broker === 'darwinex') {
     return trades.filter(t => t.broker === 'darwinex' || t.broker === 'nkis');
   }
-  if (broker === 'octx' || broker === 'octx') {
-    return trades.filter(t => t.broker === 'octx' || t.broker === 'octx');
+  if (broker === 'octx') {
+    return trades.filter(t => t.broker === 'octx' || t.broker === 'fxpro');
   }
   return trades.filter(t => t.broker === broker);
 }
