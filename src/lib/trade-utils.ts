@@ -5,7 +5,7 @@ export type TradeRow = Tables<'trades'>;
 export type UserSettingsRow = Tables<'user_settings'>;
 export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
-export type BrokerFilter = 'all' | 'darwinex' | 'fxpro';
+export type BrokerFilter = 'all' | 'darwinex' | 'fxpro' | 'nkis' | 'octx';
 
 /**
  * Normalize broker values from the DB. Accepts new aliases ('nkis', 'octx')
