@@ -5,6 +5,7 @@ import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { stochEstadoMeta, type StochEstado } from '@/components/radar/EnTendenciaBlock';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { normalizeBroker } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 
 interface Props {
