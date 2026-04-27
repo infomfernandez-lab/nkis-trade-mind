@@ -33,7 +33,8 @@ const tradeSchema = z.object({
   stochastic_k: z.number().nullable().optional(),
   scanner_rank: z.number().int().nullable().optional(),
   vix_at_entry: z.number().nullable().optional(),
-  broker: z.enum(['darwinex', 'fxpro']).optional().default('darwinex'),
+  broker: z.enum(['darwinex', 'fxpro', 'nkis', 'octx']).optional().default('darwinex')
+    .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'octx' ? 'fxpro' : v)),
 });
 
 const requestSchema = z.object({
