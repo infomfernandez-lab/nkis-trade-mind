@@ -65,11 +65,13 @@ function SettingsPage() {
       broker,
       account_number: accountNumber,
       balance: parseFloat(balance) || 0,
+      balance_nkis: parseFloat(balanceNkis) || 0,
+      balance_octx: parseFloat(balanceOctx) || 0,
       risk_per_trade: parseFloat(riskPerTrade) || 1,
       max_open_positions: parseInt(maxOpenPositions) || 2,
       vix_block_threshold: parseFloat(vixBlock) || 45,
       vix_caution_threshold: parseFloat(vixCaution) || 25,
-    }, {
+    } as any, {
       onSuccess: () => toast.success('Ajustes guardados'),
       onError: (e) => toast.error(`Error al guardar: ${e.message}`),
     });
