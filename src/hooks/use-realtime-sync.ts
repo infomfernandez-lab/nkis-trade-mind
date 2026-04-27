@@ -26,6 +26,9 @@ export function useRealtimeSync() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'momentum_sessions' }, () => {
         qc.invalidateQueries({ queryKey: ['momentum-sessions'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings' }, () => {
+        qc.invalidateQueries({ queryKey: ['user_settings'] });
+      })
       .subscribe();
 
     return () => {
