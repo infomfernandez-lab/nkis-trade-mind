@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Zap } from 'lucide-react';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
-import type { BrokerFilter } from '@/lib/trade-utils';
+import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 
 interface Props {
   brokerFilter: BrokerFilter;
