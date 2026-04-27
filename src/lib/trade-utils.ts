@@ -5,7 +5,7 @@ export type TradeRow = Tables<'trades'>;
 export type UserSettingsRow = Tables<'user_settings'>;
 export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
-export type BrokerFilter = 'all' | 'darwinex' | 'fxpro';
+export type BrokerFilter = 'all' | 'darwinex' | 'fxpro' | 'nkis' | 'octx';
 
 /**
  * Normalize broker values from the DB. Accepts new aliases ('nkis', 'octx')
@@ -117,6 +117,12 @@ export function rowToTrade(row: TradeRow): Trade {
 /** Filter trades by broker */
 export function filterByBroker(trades: Trade[], broker: BrokerFilter): Trade[] {
   if (broker === 'all') return trades;
+  if (broker === 'darwinex' || broker === 'nkis') {
+    return trades.filter(t => t.broker === 'darwinex' || t.broker === 'nkis');
+  }
+  if (broker === 'fxpro' || broker === 'octx') {
+    return trades.filter(t => t.broker === 'fxpro' || t.broker === 'octx');
+  }
   return trades.filter(t => t.broker === broker);
 }
 

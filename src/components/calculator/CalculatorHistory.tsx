@@ -49,7 +49,7 @@ export function CalculatorHistory({ onRecover }: Props) {
   const [count, setCount] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [brokerFilter, setBrokerFilter] = useState<'all' | 'darwinex' | 'fxpro'>('all');
+  const [brokerFilter, setBrokerFilter] = useState<'all' | 'darwinex' | 'fxpro' | 'nkis' | 'octx'>('all');
   const [dirFilter, setDirFilter] = useState<'all' | 'BUY' | 'SELL'>('all');
 
   const fetchPage = useCallback(async (offset: number, replace: boolean) => {
@@ -88,7 +88,10 @@ export function CalculatorHistory({ onRecover }: Props) {
 
   const filtered = useMemo(() => {
     return rows.filter(r =>
-      (brokerFilter === 'all' || r.broker === brokerFilter) &&
+      (brokerFilter === 'all'
+        || r.broker === brokerFilter
+        || (brokerFilter === 'darwinex' && r.broker === 'nkis')
+        || (brokerFilter === 'fxpro' && r.broker === 'octx')) &&
       (dirFilter === 'all' || r.direccion === dirFilter),
     );
   }, [rows, brokerFilter, dirFilter]);
