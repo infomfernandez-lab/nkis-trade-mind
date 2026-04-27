@@ -40,7 +40,7 @@ export const Route = createFileRoute('/api/sync-scanner')({
           }
 
           const rawBroker = (parsed.data.broker ?? '').trim().toLowerCase();
-          const broker = (rawBroker.includes('octx') || rawBroker.includes('octx')) ? 'octx' : 'darwinex';
+          const broker = (rawBroker.includes('octx') || rawBroker.includes('fxpro')) ? 'octx' : 'darwinex';
 
           const row = {
             user_id: userId,
