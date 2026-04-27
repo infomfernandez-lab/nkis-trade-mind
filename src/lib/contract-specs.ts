@@ -815,8 +815,7 @@ export const CONTRACT_SPECS: ContractSpec[] = [
   { symbol: 'ARKK', description: 'ARK Innovation ETF', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
   { symbol: 'ARKW', description: 'ARK Next Generation Internet E', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
   { symbol: 'DGRO', description: 'iShares Core Dividend Growth E', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
-  { symbol: 'DIA', description: 'State Street SPDR Dow Jones Industrial Average ETF
-Trust', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
+  { symbol: 'DIA', description: 'State Street SPDR Dow Jones Industrial Average ETF Trust', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
   { symbol: 'DVY', description: 'iShares Select Dividend ETF', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
   { symbol: 'EEM', description: 'iShares MSCI Emerging Markets', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
   { symbol: 'EFA', description: 'iShares MSCI EAFE ETF', tickValue: 0.01, tickSize: 0.01, contractSize: 1.0, profitCurrency: 'USD', digits: 2, volumeMin: 1.0, volumeStep: 1.0, broker: 'octx' },
