@@ -733,11 +733,12 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="Valor del punto" hint="Para futuros NKIS puede variar. Para CFDs OCTX usar 1 como aproximación o consultar especificaciones en MT5">
+          <Field label="Valor del punto (auto)" hint="Cargado automáticamente desde las especificaciones MT5 al seleccionar el instrumento">
             <input
               type="number" step="any" inputMode="decimal"
-              value={pointValue} onChange={e => setPointValue(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              value={pointValue}
+              readOnly
+              className="w-full h-10 rounded-md border border-input bg-muted/40 px-3 text-sm font-data text-muted-foreground cursor-not-allowed"
             />
           </Field>
 
