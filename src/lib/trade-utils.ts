@@ -5,16 +5,18 @@ export type TradeRow = Tables<'trades'>;
 export type UserSettingsRow = Tables<'user_settings'>;
 export type ScannerSessionRow = Tables<'scanner_sessions'>;
 
-export type BrokerFilter = 'all' | 'darwinex' | 'octx' | 'nkis' | 'octx';
+export type BrokerFilter = 'all' | 'darwinex' | 'octx';
 
 /**
- * Normalize broker values from the DB. Accepts new aliases ('nkis', 'octx')
- * and maps them back to the canonical internal values used across the UI.
+ * Normalize broker values from the DB.
+ * - 'nkis' / 'darwinex'  → 'darwinex' (cuenta NKIS, futuros)
+ * - 'octx'  / 'fxpro'    → 'octx'     (cuenta OCTX, CFDs)
+ * Legacy 'fxpro' rows in the database are treated as 'octx'.
  */
 export function normalizeBroker(raw: string | null | undefined): string {
   const v = (raw ?? '').toString().toLowerCase().trim();
   if (v === 'nkis' || v === 'darwinex') return 'darwinex';
-  if (v === 'octx' || v === 'octx') return 'octx';
+  if (v === 'octx' || v === 'fxpro') return 'octx';
   return v || 'darwinex';
 }
 
