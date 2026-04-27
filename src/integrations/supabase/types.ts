@@ -355,6 +355,8 @@ export type Database = {
           account_number: string | null
           api_key: string | null
           balance: number | null
+          balance_nkis: number
+          balance_octx: number
           broker: string | null
           created_at: string
           id: string
@@ -369,6 +371,8 @@ export type Database = {
           account_number?: string | null
           api_key?: string | null
           balance?: number | null
+          balance_nkis?: number
+          balance_octx?: number
           broker?: string | null
           created_at?: string
           id?: string
@@ -383,6 +387,8 @@ export type Database = {
           account_number?: string | null
           api_key?: string | null
           balance?: number | null
+          balance_nkis?: number
+          balance_octx?: number
           broker?: string | null
           created_at?: string
           id?: string
