@@ -143,8 +143,95 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   }));
 
   // Return % and reliability factor
+  // Reliability Factor = Recovery Factor normalized to [0,1] range.
+  // Formula: netTotal / (|netTotal| + maxDdAbs) — works for negative netTotal too.
   const returnPct = startingBalance > 0 ? (netTotal / startingBalance) * 100 : 0;
-  const reliabilityFactor = netTotal > 0 ? netTotal / (netTotal + maxDdAbs) : 0;
+  const denom = Math.abs(netTotal) + maxDdAbs;
+  const reliabilityFactor = denom > 0 ? netTotal / denom : 0;
+
+  // ── Sharpe & Sortino (per-trade returns annualized with √252) ──
+  const returns = trades.map(t => startingBalance > 0 ? t.netPnl / startingBalance : 0);
+  const meanRet = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+  const variance = returns.length > 1
+    ? returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / (returns.length - 1)
+    : 0;
+  const stdDev = Math.sqrt(variance);
+  const negReturns = returns.filter(r => r < 0);
+  const downsideVar = negReturns.length > 0
+    ? negReturns.reduce((s, r) => s + r * r, 0) / negReturns.length
+    : 0;
+  const downsideDev = Math.sqrt(downsideVar);
+  const sharpeRatio = stdDev > 0 ? (meanRet / stdDev) * Math.sqrt(252) : 0;
+  const sortinoRatio = downsideDev > 0 ? (meanRet / downsideDev) * Math.sqrt(252) : 0;
+
+  // ── R-multiples (rr_real per trade) ──
+  const rrValues = trades.map(t => computeRR(t)).filter((v): v is number => v !== null);
+  const rTotal = rrValues.reduce((s, v) => s + v, 0);
+  const rAvg = rrValues.length > 0 ? rTotal / rrValues.length : 0;
+
+  // ── Calidad de Ejecución ──
+  const journalPct = trades.length > 0 ? (trades.filter(hasJournal).length / trades.length) * 100 : 0;
+  const withCompliance = trades.filter(t => t.systemCompliance && t.systemCompliance.trim() !== '');
+  const fullCompliance = withCompliance.filter(t => t.systemCompliance === '100%').length;
+  const compliancePct = withCompliance.length > 0 ? (fullCompliance / withCompliance.length) * 100 : 0;
+  const intervened = trades.filter(t => {
+    const v = (t.manualIntervention ?? '').trim();
+    return v !== '' && v !== 'None, EA managing' && v !== 'No EA gestionando solo' && v.toLowerCase() !== 'ninguna';
+  });
+  const interventionPct = trades.length > 0 ? (intervened.length / trades.length) * 100 : 0;
+  const errorCounts: Record<string, number> = {};
+  for (const t of trades) {
+    const v = (t.whatDoDifferently ?? '').trim();
+    if (!v) continue;
+    errorCounts[v] = (errorCounts[v] ?? 0) + 1;
+  }
+  let mostFrequentError = '—';
+  let mostFrequentErrorCount = 0;
+  for (const [k, v] of Object.entries(errorCounts)) {
+    if (v > mostFrequentErrorCount) { mostFrequentError = k; mostFrequentErrorCount = v; }
+  }
+
+  // ── Análisis Temporal ──
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const byDow: Record<number, Trade[]> = {};
+  for (const t of trades) {
+    const d = new Date(t.entryDate).getDay();
+    (byDow[d] ??= []).push(t);
+  }
+  let bestDow = '—';
+  let bestDowWr = -1;
+  for (const [k, list] of Object.entries(byDow)) {
+    if (list.length < 3) continue;
+    const wr = (list.filter(t => t.netPnl > 0).length / list.length) * 100;
+    if (wr > bestDowWr) { bestDowWr = wr; bestDow = dayNames[Number(k)]; }
+  }
+
+  const byMonthKey: Record<string, { pnl: number; label: string }> = {};
+  for (const t of trades) {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${monthShort(d.getMonth())} ${d.getFullYear()}`;
+    if (!byMonthKey[key]) byMonthKey[key] = { pnl: 0, label };
+    byMonthKey[key].pnl += t.netPnl;
+  }
+  let bestMonthLabel = '—';
+  let bestMonthPnl = -Infinity;
+  for (const m of Object.values(byMonthKey)) {
+    if (m.pnl > bestMonthPnl) { bestMonthPnl = m.pnl; bestMonthLabel = m.label; }
+  }
+  if (bestMonthPnl === -Infinity) bestMonthPnl = 0;
+
+  const avgDurWinners = winners.length > 0
+    ? winners.reduce((s, t) => s + t.durationHours, 0) / winners.length
+    : 0;
+  const avgDurLosers = losers.length > 0
+    ? losers.reduce((s, t) => s + t.durationHours, 0) / losers.length
+    : 0;
+
+  const under24h = trades.filter(t => t.durationHours < 24).length;
+  const over24h = trades.length - under24h;
+  const under24hPct = trades.length > 0 ? (under24h / trades.length) * 100 : 0;
+  const over24hPct = trades.length > 0 ? (over24h / trades.length) * 100 : 0;
 
   // Summary block
   const totalTrades = trades.length;
@@ -159,9 +246,19 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
     tradesPerDay, winnersPerMonth, losersPerMonth,
     maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
     returnPct, reliabilityFactor,
+    sharpeRatio, sortinoRatio, rTotal, rAvg, rrCount: rrValues.length,
+    journalPct, compliancePct, complianceCount: withCompliance.length,
+    interventionPct, interventionCount: intervened.length,
+    mostFrequentError, mostFrequentErrorCount,
+    bestDow, bestDowWr, bestMonthLabel, bestMonthPnl,
+    avgDurWinners, avgDurLosers, under24hPct, over24hPct,
     heatmap, histogramData, activeMonths, netTotal,
     totalTrades, winnersCount, losersCount, winPct, lossPct,
   };
+}
+
+function monthShort(m: number): string {
+  return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][m];
 }
 
 /* ─── Page ─── */
