@@ -420,9 +420,16 @@ function StochCell({ inst }: { inst: UnifiedInstrument }) {
   const arrow = sub == null ? '' : sub ? '↑' : '↓';
   return (
     <span className={`font-data text-xs font-semibold ${color}`}>
-      {Math.round(k)} {arrow}
+      {k.toFixed(1)} {arrow}
     </span>
   );
+}
+
+function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
+  if (inst.atr == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const v = inst.atr;
+  const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 5;
+  return <span className="font-data text-xs font-semibold text-foreground">{v.toFixed(decimals)}</span>;
 }
 
 function AdxCell({ inst }: { inst: UnifiedInstrument }) {
