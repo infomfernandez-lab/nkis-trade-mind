@@ -912,7 +912,7 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
   // Equity curve for the month
   y = sectionTitle(d, y, 'Curva de Equity del Mes');
   const points = buildEquityCurve(trades, startingBalance);
-  y = drawEquityChart(d, y, points, 55);
+  y = drawEquityChart(d, y, points, 75, trades);
 
   // NKIS vs OCTX
   y = sectionTitle(d, y, 'NKIS vs OCTX');
@@ -1017,7 +1017,7 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
 
   y = sectionTitle(d, y, 'Curva de Equity Completa');
   const points = buildEquityCurve(trades, startingBalance);
-  y = drawEquityChart(d, y, points, 70);
+  y = drawEquityChart(d, y, points, 90, trades);
 
   // By instrument
   y = sectionTitle(d, y, 'Análisis por Instrumento');
