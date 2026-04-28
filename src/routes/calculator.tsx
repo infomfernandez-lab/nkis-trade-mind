@@ -634,6 +634,78 @@ function CalculatorPage() {
         </div>
       )}
 
+      {/* RESUMEN OPERATIVO */}
+      <section
+        className="rounded-xl border-2 p-5 lg:p-7 bg-card"
+        style={{ borderColor: '#2962FF' }}
+      >
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <h2 className="text-base font-bold uppercase tracking-wider flex items-center gap-2">
+            📋 Resumen operativo
+          </h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-lg font-bold font-data">
+              <span className="text-foreground">{instrument || '—'}</span>{' '}
+              <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
+                {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
+                <Copy className="w-3.5 h-3.5" /> Copiar resumen
+              </button>
+              <button
+                onClick={saveCalculation}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success/10 text-success text-xs font-medium hover:bg-success/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-3.5 h-3.5" /> {saving ? 'Guardando…' : 'Guardar cálculo'}
+              </button>
+              <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-muted-foreground text-xs font-medium hover:text-foreground">
+                <Trash2 className="w-3.5 h-3.5" /> Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Fila principal: Entrada / SL / Lotes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-5 border-b border-border">
+          <BigStat label="ENTRADA" value={fmt(nEntry)} hint="precio actual" />
+          <BigStat label="STOP LOSS" value={fmt(slPrice)} hint="precio exacto" />
+          <BigStat label="LOTES" value={lots.toFixed(2)} hint="en MT5" />
+        </div>
+
+        {/* Fila secundaria: Riesgo / Breakeven / Trailing */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
+          <MidStat label="RIESGO REAL" value={fmtEur(realRisk)} />
+          <MidStat
+            label="BREAKEVEN"
+            value={fmt(beActivate)}
+            hint={`mover SL a ${fmt(beSl)} cuando llegue`}
+          />
+          <MidStat
+            label="TRAILING SL"
+            value={trailMt5Points != null ? `${trailMt5Points} pts` : 'ATR × 1.5'}
+            hint={trailMt5Points != null ? 'introducir en MT5' : `distancia: ${fmt(trailDist)}`}
+          />
+        </div>
+
+        {nTp != null && (
+          <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4">
+            <MidStat label="TAKE PROFIT" value={fmt(nTp)} />
+            <MidStat label="RR RATIO" value={`${rr.toFixed(2)}:1`} hintClass={rrColor} />
+          </div>
+        )}
+
+        {vixInfo && (
+          <div className={`mt-5 text-sm ${vixInfo.color ?? 'text-muted-foreground'}`}>
+            ⚠ {vixInfo.msg}
+          </div>
+        )}
+      </section>
+
+      <CalculatorHistory onRecover={recoverCalculation} />
+
       {/* INPUTS */}
       <section className="rounded-xl border border-border bg-card p-4 lg:p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Datos de entrada</h2>
@@ -811,25 +883,12 @@ function CalculatorPage() {
           <Row label="Distancia (ATR × 1.5)">
             <Big>{fmt(trailDist)}</Big>
           </Row>
-
-          <div className="mt-3 rounded-lg border border-success/40 bg-success/10 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-success mb-1 flex items-center gap-1.5">
-              ✅ Puntos para MT5
-            </div>
-            <div
-              className="font-data font-bold text-success leading-none"
-              style={{ fontSize: '2.5rem' }}
-            >
+          <Row label="Puntos para MT5">
+            <Big className="text-success">
               {trailMt5Points != null ? String(trailMt5Points) : '—'}
-            </div>
-            {trailMt5Points == null && (
-              <div className="text-[11px] text-muted-foreground mt-2">
-                Selecciona un instrumento e introduce el ATR para ver los puntos.
-              </div>
-            )}
-          </div>
-
-          <div className="text-xs text-muted-foreground mt-3 leading-relaxed">
+            </Big>
+          </Row>
+          <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
             En MT5: clic derecho sobre la posición → <span className="text-foreground font-medium">Trailing Stop</span> → <span className="text-foreground font-medium">Personalizado</span> → introducir{' '}
             <span className="text-success font-data font-semibold">
               {trailMt5Points != null ? String(trailMt5Points) : '[puntos]'}
@@ -872,78 +931,6 @@ function CalculatorPage() {
           </div>
         </ResultCard>
       </section>
-
-      {/* RESUMEN OPERATIVO */}
-      <section
-        className="rounded-xl border-2 p-5 lg:p-7 bg-card"
-        style={{ borderColor: '#2962FF' }}
-      >
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-          <h2 className="text-base font-bold uppercase tracking-wider flex items-center gap-2">
-            📋 Resumen operativo
-          </h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-lg font-bold font-data">
-              <span className="text-foreground">{instrument || '—'}</span>{' '}
-              <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
-                {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
-                <Copy className="w-3.5 h-3.5" /> Copiar resumen
-              </button>
-              <button
-                onClick={saveCalculation}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-success/10 text-success text-xs font-medium hover:bg-success/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-3.5 h-3.5" /> {saving ? 'Guardando…' : 'Guardar cálculo'}
-              </button>
-              <button onClick={clearAll} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary text-muted-foreground text-xs font-medium hover:text-foreground">
-                <Trash2 className="w-3.5 h-3.5" /> Limpiar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Fila principal: Entrada / SL / Lotes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-5 border-b border-border">
-          <BigStat label="ENTRADA" value={fmt(nEntry)} hint="precio actual" />
-          <BigStat label="STOP LOSS" value={fmt(slPrice)} hint="precio exacto" />
-          <BigStat label="LOTES" value={lots.toFixed(2)} hint="en MT5" />
-        </div>
-
-        {/* Fila secundaria: Riesgo / Breakeven / Trailing */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
-          <MidStat label="RIESGO REAL" value={fmtEur(realRisk)} />
-          <MidStat
-            label="BREAKEVEN"
-            value={fmt(beActivate)}
-            hint={`mover SL a ${fmt(beSl)} cuando llegue`}
-          />
-          <MidStat
-            label="TRAILING SL"
-            value={trailMt5Points != null ? `${trailMt5Points} pts` : 'ATR × 3'}
-            hint={trailMt5Points != null ? 'introducir en MT5' : `distancia: ${fmt(trailDist)}`}
-          />
-        </div>
-
-        {nTp != null && (
-          <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-4">
-            <MidStat label="TAKE PROFIT" value={fmt(nTp)} />
-            <MidStat label="RR RATIO" value={`${rr.toFixed(2)}:1`} hintClass={rrColor} />
-          </div>
-        )}
-
-        {vixInfo && (
-          <div className={`mt-5 text-sm ${vixInfo.color ?? 'text-muted-foreground'}`}>
-            ⚠ {vixInfo.msg}
-          </div>
-        )}
-      </section>
-
-      <CalculatorHistory onRecover={recoverCalculation} />
     </div>
   );
 }
