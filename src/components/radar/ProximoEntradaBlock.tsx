@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Zap, Trash2, EyeOff } from 'lucide-react';
 import { useWatchlist, useDeleteWatchlistItem, useAddToWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
+import { SymbolMeta } from './EnTendenciaBlock';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -105,11 +108,23 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const add = useAddToWatchlist();
   const { user } = useAuth();
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const near: NearItem[] = useMemo(
+  const allNear: NearItem[] = useMemo(
     () => buildNearItems(brokerFilter, scannerMap, items ?? []),
     [brokerFilter, scannerMap, items],
   );
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of allNear) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [allNear]);
+  const near = typeFilter.size === 0
+    ? allNear
+    : allNear.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
 
   const handleRemove = (item: NearItem) => {
     if (!item.watchlistId) {
@@ -155,7 +170,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
     }
   };
 
-  if (near.length === 0) {
+  if (allNear.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Zap className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
@@ -166,6 +181,10 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-destructive/40 bg-destructive/[0.03] overflow-hidden">
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>{near.length} de {allNear.length}</span>
+        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+      </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
@@ -253,7 +272,12 @@ function ActionButtons({ onRemove, onDiscard, hasWatchlistRow }: { onRemove: () 
 function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
     <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
-      <td className="px-3 py-2 font-bold text-foreground text-sm">{item.symbol}</td>
+      <td className="px-3 py-2 font-bold text-foreground text-sm">
+        <div className="flex flex-col gap-0.5">
+          <span>{item.symbol}</span>
+          <SymbolMeta symbol={item.symbol} />
+        </div>
+      </td>
       <td className="px-2 py-2">
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -284,6 +308,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
           {signalText(item)}
         </span>
       </div>
+      <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
       <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</div>
       <div className="mt-2 flex justify-end">
         <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />

@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
+import { SymbolMeta } from './EnTendenciaBlock';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -20,13 +23,27 @@ function tradeStatus(t: Trade): string {
 
 export function OpenPositionsTable({ brokerFilter }: Props) {
   const { openTrades, isLoading } = useAllTrades();
-  const filtered = filterByBroker(openTrades, brokerFilter);
+  const filteredAll = filterByBroker(openTrades, brokerFilter);
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const t of filteredAll) {
+      const tp = classifyInstrument(t.symbol).type;
+      c[tp] = (c[tp] ?? 0) + 1;
+    }
+    return c;
+  }, [filteredAll]);
+
+  const filtered = typeFilter.size === 0
+    ? filteredAll
+    : filteredAll.filter(t => typeFilter.has(classifyInstrument(t.symbol).type));
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-6">Cargando posiciones...</div>;
   }
 
-  if (filtered.length === 0) {
+  if (filteredAll.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center">
         <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
@@ -40,6 +57,10 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-[11px] text-muted-foreground">{filtered.length} de {filteredAll.length} posiciones</span>
+        <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+      </div>
       {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} />}
       {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} />}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
@@ -81,7 +102,12 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'octx'; tra
         <tbody>
           {trades.map(t => (
             <tr key={t.id} className="border-t border-border hover:bg-accent/20 transition-colors">
-              <td className="px-3 py-2 font-bold">{t.symbol}</td>
+              <td className="px-3 py-2 font-bold">
+                <div className="flex flex-col gap-0.5">
+                  <span>{t.symbol}</span>
+                  <SymbolMeta symbol={t.symbol} />
+                </div>
+              </td>
               <td className="px-2 py-2">
                 <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   t.direction === 'BUY' ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
@@ -136,6 +162,7 @@ function MobileRow({ trade: t }: { trade: Trade }) {
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
       <div className="text-[11px] text-muted-foreground mt-0.5">{tradeStatus(t)}</div>
+      <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
       {open && (
         <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
           <div><div className="text-muted-foreground">Apertura</div><div className="font-data text-foreground">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div></div>

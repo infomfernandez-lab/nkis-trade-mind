@@ -9,6 +9,8 @@ import type { BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import { useAddToSeguimiento } from './SeguimientoBlock';
 import { Eye } from 'lucide-react';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Raw {
   rank?: number;
@@ -187,7 +189,7 @@ const TIER_LABEL: Record<Tier, string> = {
 };
 
 export function EnTendenciaBlock({ brokerFilter }: Props) {
-  const items = useUnifiedInstruments(brokerFilter);
+  const allItems = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
   const watchedSymbols = new Set(
@@ -202,7 +204,20 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   );
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
-  if (items.length === 0) {
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of allItems) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [allItems]);
+  const items = typeFilter.size === 0
+    ? allItems
+    : allItems.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  if (allItems.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center">
         <p className="text-sm text-muted-foreground">Sin instrumentos en tendencia. Ejecuta el scanner.</p>
@@ -210,7 +225,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
     );
   }
 
-  // Build a map symbol::broker → global rank (1..N) following sort order
+  // Build a map symbol::broker → global rank (1..N) following sort order (over filtered items)
   const rankByKey = new Map<string, number>();
   items.forEach((it, idx) => rankByKey.set(`${it.symbol}::${it.broker}`, idx + 1));
 
@@ -226,9 +241,12 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>Escáner v18 — {items.length} instrumentos</span>
+        <span>Escáner v18 — {items.length} de {allItems.length}</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
+        <div className="ml-auto">
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
       </div>
 
       {/* Desktop table */}
@@ -512,6 +530,18 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
 
 export type HighlightTier = 'gold' | 'top' | 'none';
 
+export function SymbolMeta({ symbol, compact = false }: { symbol: string; compact?: boolean }) {
+  const meta = classifyInstrument(symbol);
+  return (
+    <div className={`flex flex-col leading-tight ${compact ? 'text-[10px]' : 'text-[11px]'} text-muted-foreground font-normal`}>
+      <span className="truncate max-w-[220px]" title={meta.description}>{meta.description}</span>
+      <span className="text-[10px] flex items-center gap-1">
+        <span>{meta.flag}</span><span>{meta.country}</span>
+      </span>
+    </div>
+  );
+}
+
 function highlightClasses(hl: HighlightTier): string {
   if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
   if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
@@ -539,11 +569,14 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         <span className={`font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
       </td>
       <td className="px-3 py-2 font-bold text-foreground">
-        <div className="flex items-center gap-1.5">
-          {inst.symbol}
-          <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-            inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-          }`}>{inst.broker === 'darwinex' ? 'DW' : 'FX'}</span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            {inst.symbol}
+            <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
+              inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+            }`}>{inst.broker === 'darwinex' ? 'DW' : 'FX'}</span>
+          </div>
+          <SymbolMeta symbol={inst.symbol} />
         </div>
       </td>
       <td className="px-2 py-2">
@@ -598,6 +631,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         </span>
         {open ? <ChevronUp className="w-4 h-4 ml-auto text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />}
       </button>
+      <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
       {open && (
         <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
           <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span className={`font-data font-semibold ${adxColor(inst.adx_value)}`}>{inst.adx_value ?? '—'} {adxAbbr(inst.adx_state)}</span></div>

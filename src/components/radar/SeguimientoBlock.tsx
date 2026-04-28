@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Eye, Trash2 } from 'lucide-react';
 import { useWatchlist, useDeleteWatchlistItem, useAddToWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
@@ -6,6 +6,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import type { UnifiedInstrument } from './EnTendenciaBlock';
+import { SymbolMeta } from './EnTendenciaBlock';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -58,11 +61,23 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
   const scannerMap = useLatestScannerByKey();
   const del = useDeleteWatchlistItem();
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const list = useMemo(
+  const fullList = useMemo(
     () => buildItems(brokerFilter, scannerMap, items ?? []),
     [brokerFilter, scannerMap, items],
   );
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of fullList) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [fullList]);
+  const list = typeFilter.size === 0
+    ? fullList
+    : fullList.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
 
   const handleRemove = (item: SeguimientoItem) => {
     del.mutate(item.watchlistId, {
@@ -71,7 +86,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
     });
   };
 
-  if (list.length === 0) {
+  if (fullList.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Eye className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
@@ -82,6 +97,10 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>{list.length} de {fullList.length}</span>
+        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+      </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
@@ -100,7 +119,12 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
           {list.map((item, idx) => (
             <tr key={item.id} className="border-t border-border text-sm">
               <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>
-              <td className="px-3 py-2 font-bold text-foreground">{item.symbol}</td>
+              <td className="px-3 py-2 font-bold text-foreground">
+                <div className="flex flex-col gap-0.5">
+                  <span>{item.symbol}</span>
+                  <SymbolMeta symbol={item.symbol} />
+                </div>
+              </td>
               <td className="px-2 py-2">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -142,6 +166,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               </span>
               <span className="text-xs font-data font-bold ml-auto">Score {item.score ?? '—'}</span>
             </div>
+            <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
             <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Stoch {item.stoch != null ? Math.round(item.stoch) : '—'} · ADX {item.adx ?? '—'}</span>
               <button
