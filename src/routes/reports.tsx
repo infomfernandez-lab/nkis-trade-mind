@@ -23,7 +23,8 @@ export const Route = createFileRoute('/reports')({
 });
 
 function Reports() {
-  const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'performance'>('weekly');
+  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly' | 'performance'>('daily');
+  const { data: openTrades } = useOpenTrades();
   const { data: allClosed, isLoading, error } = useClosedTrades();
   const { broker } = useBrokerFilter();
   const { data: settings } = useSettings();
