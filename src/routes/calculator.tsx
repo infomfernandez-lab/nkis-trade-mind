@@ -510,10 +510,10 @@ function CalculatorPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4 lg:space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Calculadora</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="font-display text-2xl lg:text-2xl font-bold tracking-tight">Calculadora</h1>
+        <p className="text-sm lg:text-sm text-muted-foreground mt-1">
           Calculadora de posición CAP Trend Following. Cálculo en tiempo real.
         </p>
       </div>
@@ -527,7 +527,7 @@ function CalculatorPage() {
 
       {/* RESUMEN OPERATIVO */}
       <section
-        className="rounded-xl border-2 p-4 lg:p-6 bg-card"
+        className="rounded-xl border-2 p-3 sm:p-4 lg:p-6 bg-card"
         style={{ borderColor: '#2962FF' }}
       >
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -598,7 +598,7 @@ function CalculatorPage() {
       <CalculatorHistory onRecover={recoverCalculation} />
 
       {/* INPUTS */}
-      <section className="rounded-xl border-2 border-border bg-card p-4 lg:p-6">
+      <section className="rounded-xl border-2 border-border bg-card p-3 sm:p-4 lg:p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Datos de entrada</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Cuenta */}
@@ -607,7 +607,7 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => onAccountChange('darwinex')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-medium border transition-colors ${
                   account === 'darwinex' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -616,7 +616,7 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => onAccountChange('octx')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-medium border transition-colors ${
                   account === 'octx' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -681,14 +681,14 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => setDirection('BUY')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-bold border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-bold border transition-colors ${
                   direction === 'BUY' ? 'border-success bg-success/15 text-success' : 'border-border bg-secondary text-muted-foreground'
                 }`}
               >▲ BUY</button>
               <button
                 type="button"
                 onClick={() => setDirection('SELL')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-bold border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-bold border transition-colors ${
                   direction === 'SELL' ? 'border-destructive bg-destructive/15 text-destructive' : 'border-border bg-secondary text-muted-foreground'
                 }`}
               >▼ SELL</button>
@@ -700,7 +700,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={entry} onChange={e => setEntry(e.target.value)}
               placeholder="0.00"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -709,7 +709,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={atr} onChange={e => setAtr(e.target.value)}
               placeholder="0.00"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -717,7 +717,7 @@ function CalculatorPage() {
             <input
               type="number" step="0.1" min="0.1" max="3" inputMode="decimal"
               value={riskPct} onChange={e => setRiskPct(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -726,7 +726,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={pointValue}
               readOnly
-              className="w-full h-10 rounded-md border border-input bg-muted/40 px-3 text-sm font-data text-muted-foreground cursor-not-allowed"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-muted/40 px-3 text-base sm:text-sm font-data text-muted-foreground cursor-not-allowed"
             />
           </Field>
 
@@ -735,7 +735,7 @@ function CalculatorPage() {
               type="number" step="0.1" inputMode="decimal"
               value={vix} onChange={e => setVix(e.target.value)}
               placeholder="—"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
         </div>
@@ -831,9 +831,9 @@ function CalculatorPage() {
 function BigStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="text-center md:text-left">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className="font-data font-bold leading-none text-foreground" style={{ fontSize: '2.25rem' }}>{value}</div>
-      {hint && <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
+      <div className="text-[12px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="font-data font-bold leading-none text-foreground text-[2rem] sm:text-[2.25rem] lg:text-[2.25rem]">{value}</div>
+      {hint && <div className="text-[12px] sm:text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
     </div>
   );
 }
@@ -841,9 +841,9 @@ function BigStat({ label, value, hint }: { label: string; value: string; hint?: 
 function MidStat({ label, value, hint, hintClass }: { label: string; value: string; hint?: string; hintClass?: string }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className={`font-data font-bold text-xl ${hintClass ?? 'text-foreground'}`}>{value}</div>
-      {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
+      <div className="text-[12px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className={`font-data font-bold text-2xl sm:text-xl ${hintClass ?? 'text-foreground'}`}>{value}</div>
+      {hint && <div className="text-[12px] sm:text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
@@ -851,9 +851,9 @@ function MidStat({ label, value, hint, hintClass }: { label: string; value: stri
 function Field({ label, children, hint, hintClass }: { label: string; children: React.ReactNode; hint?: string; hintClass?: string }) {
   return (
     <div>
-      <label className="text-xs text-muted-foreground block mb-1.5 font-medium">{label}</label>
+      <label className="text-sm sm:text-xs text-muted-foreground block mb-1.5 font-medium">{label}</label>
       {children}
-      {hint && <div className={`text-[11px] mt-1 ${hintClass ?? 'text-muted-foreground'}`}>{hint}</div>}
+      {hint && <div className={`text-[12px] sm:text-[11px] mt-1 ${hintClass ?? 'text-muted-foreground'}`}>{hint}</div>}
     </div>
   );
 }
@@ -864,15 +864,15 @@ function NumInput({ value, onChange, className }: { value: number; onChange: (n:
       type="number" step="any" inputMode="decimal"
       value={value}
       onChange={e => onChange(parseFloat(e.target.value) || 0)}
-      className={`w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm font-data ${className ?? ''}`}
+      className={`w-full h-11 sm:h-9 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data ${className ?? ''}`}
     />
   );
 }
 
 function ResultCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 ${className ?? ''}`}>
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">{title}</h3>
+    <div className={`rounded-xl border border-border bg-card p-3 sm:p-4 ${className ?? ''}`}>
+      <h3 className="text-[12px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">{title}</h3>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -881,7 +881,7 @@ function ResultCard({ title, children, className }: { title: string; children: R
 function Row({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`flex items-baseline justify-between gap-3 ${className ?? ''}`}>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm sm:text-xs text-muted-foreground">{label}</span>
       {children}
     </div>
   );
