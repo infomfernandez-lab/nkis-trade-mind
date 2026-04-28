@@ -598,7 +598,7 @@ function CalculatorPage() {
       <CalculatorHistory onRecover={recoverCalculation} />
 
       {/* INPUTS */}
-      <section className="rounded-xl border-2 border-border bg-card p-4 lg:p-6">
+      <section className="rounded-xl border-2 border-border bg-card p-3 sm:p-4 lg:p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Datos de entrada</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Cuenta */}
