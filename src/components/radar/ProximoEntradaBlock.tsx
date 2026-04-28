@@ -297,7 +297,7 @@ function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () =
       </td>
       <td className="px-2 py-2 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</td>
       <td className="px-2 py-2">
-        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+        <ActionButtons symbol={item.symbol} onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
       </td>
     </tr>
   );
