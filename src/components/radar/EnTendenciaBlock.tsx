@@ -574,19 +574,20 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
   );
 }
 
-function MobileCard({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
-  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+  const highlightCls = highlightClasses(hl);
+  const isHl = hl !== 'none';
 
   return (
     <div className={`p-3 ${highlightCls}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
-        <span className={`font-data text-xs ${highlight ? 'text-yellow-400 font-bold' : 'text-muted-foreground'}`}>#{rank}</span>
+        <span className={`font-data font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
