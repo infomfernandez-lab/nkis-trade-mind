@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 import { useSettings } from '@/hooks/use-settings';
-import { getContractSpec, getPointValue, calcLots } from '@/lib/contract-specs';
+import { CONTRACT_SPECS, getContractSpec, getPointValue, calcLots, type ContractSpec } from '@/lib/contract-specs';
 
 /**
  * Resolve point value and tick size from CONTRACT_SPECS (real MT5 specs).
@@ -59,177 +59,68 @@ type InstrumentRow = {
 
 const HIGH_PV_WARNING = '⚠ Valor del punto muy alto — verificar lotes antes de operar';
 
-const INSTRUMENTS: InstrumentRow[] = [
-  // Darwinex - Agrícolas
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'KE_K/N', description: 'KC Wheat', pointValue: 50, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'ZC_K/N', description: 'Corn', pointValue: 50, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'ZL_K/N', description: 'Soybean Oil', pointValue: 600, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'ZM_K/N', description: 'Soybean Meal', pointValue: 100, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'ZS_K/N', description: 'Soybeans', pointValue: 50, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'LE_M', description: 'Live Cattle', pointValue: 400, currency: 'USD' },
-  { broker: 'darwinex', group: 'Agrícolas', symbol: 'HE_K', description: 'Lean Hogs', pointValue: 400, currency: 'USD' },
-  // Energía
-  { broker: 'darwinex', group: 'Energía', symbol: 'BZ_M/N', description: 'Brent Crude', pointValue: 1000, currency: 'USD' },
-  { broker: 'darwinex', group: 'Energía', symbol: 'CL_M', description: 'Light Crude', pointValue: 1000, currency: 'USD' },
-  { broker: 'darwinex', group: 'Energía', symbol: 'HO_K/M', description: 'Heating Oil', pointValue: 42000, currency: 'USD', warn: true, note: HIGH_PV_WARNING },
-  { broker: 'darwinex', group: 'Energía', symbol: 'NG_K/M', description: 'Natural Gas', pointValue: 10000, currency: 'USD', warn: true, note: HIGH_PV_WARNING },
-  { broker: 'darwinex', group: 'Energía', symbol: 'RB_K/M', description: 'RBOB Gasoline', pointValue: 42000, currency: 'USD', warn: true, note: HIGH_PV_WARNING },
-  // Índices USA
-  { broker: 'darwinex', group: 'Índices USA', symbol: 'ES_M', description: 'E-mini S&P 500', pointValue: 50, currency: 'USD' },
-  { broker: 'darwinex', group: 'Índices USA', symbol: 'NQ_M', description: 'E-mini Nasdaq', pointValue: 20, currency: 'USD' },
-  { broker: 'darwinex', group: 'Índices USA', symbol: 'RTY_M', description: 'E-mini Russell', pointValue: 50, currency: 'USD' },
-  { broker: 'darwinex', group: 'Índices USA', symbol: 'YM_M', description: 'Mini Dow', pointValue: 5, currency: 'USD' },
-  // Índices Europeos
-  { broker: 'darwinex', group: 'Índices Europeos', symbol: 'FDAX_M', description: 'DAX', pointValue: 25, currency: 'EUR' },
-  { broker: 'darwinex', group: 'Índices Europeos', symbol: 'FESX_M', description: 'Euro Stoxx 50', pointValue: 10, currency: 'EUR' },
-  { broker: 'darwinex', group: 'Índices Europeos', symbol: 'FGBL_M', description: 'Bund', pointValue: 1000, currency: 'EUR' },
-  // Metales
-  { broker: 'darwinex', group: 'Metales', symbol: 'GC_M', description: 'Gold', pointValue: 100, currency: 'USD' },
-  { broker: 'darwinex', group: 'Metales', symbol: 'HG_K/N', description: 'Copper', pointValue: 25000, currency: 'USD', warn: true, note: HIGH_PV_WARNING },
-  { broker: 'darwinex', group: 'Metales', symbol: 'SI_K/N', description: 'Silver', pointValue: 5000, currency: 'USD', warn: true, note: HIGH_PV_WARNING },
-  { broker: 'darwinex', group: 'Metales', symbol: 'PL_N', description: 'Platinum', pointValue: 50, currency: 'USD' },
-  // Divisas
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6A_M', description: 'AUD/USD', pointValue: 10, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6B_M', description: 'GBP/USD', pointValue: 6.25, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6C_M', description: 'CAD/USD', pointValue: 10, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6E_M', description: 'EUR/USD', pointValue: 12.5, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6J_M', description: 'JPY/USD', pointValue: 12.5, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6N_M', description: 'NZD/USD', pointValue: 10, currency: 'USD' },
-  { broker: 'darwinex', group: 'Divisas (FX Futuros)', symbol: '6S_M', description: 'CHF/USD', pointValue: 12.5, currency: 'USD' },
-  // Bonos
-  { broker: 'darwinex', group: 'Bonos USA', symbol: 'ZN_M', description: '10Y T-Note', pointValue: 1000, currency: 'USD' },
-  // ===== OCTX — Metales Spot =====
-  { broker: 'octx', group: 'Metales Spot', symbol: 'ZINC', description: 'Zinc Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'ALUMINIUM', description: 'Aluminium Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'COPPER', description: 'Copper Spot', pointValue: 6.25, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'GOLD', description: 'Gold Spot', pointValue: 1.0, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'SILVER', description: 'Silver Spot', pointValue: 5.0, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'PLATINUM', description: 'Platinum Spot', pointValue: 0.5, currency: 'USD' },
-  { broker: 'octx', group: 'Metales Spot', symbol: 'PALLADIUM', description: 'Palladium Spot', pointValue: 0.5, currency: 'USD' },
-  // ===== OCTX — Índices CFD =====
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Japan225', description: 'Japan 225 CFD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#USNDAQ100', description: 'US Nasdaq 100', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#USSPX500', description: 'US S&P 500', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#US30', description: 'US Dow Jones', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#UK100', description: 'UK 100', pointValue: 0.01, currency: 'GBP' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Germany40', description: 'DAX 40', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Euro50', description: 'Euro Stoxx 50', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#AUS200', description: 'Australia 200', pointValue: 0.01, currency: 'AUD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Spain35', description: 'Spain 35', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#France40', description: 'France 40', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Swiss20', description: 'Switzerland 20', pointValue: 0.01, currency: 'CHF' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#Holland25', description: 'Netherlands 25', pointValue: 0.01, currency: 'EUR' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#HongKong50', description: 'Hong Kong 50', pointValue: 0.01, currency: 'HKD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#ChinaA50', description: 'China A50', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Índices CFD', symbol: '#ChinaHShar', description: 'China H-Shares', pointValue: 0.01, currency: 'HKD' },
-  // ===== OCTX — Acciones USA =====
-  ...([
-    ['AMD.O', 'Advanced Micro Devices'], ['AAPL.O', 'Apple Inc'], ['AMZN.O', 'Amazon'],
-    ['AXON.O', 'Axon Enterprise'], ['GD.N', 'General Dynamics'], ['GIS.N', 'General Mills'],
-    ['GOOGL.O', 'Alphabet'], ['HD.N', 'Home Depot'], ['HBAN.O', 'Huntington Bancshares'],
-    ['HCA.N', 'HCA Healthcare'], ['HEI.N', 'HEICO Corp'], ['HIG.N', 'Hartford Financial'],
-    ['HII.N', 'Huntington Ingalls'], ['HL.N', 'Hecla Mining'], ['HLF.N', 'Herbalife'],
-    ['HUBS.N', 'HubSpot'], ['LHX.N', 'L3Harris Technologies'], ['LMT.N', 'Lockheed Martin'],
-    ['META.O', 'Meta Platforms'], ['MSFT.O', 'Microsoft'], ['NET.N', 'Cloudflare'],
-    ['NOC.N', 'Northrop Grumman'], ['NVDA.O', 'NVIDIA'], ['ORCL.N', 'Oracle'],
-    ['PLTR.O', 'Palantir'], ['RBLX.N', 'Roblox'], ['RKLB.O', 'Rocket Lab'],
-    ['RTX.N', 'RTX Corp'], ['SHOP.O', 'Shopify'], ['SPOT.N', 'Spotify'],
-    ['TDG.N', 'TransDigm'], ['TER.O', 'Teradyne'], ['TSLA.O', 'Tesla'],
-    ['TXT.N', 'Textron'], ['U.N', 'Unity Software'], ['VMC.N', 'Vulcan Materials'],
-    ['WIX.O', 'Wix.com'],
-  ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'octx', group: 'Acciones USA', symbol, description, pointValue: 0.01, currency: 'USD',
-  })),
-  // ===== OCTX — Acciones UK (cotizan en GBX, peniques) =====
-  ...([
-    ['HILS.L', 'Hill & Smith PLC'],
-    ['HLMA.L', 'Halma PLC'],
-    ['HIK.L', 'Hikma Pharmaceuticals'],
-    ['HICL.L', 'HICL Infrastructure'],
-    ['HFD.L', 'Halfords Group'],
-    ['HFEL.L', 'Henderson Far East'],
-    ['HFG.L', 'Hilton Food Group'],
-    ['HBR.L', 'Harbour Energy'],
-    ['HAYS.L', 'Hays PLC'],
-    ['SNR.L', 'Senior PLC'],
-    ['RR.L', 'Rolls-Royce'],
-    ['QQ.L', 'QinetiQ Group'],
-    ['BAES.L', 'BAE Systems'],
-    ['CHG.L', 'Chemring Group'],
-  ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'octx', group: 'Acciones UK', symbol, description, pointValue: 0.01, currency: 'GBX',
-    note: GBX_WARNING,
-  })),
-  // ===== OCTX — Acciones Europeas =====
-  ...([
-    ['HEIJ.AS', 'Heineken Holding', 'EUR'], ['HEIN.AS', 'Heineken NV', 'EUR'], ['HEIO.AS', 'Heineken (alt)', 'EUR'],
-    ['HLAN.AS', 'Holland Colours', 'EUR'], ['AMG.AS', 'AMG Critical Mat.', 'EUR'],
-    ['LOTB.BR', 'Lotus Bakeries', 'EUR'],
-    ['AIR.PA', 'Airbus', 'EUR'], ['AM.PA', 'Dassault Aviation', 'EUR'], ['SAF.PA', 'Safran', 'EUR'],
-    ['TTEF.PA', 'TotalEnergies', 'EUR'], ['ERMT.PA', 'Hermès', 'EUR'],
-    ['RHMG.DE', 'Rheinmetall', 'EUR'], ['HDDG.DE', 'Heidelberg Mat.', 'EUR'], ['HEIG.DE', 'Heidelberg (alt)', 'EUR'],
-    ['HBH.DE', 'Hornbach', 'EUR'], ['HFGG.DE', 'Hugo Boss', 'EUR'], ['HHFGn.DE', 'Hapag-Lloyd', 'EUR'],
-    ['HLE.DE', 'Hella', 'EUR'], ['HLAG.DE', 'Hapag-Lloyd AG', 'EUR'],
-  ] as const).map(([symbol, description, currency]): InstrumentRow => ({
-    broker: 'octx', group: 'Acciones EU', symbol, description, pointValue: 0.01, currency: currency as Currency,
-  })),
-  // ===== OCTX — ETFs USA =====
-  ...([
-    ['AGG.N', 'iShares Core US Aggregate Bond'], ['ARKB.N', 'ARK 21Shares Bitcoin ETF'],
-    ['BIL.N', 'SPDR 1-3 Month T-Bill'], ['BND.O', 'Vanguard Total Bond Market'],
-    ['BNDX.O', 'Vanguard Total Intl Bond'], ['DBA.N', 'Invesco DB Agriculture'],
-    ['DBC.N', 'Invesco DB Commodity'], ['EEM.N', 'iShares MSCI Emerging Markets'],
-    ['FBTC.N', 'Fidelity Bitcoin ETF'], ['FTGC.O', 'First Trust Global Comm.'],
-    ['FXI.N', 'iShares China Large-Cap'], ['GBTC.N', 'Grayscale Bitcoin Trust'],
-    ['GLD.N', 'SPDR Gold Shares'], ['IBIT.O', 'iShares Bitcoin Trust'],
-    ['IEFA.N', 'iShares Core MSCI EAFE'], ['IEMG.N', 'iShares Core MSCI EM'],
-    ['IJH.N', 'iShares Core S&P Mid-Cap'], ['IVV.N', 'iShares Core S&P 500'],
-    ['IWD.N', 'iShares Russell 1000 Value'], ['IWF.N', 'iShares Russell 1000 Growth'],
-    ['IWM.N', 'iShares Russell 2000'], ['KWEB.N', 'KraneShares CSI China Internet'],
-    ['QQQ.O', 'Invesco QQQ Trust'], ['SCHD.N', 'Schwab US Dividend Equity'],
-    ['SCHH.N', 'Schwab US REIT ETF'], ['SLV.N', 'iShares Silver Trust'],
-    ['SOXL.N', 'Direxion Semi 3x Bull'], ['SPY.N', 'SPDR S&P 500 ETF'],
-    ['SVOL.N', 'Simplify Vol Premium'], ['VCIT.O', 'Vanguard Interm Corp Bond'],
-    ['VEA.N', 'Vanguard FTSE Dev Markets'], ['VGT.N', 'Vanguard Info Tech'],
-    ['VIG.N', 'Vanguard Dividend Appreciation'], ['VNQ.N', 'Vanguard Real Estate'],
-    ['VNQI.O', 'Vanguard Global ex-US RE'], ['VO.N', 'Vanguard Mid-Cap'],
-    ['VOO.N', 'Vanguard S&P 500'], ['VTI.N', 'Vanguard Total Stock Market'],
-    ['VTV.N', 'Vanguard Value'], ['VUG.N', 'Vanguard Growth'],
-    ['VWO.N', 'Vanguard FTSE Emerging Markets'], ['VXUS.O', 'Vanguard Total Intl Stock'],
-    ['XLK.N', 'Technology Select Sector SPDR'], ['XLRE.N', 'Real Estate Select Sector SPDR'],
-  ] as const).map(([symbol, description]): InstrumentRow => ({
-    broker: 'octx', group: 'ETFs USA', symbol, description, pointValue: 0.01, currency: 'USD',
-  })),
-  // ===== OCTX — Criptomonedas =====
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'BITCOIN', description: 'Bitcoin vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'ETHEREUM', description: 'Ethereum vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'AAVE', description: 'AAVE vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'LITECOIN', description: 'Litecoin vs USD', pointValue: 0.01, currency: 'USD' },
-  { broker: 'octx', group: 'Criptomonedas', symbol: 'XRP', description: 'XRP vs USD', pointValue: 0.001, currency: 'USD' },
-  // ===== OCTX — Forex =====
-  { broker: 'octx', group: 'Forex', symbol: 'EURUSD', description: 'Euro vs USD', pointValue: 10.0, currency: 'USD' },
-  { broker: 'octx', group: 'Forex', symbol: 'EURGBP', description: 'Euro vs GBP', pointValue: 8.33, currency: 'GBP', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'EURJPY', description: 'Euro vs JPY', pointValue: 8.33, currency: 'JPY', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'GBPJPY', description: 'GBP vs JPY', pointValue: 10.40, currency: 'JPY', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'AUDUSD', description: 'AUD vs USD', pointValue: 7.10, currency: 'USD', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'NZDUSD', description: 'NZD vs USD', pointValue: 6.00, currency: 'USD', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'USDCNH', description: 'USD vs CNH', pointValue: 1.38, currency: 'USD', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'USDMXN', description: 'USD vs MXN', pointValue: 10.00, currency: 'USD', variable: true },
-  { broker: 'octx', group: 'Forex', symbol: 'USDJPY', description: 'USD vs JPY', pointValue: 10.00, currency: 'USD', variable: true },
-  // ===== OCTX — Energía =====
-  { broker: 'octx', group: 'Energía', symbol: 'WTI', description: 'Crude Oil WTI', pointValue: 10.00, currency: 'USD' },
-  { broker: 'octx', group: 'Energía', symbol: 'NAT.GAS', description: 'Natural Gas', pointValue: 10.00, currency: 'USD' },
-];
+/**
+ * Infer a friendly group name from a ContractSpec's symbol/description.
+ * Used to bucket the instruments table.
+ */
+function inferGroup(spec: ContractSpec): string {
+  const sym = spec.symbol.toUpperCase();
+  const desc = (spec.description || '').toLowerCase();
 
+  // OCTX (CFDs / spot / shares)
+  if (spec.broker === 'octx') {
+    if (sym.startsWith('#')) return 'Índices CFD';
+    if (/\.(o|n)$/i.test(sym) && !/etf/i.test(desc)) return 'Acciones USA';
+    if (/\.l$/i.test(sym)) return 'Acciones UK';
+    if (/\.(de|pa|as|br|mi|mc)$/i.test(sym)) return 'Acciones EU';
+    if (['BITCOIN', 'ETHEREUM', 'AAVE', 'LITECOIN', 'XRP'].includes(sym)) return 'Criptomonedas';
+    if (['GOLD', 'SILVER', 'PLATINUM', 'PALLADIUM', 'ZINC', 'ALUMINIUM', 'COPPER'].includes(sym)) return 'Metales Spot';
+    if (['WTI', 'NAT.GAS', 'NATGAS', 'BRENT'].includes(sym)) return 'Energía';
+    if (/etf|fund|trust|shares|spdr|ishares|vanguard|invesco/i.test(desc)) return 'ETFs';
+    if (/^[A-Z]{3,6}$/.test(sym)) return 'Forex';
+    return 'Otros';
+  }
+
+  // NKIS (Darwinex futures) — bucket by family root
+  const root = sym.split('_')[0];
+  if (['ES', 'NQ', 'RTY', 'YM'].includes(root)) return 'Índices USA';
+  if (['FDAX', 'FESX', 'FGBL'].includes(root)) return 'Índices Europeos';
+  if (['GC', 'SI', 'HG', 'PL', 'PA'].includes(root)) return 'Metales';
+  if (['CL', 'BZ', 'NG', 'HO', 'RB'].includes(root)) return 'Energía';
+  if (['ZC', 'ZS', 'ZL', 'ZM', 'ZW', 'KE', 'LE', 'HE'].includes(root)) return 'Agrícolas';
+  if (['6A', '6B', '6C', '6E', '6J', '6N', '6S'].includes(root)) return 'Divisas (FX Futuros)';
+  if (['ZN', 'ZB', 'ZF', 'ZT'].includes(root)) return 'Bonos USA';
+  return 'Otros';
+}
+
+const INSTRUMENTS: InstrumentRow[] = CONTRACT_SPECS.map((spec): InstrumentRow => {
+  const broker: 'darwinex' | 'octx' = spec.broker === 'nkis' ? 'darwinex' : 'octx';
+  const currency = (spec.profitCurrency || 'USD').toUpperCase();
+  const knownCurrencies: Currency[] = ['USD', 'GBP', 'GBX', 'EUR', 'JPY', 'AUD', 'CHF', 'HKD'];
+  const safeCurrency = (knownCurrencies as string[]).includes(currency) ? (currency as Currency) : undefined;
+  const isGbx = safeCurrency === 'GBX';
+  return {
+    broker,
+    group: inferGroup(spec),
+    symbol: spec.symbol,
+    description: spec.description,
+    pointValue: getPointValue(spec.symbol),
+    currency: safeCurrency,
+    note: isGbx ? GBX_WARNING : undefined,
+  };
+});
+
+// Color tokens that work in both light and dark themes (use semantic-ish palette
+// with low-opacity backgrounds so contrast holds in both modes).
 const CURRENCY_BADGE: Record<Currency, string> = {
-  USD: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  GBP: 'bg-emerald-700/20 text-emerald-400 border-emerald-700/40',
-  GBX: 'bg-amber-600/20 text-amber-300 border-amber-600/40',
-  EUR: 'bg-indigo-600/15 text-indigo-300 border-indigo-600/30',
-  JPY: 'bg-red-500/15 text-red-400 border-red-500/30',
-  AUD: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  CHF: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  HKD: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  USD: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/40',
+  GBP: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40',
+  GBX: 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50',
+  EUR: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/40',
+  JPY: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40',
+  AUD: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/40',
+  CHF: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40',
+  HKD: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40',
 };
 
 // ============================================================
@@ -1026,7 +917,7 @@ function InstrumentTable({
   }, [rows]);
 
   return (
-    <div className="mt-3 rounded-lg border border-border bg-[#0d0d0d]">
+    <div className="mt-3 rounded-lg border border-border bg-card">
       <div className="p-3 border-b border-border">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -1071,14 +962,14 @@ function InstrumentTable({
                         {r.variable && (
                           <span
                             title="El valor exacto depende del tipo de cambio actual. Usa este valor como aproximación."
-                            className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 align-middle"
+                            className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/40 align-middle"
                           >VAR</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground hidden md:table-cell">
                         {r.description}
                         {r.note && (
-                          <div className={`text-[10px] mt-0.5 font-semibold ${r.warn ? 'text-destructive' : 'text-orange-400/80'}`}>{r.note}</div>
+                          <div className={`text-[10px] mt-0.5 font-semibold ${r.warn ? 'text-destructive' : 'text-orange-700 dark:text-orange-300'}`}>{r.note}</div>
                         )}
                       </td>
                       <td className="px-3 py-2 hidden md:table-cell">
