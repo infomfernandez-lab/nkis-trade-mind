@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { Trade } from './trade-utils';
-import { buildEquityCurve, buildMonthlyPnl } from './trade-utils';
+import { buildEquityCurve } from './trade-utils';
 
 // Brand palette (matched with trade-pdf.ts)
 const NAVY: [number, number, number] = [15, 27, 58];
@@ -244,7 +244,7 @@ function drawStatGrid(d: Doc, yStart: number, items: Array<{ label: string; valu
 
 function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity: number }[], height = 60) {
   const { doc, margin, contentWidth, pageHeight } = d;
-  if (yStart + height > pageHeight - 18) {
+  if (yStart + height + 10 > pageHeight - 18) {
     doc.addPage();
     yStart = drawHeader(d);
   }
@@ -252,50 +252,90 @@ function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity:
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(10);
-    doc.text('Datos insuficientes para gráfico', margin, yStart + 10);
-    return yStart + 12;
+    doc.text('Datos insuficientes para gráfico (se necesitan al menos 2 trades cerrados).', margin, yStart + 10);
+    return yStart + 14;
   }
+  const padL = 18, padR = 6, padT = 6, padB = 10;
   const x0 = margin;
   const y0 = yStart;
   const w = contentWidth;
   const h = height;
+  const innerX = x0 + padL;
+  const innerY = y0 + padT;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
 
+  // background card
   doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
   doc.setFillColor(252, 252, 254);
   doc.roundedRect(x0, y0, w, h, 1.5, 1.5, 'FD');
 
   const eqs = points.map(p => p.equity);
-  const min = Math.min(...eqs);
-  const max = Math.max(...eqs);
-  const range = max - min || 1;
+  let min = Math.min(...eqs);
+  let max = Math.max(...eqs);
+  if (min === max) { min -= 1; max += 1; }
+  const range = max - min;
+
+  const px = (i: number) => innerX + (i / (points.length - 1)) * innerW;
+  const py = (eq: number) => innerY + innerH - ((eq - min) / range) * innerH;
 
   // gridlines
   doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.1);
   for (let i = 1; i < 4; i++) {
-    const yy = y0 + (h * i) / 4;
-    doc.line(x0, yy, x0 + w, yy);
+    const yy = innerY + (innerH * i) / 4;
+    doc.line(innerX, yy, innerX + innerW, yy);
   }
 
-  // line
-  doc.setDrawColor(...NAVY);
-  doc.setLineWidth(0.6);
+  // baseline (starting equity)
+  const startEq = points[0].equity;
+  if (startEq >= min && startEq <= max) {
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.2);
+    const ys = py(startEq);
+    doc.line(innerX, ys, innerX + innerW, ys);
+  }
+
+  // filled area under the curve (subtle)
+  const finalEq = points[points.length - 1].equity;
+  const areaColor: [number, number, number] = finalEq >= startEq ? GREEN : RED;
+  doc.setFillColor(areaColor[0], areaColor[1], areaColor[2]);
+  doc.setGState(new (doc as any).GState({ opacity: 0.08 }));
   for (let i = 1; i < points.length; i++) {
-    const x1 = x0 + ((i - 1) / (points.length - 1)) * w;
-    const x2 = x0 + (i / (points.length - 1)) * w;
-    const y1 = y0 + h - ((points[i - 1].equity - min) / range) * h;
-    const y2 = y0 + h - ((points[i].equity - min) / range) * h;
+    const x1 = px(i - 1), x2 = px(i);
+    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
+    const baseY = innerY + innerH;
+    // simple polygon trapezoid per segment
+    doc.triangle(x1, y1, x2, y2, x2, baseY, 'F');
+    doc.triangle(x1, y1, x2, baseY, x1, baseY, 'F');
+  }
+  doc.setGState(new (doc as any).GState({ opacity: 1 }));
+
+  // line — drawn segment by segment, each segment with an explicit setDrawColor & setLineWidth call
+  // to avoid any state being reset by intermediate operations.
+  for (let i = 1; i < points.length; i++) {
+    doc.setDrawColor(...NAVY);
+    doc.setLineWidth(0.7);
+    const x1 = px(i - 1), x2 = px(i);
+    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
     doc.line(x1, y1, x2, y2);
+  }
+
+  // point markers
+  doc.setFillColor(...NAVY);
+  for (let i = 0; i < points.length; i++) {
+    doc.circle(px(i), py(points[i].equity), 0.5, 'F');
   }
 
   // axis labels
   doc.setTextColor(...TEXT_MUTED);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text(`€${min.toFixed(0)}`, x0 + 1, y0 + h - 1);
-  doc.text(`€${max.toFixed(0)}`, x0 + 1, y0 + 4);
-  doc.text(points[0].date, x0 + 1, y0 + h + 4);
-  doc.text(points[points.length - 1].date, x0 + w - 1, y0 + h + 4, { align: 'right' });
+  doc.text(`€${max.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + 2);
+  doc.text(`€${min.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + innerH);
+  doc.text(points[0].date, innerX, y0 + h + 4);
+  doc.text(points[points.length - 1].date, innerX + innerW, y0 + h + 4, { align: 'right' });
 
   return y0 + h + 8;
 }
@@ -343,6 +383,42 @@ function maxDrawdown(trades: Trade[]): number {
     if (dd > maxDD) maxDD = dd;
   }
   return maxDD;
+}
+
+/** Annualized Sharpe based on per-trade returns over startingBalance, scaled by √252. */
+function sharpeRatio(trades: Trade[], startingBalance: number): number {
+  if (trades.length < 2 || startingBalance <= 0) return 0;
+  const returns = trades.map(t => t.netPnl / startingBalance);
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
+  const sd = Math.sqrt(variance);
+  if (sd === 0) return 0;
+  return (mean / sd) * Math.sqrt(252);
+}
+
+/** Recovery Factor = Net Profit / Max Drawdown. */
+function recoveryFactor(trades: Trade[]): number {
+  const total = trades.reduce((s, t) => s + t.netPnl, 0);
+  const dd = maxDrawdown(trades);
+  if (dd === 0) return total > 0 ? Infinity : 0;
+  return total / dd;
+}
+
+/** Sum of rr_real (per trade) — mirrors src/lib/trade-derived.computeRR semantics. */
+function totalR(trades: Trade[]): { total: number; count: number } {
+  let total = 0;
+  let count = 0;
+  for (const t of trades) {
+    if (t.exitPrice == null || !t.slPrice) continue;
+    const risk = Math.abs(t.entryPrice - t.slPrice);
+    if (risk === 0) continue;
+    const reward = t.direction === 'BUY'
+      ? t.exitPrice - t.entryPrice
+      : t.entryPrice - t.exitPrice;
+    total += reward / risk;
+    count++;
+  }
+  return { total, count };
 }
 
 function complianceRate(trades: Trade[]): number {
@@ -659,6 +735,10 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
     rightColor: pnlColor,
   });
 
+  const sharpe = sharpeRatio(trades, startingBalance);
+  const recovery = recoveryFactor(trades);
+  const rTotal = totalR(trades);
+
   y = sectionTitle(d, y, 'Métricas del Mes');
   y = drawStatGrid(d, y, [
     { label: 'P&L Total', value: formatEur(m.totalPnl), color: pnlColor },
@@ -669,6 +749,10 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
     { label: 'Avg Loss', value: formatEur(m.avgLoss), color: RED },
     { label: 'Drawdown máx.', value: formatEur(-dd), color: RED },
     { label: 'Cumplimiento', value: `${compliance.toFixed(0)}%` },
+    { label: 'Ratio Sharpe', value: sharpe.toFixed(2), color: sharpe >= 1 ? GREEN : sharpe >= 0 ? NAVY : RED },
+    { label: 'Recovery Factor', value: recovery === Infinity ? '∞' : recovery.toFixed(2), color: recovery >= 3 ? GREEN : recovery >= 1 ? NAVY : RED },
+    { label: 'R Total', value: `${rTotal.total >= 0 ? '+' : ''}${rTotal.total.toFixed(2)}R`, color: rTotal.total >= 0 ? GREEN : RED },
+    { label: 'Trades con R', value: String(rTotal.count) },
   ]);
 
   y = sectionTitle(d, y, 'Comparativa con Mes Anterior');
@@ -824,6 +908,10 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
     rightColor: pnlColor,
   });
 
+  const sharpeP = sharpeRatio(trades, startingBalance);
+  const recoveryP = recoveryFactor(trades);
+  const rTotalP = totalR(trades);
+
   y = sectionTitle(d, y, 'Métricas Globales');
   y = drawStatGrid(d, y, [
     { label: 'P&L Total', value: formatEur(m.totalPnl), color: pnlColor },
@@ -838,6 +926,10 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
     { label: 'Ganadores', value: String(m.wins), color: GREEN },
     { label: 'Perdedores', value: String(m.losses), color: RED },
     { label: 'Bal. inicial', value: `€${startingBalance.toFixed(0)}` },
+    { label: 'Ratio Sharpe', value: sharpeP.toFixed(2), color: sharpeP >= 1 ? GREEN : sharpeP >= 0 ? NAVY : RED },
+    { label: 'Recovery Factor', value: recoveryP === Infinity ? '∞' : recoveryP.toFixed(2), color: recoveryP >= 3 ? GREEN : recoveryP >= 1 ? NAVY : RED },
+    { label: 'R Total', value: `${rTotalP.total >= 0 ? '+' : ''}${rTotalP.total.toFixed(2)}R`, color: rTotalP.total >= 0 ? GREEN : RED },
+    { label: 'Trades con R', value: String(rTotalP.count) },
   ]);
 
   y = sectionTitle(d, y, 'Curva de Equity Completa');
@@ -894,6 +986,9 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
       if (v >= buckets[i].range[0] && v < buckets[i].range[1]) { buckets[i].trades.push(t); break; }
     }
   }
+  // Show all VIX buckets that have trades, plus ALWAYS show "Sin VIX registrado"
+  // even if empty — so the user can see whether they have unlogged VIX trades.
+  const vixRowsToShow = buckets.filter((b, i) => i === 5 || b.trades.length > 0);
   y = drawTable(d, y,
     [
       { label: 'Régimen VIX', width: 40 },
@@ -901,30 +996,37 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
       { label: 'P&L', width: 26, align: 'right' },
       { label: 'Win Rate', width: 20, align: 'right' },
     ],
-    buckets.filter(b => b.trades.length > 0).map(b => {
+    vixRowsToShow.map(b => {
       const mm = computeMetrics(b.trades);
+      const muted: [number, number, number] = TEXT_MUTED;
+      const pnlColor: [number, number, number] = b.trades.length === 0 ? muted : (mm.totalPnl >= 0 ? GREEN : RED);
       return [
-        { text: b.label },
-        { text: String(b.trades.length) },
-        { text: formatEur(mm.totalPnl), color: mm.totalPnl >= 0 ? GREEN : RED },
-        { text: `${mm.winRate.toFixed(1)}%` },
+        { text: b.label, color: b.trades.length === 0 ? muted : TEXT },
+        { text: String(b.trades.length), color: b.trades.length === 0 ? muted : TEXT },
+        { text: b.trades.length === 0 ? '—' : formatEur(mm.totalPnl), color: pnlColor },
+        { text: b.trades.length === 0 ? '—' : `${mm.winRate.toFixed(1)}%`, color: b.trades.length === 0 ? muted : TEXT },
       ];
     }),
   );
 
-  // By month
+  // By month — group by exit date (close date), use a stable YYYY-MM key so
+  // count + P&L stay in sync regardless of locale formatting.
   y = sectionTitle(d, y, 'Análisis por Mes');
-  const monthly = buildMonthlyPnl(trades);
-  if (monthly.length === 0) {
+  const byMonthKey: Record<string, { trades: Trade[]; label: string; sortKey: string }> = {};
+  for (const t of trades) {
+    const dt = new Date(t.exitDate ?? t.entryDate);
+    if (Number.isNaN(dt.getTime())) continue;
+    const sortKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    const monthShort = dt.toLocaleString('es-ES', { month: 'short' });
+    const label = `${monthShort.charAt(0).toUpperCase()}${monthShort.slice(1)} ${dt.getFullYear()}`;
+    if (!byMonthKey[sortKey]) byMonthKey[sortKey] = { trades: [], label, sortKey };
+    byMonthKey[sortKey].trades.push(t);
+  }
+  const monthRows = Object.values(byMonthKey).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  if (monthRows.length === 0) {
     d.doc.setTextColor(...TEXT_MUTED); d.doc.setFontSize(10); d.doc.setFont('helvetica', 'italic');
     d.doc.text('Sin datos.', d.margin, y + 4); y += 10;
   } else {
-    const byMonth: Record<string, Trade[]> = {};
-    trades.forEach(t => {
-      const dt = new Date(t.exitDate ?? t.entryDate);
-      const k = `${dt.toLocaleString('es-ES', { month: 'short' })} ${String(dt.getFullYear()).slice(2)}`;
-      (byMonth[k] ??= []).push(t);
-    });
     y = drawTable(d, y,
       [
         { label: 'Mes', width: 22 },
@@ -932,13 +1034,12 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
         { label: 'P&L', width: 26, align: 'right' },
         { label: 'Win Rate', width: 20, align: 'right' },
       ],
-      monthly.map(r => {
-        const ts = byMonth[r.month] ?? [];
-        const mm = computeMetrics(ts);
+      monthRows.map(r => {
+        const mm = computeMetrics(r.trades);
         return [
-          { text: r.month },
-          { text: String(ts.length) },
-          { text: formatEur(r.pnl), color: r.pnl >= 0 ? GREEN : RED },
+          { text: r.label },
+          { text: String(r.trades.length) },
+          { text: formatEur(mm.totalPnl), color: mm.totalPnl >= 0 ? GREEN : RED },
           { text: `${mm.winRate.toFixed(1)}%` },
         ];
       }),
