@@ -105,6 +105,57 @@ export function CalculatorHistory({ onRecover }: Props) {
   const refresh = () => fetchPage(0, true);
   const loadMore = () => fetchPage(rows.length, false);
 
+  const deleteRecord = async (r: CalcRecord) => {
+    if (typeof window !== 'undefined' && !window.confirm(`¿Borrar el cálculo de ${r.instrumento ?? '—'}?`)) return;
+    try {
+      const { error } = await (supabase as any)
+        .from('calculadora_registro')
+        .delete()
+        .eq('id', r.id);
+      if (error) throw error;
+      setRows(prev => prev.filter(x => x.id !== r.id));
+      setCount(c => (c != null ? Math.max(0, c - 1) : c));
+      toast.success(`✓ ${r.instrumento ?? '—'} borrado`);
+    } catch (e: any) {
+      toast.error('Error al borrar', { description: e?.message });
+    }
+  };
+
+  const exportRecord = (r: CalcRecord) => {
+    const headers = [
+      'fecha','instrumento','broker','direccion','precio_entrada','stop_loss','distancia_stop',
+      'lotes','riesgo_real','breakeven_precio','breakeven_sl','trailing_sl','atr','valor_punto',
+      'cuenta_balance','vix',
+    ];
+    const esc = (v: any) => {
+      if (v == null) return '';
+      const s = String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const row = [
+      r.created_at, r.instrumento, r.broker, r.direccion, r.precio_entrada, r.stop_loss,
+      r.distancia_stop, r.lotes, r.riesgo_real, r.breakeven_precio, r.breakeven_sl,
+      r.trailing_sl, r.atr, r.valor_punto, r.cuenta_balance, r.vix,
+    ].map(esc).join(',');
+    const csv = headers.join(',') + '\n' + row + '\n';
+    try {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = (r.instrumento ?? 'calculo').replace(/[^A-Za-z0-9_-]+/g, '_');
+      const ts = new Date(r.created_at).toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `calculo_${safeName}_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Cálculo exportado (CSV)');
+    } catch (e: any) {
+      toast.error('Error al exportar', { description: e?.message });
+    }
+  };
+
   return (
     <section className="rounded-xl border border-border bg-card">
       <button
