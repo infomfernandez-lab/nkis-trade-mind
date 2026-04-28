@@ -385,6 +385,42 @@ function maxDrawdown(trades: Trade[]): number {
   return maxDD;
 }
 
+/** Annualized Sharpe based on per-trade returns over startingBalance, scaled by √252. */
+function sharpeRatio(trades: Trade[], startingBalance: number): number {
+  if (trades.length < 2 || startingBalance <= 0) return 0;
+  const returns = trades.map(t => t.netPnl / startingBalance);
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
+  const sd = Math.sqrt(variance);
+  if (sd === 0) return 0;
+  return (mean / sd) * Math.sqrt(252);
+}
+
+/** Recovery Factor = Net Profit / Max Drawdown. */
+function recoveryFactor(trades: Trade[]): number {
+  const total = trades.reduce((s, t) => s + t.netPnl, 0);
+  const dd = maxDrawdown(trades);
+  if (dd === 0) return total > 0 ? Infinity : 0;
+  return total / dd;
+}
+
+/** Sum of rr_real (per trade) — mirrors src/lib/trade-derived.computeRR semantics. */
+function totalR(trades: Trade[]): { total: number; count: number } {
+  let total = 0;
+  let count = 0;
+  for (const t of trades) {
+    if (t.exitPrice == null || !t.slPrice) continue;
+    const risk = Math.abs(t.entryPrice - t.slPrice);
+    if (risk === 0) continue;
+    const reward = t.direction === 'BUY'
+      ? t.exitPrice - t.entryPrice
+      : t.entryPrice - t.exitPrice;
+    total += reward / risk;
+    count++;
+  }
+  return { total, count };
+}
+
 function complianceRate(trades: Trade[]): number {
   if (trades.length === 0) return 0;
   const ok = trades.filter(t => t.systemCompliance === '100%').length;
