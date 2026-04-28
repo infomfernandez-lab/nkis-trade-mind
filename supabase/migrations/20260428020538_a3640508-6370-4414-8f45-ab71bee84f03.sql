@@ -1,0 +1,1 @@
+DELETE FROM public.watchlist WHERE UPPER(status) IN ('PROXIMO', 'DESCARTADO');
