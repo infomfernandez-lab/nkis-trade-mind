@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import type { Trade } from './trade-utils';
-import { buildEquityCurve, buildMonthlyPnl } from './trade-utils';
+import { buildEquityCurve } from './trade-utils';
 
 // Brand palette (matched with trade-pdf.ts)
 const NAVY: [number, number, number] = [15, 27, 58];
