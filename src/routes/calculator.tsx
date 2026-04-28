@@ -527,7 +527,7 @@ function CalculatorPage() {
 
       {/* RESUMEN OPERATIVO */}
       <section
-        className="rounded-xl border-2 p-5 lg:p-7 bg-card"
+        className="rounded-xl border-2 p-4 lg:p-6 bg-card"
         style={{ borderColor: '#2962FF' }}
       >
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
