@@ -417,3 +417,322 @@ function PerformancePanel({ trades, startingBalance, vixCautionThreshold }: {
     </div>
   );
 }
+
+// ===================== DAILY =====================
+const SYSTEM_FOLLOWED_OPTIONS = ['Sí al 100%', 'Casi', 'No'];
+const ERROR_OPTIONS = ['Ninguno', 'Entré sin señal', 'Moví el SL', 'Cerré antes', 'Otro'];
+
+function DailyPanel({ closedTrades, openTrades, brokerFilter }: {
+  closedTrades: Trade[];
+  openTrades: Trade[];
+  brokerFilter: 'all' | 'darwinex' | 'octx';
+}) {
+  const { user } = useAuth();
+  const { data: vixRow } = useLatestVix();
+  const scannerMap = useLatestScannerByKey();
+
+  const today = useMemo(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  }, []);
+  const tomorrow = useMemo(() => {
+    const d = new Date(today); d.setDate(d.getDate() + 1); return d;
+  }, [today]);
+  const reportDateStr = today.toISOString().slice(0, 10);
+
+  // Closed today
+  const closedToday = useMemo(() => closedTrades.filter(t => {
+    const dt = new Date(t.exitDate ?? t.entryDate);
+    return dt >= today && dt < tomorrow;
+  }), [closedTrades, today, tomorrow]);
+
+  // Open positions → DailyOpenPos
+  const openNow = useMemo<DailyOpenPos[]>(() => openTrades.map(t => ({
+    symbol: t.symbol,
+    broker: t.broker,
+    direction: t.direction,
+    lotSize: t.lotSize,
+    entryPrice: t.entryPrice,
+    slPrice: t.slPrice,
+    floatingPnl: t.netPnl ?? 0,
+  })), [openTrades]);
+
+  // Elite signals from latest scanner (score >= 75)
+  const { eliteNkis, eliteOctx } = useMemo(() => {
+    const nkis: DailyEliteSignal[] = [];
+    const octx: DailyEliteSignal[] = [];
+    for (const inst of scannerMap.values()) {
+      if (inst.score < 75) continue;
+      const sig: DailyEliteSignal = {
+        symbol: inst.symbol,
+        broker: inst.broker,
+        direction: inst.direction,
+        score: inst.score,
+      };
+      if (inst.broker === 'darwinex') nkis.push(sig);
+      else if (inst.broker === 'octx') octx.push(sig);
+    }
+    nkis.sort((a, b) => b.score - a.score);
+    octx.sort((a, b) => b.score - a.score);
+    return { eliteNkis: nkis, eliteOctx: octx };
+  }, [scannerMap]);
+
+  // Manual fields
+  const [marketContext, setMarketContext] = useState('');
+  const [systemFollowed, setSystemFollowed] = useState<string>('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [lesson, setLesson] = useState('');
+  const [planTomorrow, setPlanTomorrow] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load existing report for today (if any)
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('report_date', reportDateStr)
+        .eq('broker_filter', brokerFilter)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        setMarketContext(data.market_context ?? '');
+        setSystemFollowed(data.system_followed ?? '');
+        setErrors(Array.isArray(data.errors) ? (data.errors as string[]) : []);
+        setLesson(data.lesson ?? '');
+        setPlanTomorrow(data.plan_tomorrow ?? '');
+      }
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user, reportDateStr, brokerFilter]);
+
+  const toggleError = (opt: string) => {
+    setErrors(prev => {
+      if (opt === 'Ninguno') return prev.includes('Ninguno') ? [] : ['Ninguno'];
+      const next = prev.filter(e => e !== 'Ninguno');
+      return next.includes(opt) ? next.filter(e => e !== opt) : [...next, opt];
+    });
+  };
+
+  const save = async () => {
+    if (!user) { toast.error('Debes iniciar sesión'); return; }
+    setSaving(true);
+    const { error } = await supabase.from('daily_reports').upsert({
+      user_id: user.id,
+      report_date: reportDateStr,
+      broker_filter: brokerFilter,
+      market_context: marketContext,
+      system_followed: systemFollowed,
+      errors,
+      lesson,
+      plan_tomorrow: planTomorrow,
+    }, { onConflict: 'user_id,report_date,broker_filter' });
+    setSaving(false);
+    if (error) toast.error('Error al guardar: ' + error.message);
+    else toast.success('Informe diario guardado');
+  };
+
+  const totalPnl = closedToday.reduce((s, t) => s + t.netPnl, 0);
+  const floating = openNow.reduce((s, p) => s + p.floatingPnl, 0);
+  const vix = vixRow?.vix != null ? Number(vixRow.vix) : null;
+
+  const onExport = async () => {
+    await save();
+    exportDailyReport({
+      date: today,
+      brokerFilter,
+      closedToday,
+      openNow,
+      eliteNkis,
+      eliteOctx,
+      vix,
+      marketContext,
+      systemFollowed,
+      errors,
+      lesson,
+      planTomorrow,
+    });
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-6 space-y-6 max-w-4xl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="font-display text-lg font-bold">Informe Diario</h2>
+          <p className="text-xs text-muted-foreground capitalize">
+            {today.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={save}
+            disabled={saving || !loaded}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-foreground text-sm font-medium hover:bg-secondary/70 transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+          <ExportButton onClick={onExport} />
+        </div>
+      </div>
+
+      {/* Auto stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MiniStat label="P&L Cerrado" value={formatCurrency(totalPnl)} positive={totalPnl >= 0} />
+        <MiniStat label="Trades cerrados" value={String(closedToday.length)} />
+        <MiniStat label="Posiciones abiertas" value={String(openNow.length)} />
+        <MiniStat label="P&L Flotante" value={formatCurrency(floating)} positive={floating >= 0} />
+        <MiniStat label="VIX del día" value={vix != null ? vix.toFixed(2) : '—'} />
+        <MiniStat label="ÉLITE NKIS" value={String(eliteNkis.length)} />
+        <MiniStat label="ÉLITE OCTX" value={String(eliteOctx.length)} />
+        <MiniStat label="Cuenta" value={brokerFilter === 'all' ? 'NKIS+OCTX' : brokerFilter.toUpperCase()} />
+      </div>
+
+      {/* Closed today */}
+      <div>
+        <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Cerradas Hoy</h3>
+        {closedToday.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Sin trades cerrados hoy.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {closedToday.map(t => (
+              <div key={t.id} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-data font-bold ${t.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{t.direction}</span>
+                  <span className="font-medium">{t.symbol}</span>
+                  <span className="text-xs text-muted-foreground capitalize">{t.broker}</span>
+                </div>
+                <span className={`font-data font-semibold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Open now */}
+      <div>
+        <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Abiertas Ahora</h3>
+        {openNow.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Sin posiciones abiertas.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {openNow.map((p, i) => (
+              <div key={i} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-data font-bold ${p.direction === 'BUY' ? 'text-success' : 'text-destructive'}`}>{p.direction}</span>
+                  <span className="font-medium">{p.symbol}</span>
+                  <span className="text-xs text-muted-foreground">{p.lotSize.toFixed(2)} lotes</span>
+                  <span className="text-xs text-muted-foreground">SL {p.slPrice ? p.slPrice.toFixed(2) : '—'}</span>
+                </div>
+                <span className={`font-data font-semibold ${p.floatingPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(p.floatingPnl)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Elite signals */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <EliteList title="★ ÉLITE NKIS" list={eliteNkis} />
+        <EliteList title="★ ÉLITE OCTX" list={eliteOctx} />
+      </div>
+
+      {/* Manual section */}
+      <div className="space-y-4 pt-2 border-t border-border">
+        <div>
+          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Contexto de Mercado del Día</h3>
+          <textarea
+            value={marketContext}
+            onChange={e => setMarketContext(e.target.value)}
+            className="w-full h-20 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="¿Qué tono tuvo el mercado hoy? Noticias, volatilidad, etc."
+          />
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">¿Seguiste el sistema hoy?</h3>
+          <div className="flex flex-wrap gap-2">
+            {SYSTEM_FOLLOWED_OPTIONS.map(opt => (
+              <button
+                key={opt}
+                onClick={() => setSystemFollowed(opt)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  systemFollowed === opt
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">¿Cometiste algún error?</h3>
+          <div className="flex flex-wrap gap-2">
+            {ERROR_OPTIONS.map(opt => (
+              <button
+                key={opt}
+                onClick={() => toggleError(opt)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  errors.includes(opt)
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Lección del Día</h3>
+          <textarea
+            value={lesson}
+            onChange={e => setLesson(e.target.value)}
+            className="w-full h-20 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="¿Qué aprendiste hoy?"
+          />
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Plan para Mañana</h3>
+          <textarea
+            value={planTomorrow}
+            onChange={e => setPlanTomorrow(e.target.value)}
+            className="w-full h-20 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="¿Qué planeas para mañana?"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EliteList({ title, list }: { title: string; list: DailyEliteSignal[] }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">{title}</h3>
+      {list.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-2">Sin señales ÉLITE hoy.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {list.map((s, i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded bg-secondary text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{s.symbol}</span>
+                <span className="text-xs text-muted-foreground">{s.direction}</span>
+              </div>
+              <span className="font-data font-bold text-primary">{s.score}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
