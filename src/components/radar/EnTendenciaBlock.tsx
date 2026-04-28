@@ -260,7 +260,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                 {g.items.map((inst, i) => {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
-                  const tier: HighlightTier = inst.score >= 90 ? 'gold' : rank <= 20 ? 'top' : 'none';
+                  const tier: HighlightTier = rank <= 20 ? 'top' : inst.score >= 90 ? 'gold' : 'none';
                   return (
                     <DesktopRow
                       key={`${inst.symbol}-${inst.broker}-${i}`}
@@ -290,7 +290,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               {g.items.map((inst, i) => {
                 const key = `${inst.symbol}::${inst.broker}`;
                 const rank = rankByKey.get(key) ?? 0;
-                const tier: HighlightTier = inst.score >= 90 ? 'gold' : rank <= 20 ? 'top' : 'none';
+                const tier: HighlightTier = rank <= 20 ? 'top' : inst.score >= 90 ? 'gold' : 'none';
                 return (
                   <MobileCard
                     key={`${inst.symbol}-${inst.broker}-${i}`}
