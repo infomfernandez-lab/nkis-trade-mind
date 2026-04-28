@@ -116,6 +116,42 @@ export type Database = {
         }
         Relationships: []
       }
+      market_briefings: {
+        Row: {
+          briefing_date: string
+          briefing_text: string
+          contexto_input: string | null
+          created_at: string
+          id: string
+          posiciones_snapshot: Json
+          regimen: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          briefing_date?: string
+          briefing_text: string
+          contexto_input?: string | null
+          created_at?: string
+          id?: string
+          posiciones_snapshot?: Json
+          regimen: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          briefing_date?: string
+          briefing_text?: string
+          contexto_input?: string | null
+          created_at?: string
+          id?: string
+          posiciones_snapshot?: Json
+          regimen?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       momentum_sessions: {
         Row: {
           adx: number | null
