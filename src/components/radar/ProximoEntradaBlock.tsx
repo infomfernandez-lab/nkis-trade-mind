@@ -5,7 +5,7 @@ import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
-import { SymbolMeta } from './EnTendenciaBlock';
+import { SymbolMeta, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
@@ -25,6 +25,7 @@ interface NearItem {
   atr: number | null;
   source: 'scanner' | 'manual';
   scannerScore: number | null;
+  current_price: number | null;
 }
 
 function isAlcistaDir(d: string): boolean {
@@ -70,6 +71,7 @@ function buildNearItems(
       atr: inst.atr,
       source: 'scanner',
       scannerScore: inst.score ?? null,
+      current_price: inst.current_price ?? null,
     });
   }
 
@@ -93,6 +95,7 @@ function buildNearItems(
       atr: scan?.atr ?? null,
       source: 'manual',
       scannerScore: scan?.score ?? null,
+      current_price: scan?.current_price ?? null,
     });
   }
 
@@ -274,7 +277,10 @@ function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () =
     <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <td className="px-3 py-2 font-bold text-foreground text-sm">
         <div className="flex flex-col gap-0.5">
-          <span>{item.symbol}</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span>{item.symbol}</span>
+            <PriceTag price={item.current_price} />
+          </div>
           <SymbolMeta symbol={item.symbol} />
         </div>
       </td>
@@ -301,6 +307,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
     <div className={`p-3 ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-bold text-sm text-foreground">{item.symbol}</span>
+        <PriceTag price={item.current_price} compact />
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
         }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
