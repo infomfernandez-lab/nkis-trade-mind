@@ -530,6 +530,18 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
 
 export type HighlightTier = 'gold' | 'top' | 'none';
 
+export function SymbolMeta({ symbol, compact = false }: { symbol: string; compact?: boolean }) {
+  const meta = classifyInstrument(symbol);
+  return (
+    <div className={`flex flex-col leading-tight ${compact ? 'text-[10px]' : 'text-[11px]'} text-muted-foreground font-normal`}>
+      <span className="truncate max-w-[220px]" title={meta.description}>{meta.description}</span>
+      <span className="text-[10px] flex items-center gap-1">
+        <span>{meta.flag}</span><span>{meta.country}</span>
+      </span>
+    </div>
+  );
+}
+
 function highlightClasses(hl: HighlightTier): string {
   if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
   if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
