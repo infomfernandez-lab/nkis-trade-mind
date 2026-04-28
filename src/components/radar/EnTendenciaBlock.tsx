@@ -261,6 +261,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-2 py-2 w-[50px]">#</th>
               <th className="text-left px-3 py-2">Símbolo</th>
+              <th className="text-right px-2 py-2 w-[90px]">Precio</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
               <th className="text-left px-2 py-2 w-[100px]">ADX</th>
@@ -275,7 +276,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={10} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
@@ -628,8 +629,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5 flex-wrap">
-            {inst.symbol}
-            <PriceTag price={inst.current_price} />
+            <SymbolName symbol={inst.symbol} />
             <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
               inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
             }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
@@ -637,6 +637,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
           <SymbolMeta symbol={inst.symbol} />
         </div>
       </td>
+      <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
       <td className="px-2 py-2">
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
@@ -676,7 +677,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
     <div className={`p-3 ${highlightCls}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
         <span className={`font-data font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
-        <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
+        <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><TypeIcon symbol={inst.symbol} />{inst.symbol}</span>
         <PriceTag price={inst.current_price} compact />
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
