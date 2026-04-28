@@ -189,7 +189,7 @@ const TIER_LABEL: Record<Tier, string> = {
 };
 
 export function EnTendenciaBlock({ brokerFilter }: Props) {
-  const items = useUnifiedInstruments(brokerFilter);
+  const allItems = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
   const watchedSymbols = new Set(
@@ -204,7 +204,20 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   );
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
-  if (items.length === 0) {
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of allItems) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [allItems]);
+  const items = typeFilter.size === 0
+    ? allItems
+    : allItems.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  if (allItems.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center">
         <p className="text-sm text-muted-foreground">Sin instrumentos en tendencia. Ejecuta el scanner.</p>
@@ -212,7 +225,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
     );
   }
 
-  // Build a map symbol::broker → global rank (1..N) following sort order
+  // Build a map symbol::broker → global rank (1..N) following sort order (over filtered items)
   const rankByKey = new Map<string, number>();
   items.forEach((it, idx) => rankByKey.set(`${it.symbol}::${it.broker}`, idx + 1));
 
@@ -228,9 +241,12 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>Escáner v18 — {items.length} instrumentos</span>
+        <span>Escáner v18 — {items.length} de {allItems.length}</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
+        <div className="ml-auto">
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
       </div>
 
       {/* Desktop table */}
