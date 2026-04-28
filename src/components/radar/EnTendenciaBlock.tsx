@@ -9,6 +9,8 @@ import type { BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import { useAddToSeguimiento } from './SeguimientoBlock';
 import { Eye } from 'lucide-react';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Raw {
   rank?: number;
