@@ -649,6 +649,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
         <span className={`font-data font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
+        <PriceTag price={inst.current_price} compact />
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
