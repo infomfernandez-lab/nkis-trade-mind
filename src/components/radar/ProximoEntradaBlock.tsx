@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Zap, Trash2, EyeOff } from 'lucide-react';
 import { useWatchlist, useDeleteWatchlistItem, useAddToWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
+import { SymbolMeta } from './EnTendenciaBlock';
+import { TypeFilter } from './TypeFilter';
+import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
 interface Props {
   brokerFilter: BrokerFilter;
