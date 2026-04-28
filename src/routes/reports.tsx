@@ -109,6 +109,18 @@ function Reports() {
         ))}
       </div>
 
+      {activeTab === 'daily' && (
+        <DailyPanel
+          closedTrades={trades}
+          openTrades={(openTrades ?? []).filter(t =>
+            broker === 'all' ? true :
+            broker === 'darwinex' ? (t.broker === 'darwinex' || t.broker === 'nkis') :
+            (t.broker === 'octx' || t.broker === 'fxpro')
+          )}
+          brokerFilter={broker}
+        />
+      )}
+
       {activeTab === 'weekly' && (
         <WeeklyPanel
           trades={weeklyTrades}
