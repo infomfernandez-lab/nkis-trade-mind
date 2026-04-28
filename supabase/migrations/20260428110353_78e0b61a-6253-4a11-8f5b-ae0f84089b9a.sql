@@ -1,0 +1,1 @@
+CREATE POLICY "Public delete" ON public.calculadora_registro FOR DELETE TO public USING (true);
