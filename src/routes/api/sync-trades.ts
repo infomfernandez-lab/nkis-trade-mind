@@ -114,11 +114,35 @@ export const Route = createFileRoute('/api/sync-trades')({
             }
           }
 
+          // Verification mode: detect which expected tickets are missing in DB
+          let missingTickets: number[] = [];
+          let dbTicketCount: number | null = null;
+          if (parsed.data.expected_tickets && parsed.data.expected_tickets.length > 0) {
+            const expected = parsed.data.expected_tickets;
+            let query = supabaseAdmin
+              .from('trades')
+              .select('ticket')
+              .eq('user_id', userId);
+            if (parsed.data.broker) query = query.eq('broker', parsed.data.broker);
+            const { data: existing } = await query.range(0, 9999);
+            const existingSet = new Set((existing ?? []).map((r: any) => Number(r.ticket)));
+            dbTicketCount = existingSet.size;
+            missingTickets = expected.filter((t) => !existingSet.has(Number(t)));
+          }
+
           return withCors(Response.json({
             success: true,
             upserted: data?.length ?? 0,
             stales_closed: stalesClosed,
             trades: data,
+            verification: parsed.data.expected_tickets
+              ? {
+                  expected_count: parsed.data.expected_tickets.length,
+                  db_count: dbTicketCount,
+                  missing_count: missingTickets.length,
+                  missing_tickets: missingTickets,
+                }
+              : null,
           }));
         } catch (e) {
           if (e instanceof Response) return withCors(e);
