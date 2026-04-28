@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAllTrades } from '@/hooks/use-trades';
 import type { BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
+import { useAddToSeguimiento } from './SeguimientoBlock';
+import { Eye } from 'lucide-react';
 
 interface Raw {
   rank?: number;
