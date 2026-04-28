@@ -6,7 +6,7 @@ import {
 import { Loader2, Info } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
-import { filterByBroker, type Trade } from '@/lib/trade-utils';
+import { filterByBroker, isFullCompliance, type Trade } from '@/lib/trade-utils';
 import { computeRR, hasJournal } from '@/lib/trade-derived';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -172,7 +172,7 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   // ── Calidad de Ejecución ──
   const journalPct = trades.length > 0 ? (trades.filter(hasJournal).length / trades.length) * 100 : 0;
   const withCompliance = trades.filter(t => t.systemCompliance && t.systemCompliance.trim() !== '');
-  const fullCompliance = withCompliance.filter(t => t.systemCompliance === '100%').length;
+  const fullCompliance = withCompliance.filter(t => isFullCompliance(t.systemCompliance)).length;
   const compliancePct = withCompliance.length > 0 ? (fullCompliance / withCompliance.length) * 100 : 0;
   const intervened = trades.filter(t => {
     const v = (t.manualIntervention ?? '').trim();
