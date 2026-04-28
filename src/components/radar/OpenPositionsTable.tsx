@@ -102,7 +102,12 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'octx'; tra
         <tbody>
           {trades.map(t => (
             <tr key={t.id} className="border-t border-border hover:bg-accent/20 transition-colors">
-              <td className="px-3 py-2 font-bold">{t.symbol}</td>
+              <td className="px-3 py-2 font-bold">
+                <div className="flex flex-col gap-0.5">
+                  <span>{t.symbol}</span>
+                  <SymbolMeta symbol={t.symbol} />
+                </div>
+              </td>
               <td className="px-2 py-2">
                 <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   t.direction === 'BUY' ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
@@ -157,6 +162,7 @@ function MobileRow({ trade: t }: { trade: Trade }) {
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
       <div className="text-[11px] text-muted-foreground mt-0.5">{tradeStatus(t)}</div>
+      <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
       {open && (
         <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
           <div><div className="text-muted-foreground">Apertura</div><div className="font-data text-foreground">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div></div>
