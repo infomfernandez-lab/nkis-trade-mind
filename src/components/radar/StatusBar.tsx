@@ -37,9 +37,11 @@ function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'octx'
   }) ?? null;
 }
 
-function timeShort(iso: string): string {
+function dateTimeShort(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  const time = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 function isStale(iso: string): boolean {
@@ -115,7 +117,7 @@ export function StatusBar({ brokerFilter }: Props) {
             <>
               NKIS{' '}
               {darwinex ? (
-                <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(darwinex.created_at)}</span>
+                <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(darwinex.session_date ?? darwinex.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
@@ -124,7 +126,7 @@ export function StatusBar({ brokerFilter }: Props) {
             <>
               OCTX{' '}
               {octx ? (
-                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(octx.created_at)}</span>
+                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(octx.session_date ?? octx.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
