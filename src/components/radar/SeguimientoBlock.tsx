@@ -167,6 +167,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <span className="text-xs font-data font-bold ml-auto">Score {item.score ?? '—'}</span>
             </div>
             <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Stoch {item.stoch != null ? Math.round(item.stoch) : '—'} · ADX {item.adx ?? '—'}</span>
               <button
                 onClick={() => handleRemove(item)}
