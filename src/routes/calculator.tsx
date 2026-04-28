@@ -496,7 +496,7 @@ function CalculatorPage() {
   const beActivate = direction === 'BUY' ? nEntry + nAtr : nEntry - nAtr;
   const beSl = direction === 'BUY' ? nEntry + nAtr * 0.2 : nEntry - nAtr * 0.2;
 
-  const trailDist = nAtr * 3;
+  const trailDist = nAtr * 1.5;
   const trailSl = direction === 'BUY' ? nCurrent - trailDist : nCurrent + trailDist;
   const trailMt5Points = tickSize && tickSize > 0 && trailDist > 0
     ? Math.round(trailDist / tickSize)
@@ -555,7 +555,7 @@ function CalculatorPage() {
       `Lotes:       ${lots.toFixed(2)}`,
       `Riesgo:      ${fmtEur(realRisk)}`,
       `Breakeven:   ${fmt(beActivate)} → mover SL a ${fmt(beSl)}`,
-      `Trailing:    ATR × 3`,
+      `Trailing:    ATR × 1.5`,
       nTp != null ? `TP:          ${fmt(nTp)}  (RR ${rr.toFixed(2)}:1)` : '',
     ].filter(Boolean).join('\n');
     try {
@@ -805,7 +805,7 @@ function CalculatorPage() {
         </ResultCard>
 
         <ResultCard title="Trailing Stop">
-          <Row label="Distancia (ATR × 3)">
+          <Row label="Distancia (ATR × 1.5)">
             <Big>{fmt(trailDist)}</Big>
           </Row>
 
