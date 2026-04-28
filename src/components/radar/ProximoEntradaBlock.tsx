@@ -319,7 +319,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
       <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
       <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</div>
       <div className="mt-2 flex justify-end">
-        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+        <ActionButtons symbol={item.symbol} onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
       </div>
     </div>
   );
