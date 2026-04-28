@@ -831,9 +831,9 @@ function CalculatorPage() {
 function BigStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="text-center md:text-left">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className="font-data font-bold leading-none text-foreground" style={{ fontSize: '2.25rem' }}>{value}</div>
-      {hint && <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
+      <div className="text-[12px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="font-data font-bold leading-none text-foreground text-[2rem] sm:text-[2.25rem] lg:text-[2.25rem]">{value}</div>
+      {hint && <div className="text-[12px] sm:text-[11px] text-muted-foreground mt-1.5">{hint}</div>}
     </div>
   );
 }
@@ -841,9 +841,9 @@ function BigStat({ label, value, hint }: { label: string; value: string; hint?: 
 function MidStat({ label, value, hint, hintClass }: { label: string; value: string; hint?: string; hintClass?: string }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
-      <div className={`font-data font-bold text-xl ${hintClass ?? 'text-foreground'}`}>{value}</div>
-      {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
+      <div className="text-[12px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className={`font-data font-bold text-2xl sm:text-xl ${hintClass ?? 'text-foreground'}`}>{value}</div>
+      {hint && <div className="text-[12px] sm:text-[11px] text-muted-foreground mt-1">{hint}</div>}
     </div>
   );
 }
@@ -851,9 +851,9 @@ function MidStat({ label, value, hint, hintClass }: { label: string; value: stri
 function Field({ label, children, hint, hintClass }: { label: string; children: React.ReactNode; hint?: string; hintClass?: string }) {
   return (
     <div>
-      <label className="text-xs text-muted-foreground block mb-1.5 font-medium">{label}</label>
+      <label className="text-sm sm:text-xs text-muted-foreground block mb-1.5 font-medium">{label}</label>
       {children}
-      {hint && <div className={`text-[11px] mt-1 ${hintClass ?? 'text-muted-foreground'}`}>{hint}</div>}
+      {hint && <div className={`text-[12px] sm:text-[11px] mt-1 ${hintClass ?? 'text-muted-foreground'}`}>{hint}</div>}
     </div>
   );
 }
@@ -864,15 +864,15 @@ function NumInput({ value, onChange, className }: { value: number; onChange: (n:
       type="number" step="any" inputMode="decimal"
       value={value}
       onChange={e => onChange(parseFloat(e.target.value) || 0)}
-      className={`w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm font-data ${className ?? ''}`}
+      className={`w-full h-11 sm:h-9 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data ${className ?? ''}`}
     />
   );
 }
 
 function ResultCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 ${className ?? ''}`}>
-      <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">{title}</h3>
+    <div className={`rounded-xl border border-border bg-card p-3 sm:p-4 ${className ?? ''}`}>
+      <h3 className="text-[12px] sm:text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-3">{title}</h3>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -881,7 +881,7 @@ function ResultCard({ title, children, className }: { title: string; children: R
 function Row({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={`flex items-baseline justify-between gap-3 ${className ?? ''}`}>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm sm:text-xs text-muted-foreground">{label}</span>
       {children}
     </div>
   );
