@@ -329,6 +329,30 @@ function StatisticsPage() {
             <StatCard label="Mayor Ganador" value={fmtCurrency(stats.bestTrade)} color="success" tip="El trade con mayor beneficio." />
             <StatCard label="Mayor Perdedor" value={`€${fmt(Math.abs(stats.worstTrade))}`} color="destructive" tip="El trade con mayor pérdida (valor absoluto)." />
             <StatCard label="Beneficio/Mes" value={fmtCurrency(stats.avgPnlPerMonth)} color={stats.avgPnlPerMonth >= 0 ? 'success' : 'destructive'} tip={`P&L neto total dividido entre ${stats.activeMonths} meses activos.`} />
+            <StatCard label="Ratio Sharpe" value={fmt(stats.sharpeRatio)} color={stats.sharpeRatio >= 1 ? 'success' : stats.sharpeRatio >= 0 ? 'warning' : 'destructive'} tip="(retorno medio / desviación estándar) × √252. Mide retorno ajustado al riesgo. >1 bueno, >2 excelente." />
+            <StatCard label="Ratio Sortino" value={fmt(stats.sortinoRatio)} color={stats.sortinoRatio >= 1 ? 'success' : stats.sortinoRatio >= 0 ? 'warning' : 'destructive'} tip="Igual que Sharpe pero solo penaliza la volatilidad negativa. Más realista para sistemas asimétricos." />
+            <StatCard label="R Total" value={`${stats.rTotal >= 0 ? '+' : ''}${fmt(stats.rTotal, 2)}R`} color={stats.rTotal >= 0 ? 'success' : 'destructive'} sub={`${stats.rrCount} trades con R válido`} tip="Suma de todos los R reales (rr_real) de los trades cerrados." />
+            <StatCard label="R Medio / trade" value={`${stats.rAvg >= 0 ? '+' : ''}${fmt(stats.rAvg, 2)}R`} color={stats.rAvg >= 0 ? 'success' : 'destructive'} tip="Promedio de R reales. Esperanza matemática expresada en múltiplos de riesgo." />
+          </div>
+        </Section>
+
+        {/* BLOQUE Calidad de Ejecución */}
+        <Section title="Calidad de Ejecución">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Diario completado" value={`${fmt(stats.journalPct, 1)}%`} color={stats.journalPct >= 80 ? 'success' : stats.journalPct >= 50 ? 'warning' : 'destructive'} tip="% de trades con al menos un campo del diario rellenado." />
+            <StatCard label="Cumplimiento sistema" value={`${fmt(stats.compliancePct, 1)}%`} sub={`${stats.complianceCount} trades con dato`} color={stats.compliancePct >= 80 ? 'success' : stats.compliancePct >= 50 ? 'warning' : 'destructive'} tip="% de trades marcados como '100%' en cumplimiento del sistema (solo cuenta trades con dato)." />
+            <StatCard label="Intervención manual" value={`${fmt(stats.interventionPct, 1)}%`} sub={`${stats.interventionCount} trades intervenidos`} color={stats.interventionPct <= 20 ? 'success' : stats.interventionPct <= 40 ? 'warning' : 'destructive'} tip="% de trades en los que interviniste manualmente (mover SL, cerrar antes, añadir posición...)." />
+            <StatCard label="Error más frecuente" value={stats.mostFrequentErrorCount > 0 ? `${stats.mostFrequentErrorCount}×` : '—'} sub={stats.mostFrequentError.length > 40 ? stats.mostFrequentError.slice(0, 40) + '…' : stats.mostFrequentError} color="warning" tip="Texto más repetido en el campo 'Qué haría diferente'." />
+          </div>
+        </Section>
+
+        {/* BLOQUE Análisis Temporal */}
+        <Section title="Análisis Temporal">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Mejor día semana" value={stats.bestDow} sub={stats.bestDowWr >= 0 ? `Win Rate ${fmt(stats.bestDowWr, 1)}%` : 'datos insuficientes'} color="success" tip="Día de la semana con mayor win rate (mín. 3 trades por día)." />
+            <StatCard label="Mejor mes histórico" value={stats.bestMonthLabel} sub={fmtCurrency(stats.bestMonthPnl)} color="success" tip="Mes con mayor P&L neto acumulado." />
+            <StatCard label="Duración Win vs Loss" value={`${fmt(stats.avgDurWinners, 1)}h / ${fmt(stats.avgDurLosers, 1)}h`} color={stats.avgDurWinners >= stats.avgDurLosers ? 'success' : 'warning'} tip="Duración media (horas) de los trades ganadores vs perdedores. 'Cut losses, let winners run' implica W > L." />
+            <StatCard label="< 24h vs > 24h" value={`${fmt(stats.under24hPct, 0)}% / ${fmt(stats.over24hPct, 0)}%`} color="muted" tip="Porcentaje de trades cerrados en menos de 24 horas vs más de 24 horas." />
           </div>
         </Section>
 
