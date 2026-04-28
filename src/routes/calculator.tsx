@@ -363,6 +363,18 @@ function CalculatorPage() {
   const nCurrent = parseFloat(currentPrice) || 0;
   const nTp = tp === '' ? null : parseFloat(tp);
 
+  const instrumentDescription = useMemo(() => {
+    const sym = instrument.trim();
+    if (!sym) return '';
+    const up = sym.toUpperCase();
+    const root = up.split('_')[0];
+    const auto = AUTOCOMPLETE.find(a => a.symbol.toUpperCase() === up)
+      ?? AUTOCOMPLETE.find(a => a.family.toUpperCase() === root);
+    if (auto) return auto.description;
+    const inst = INSTRUMENTS.find(i => i.symbol.toUpperCase() === up);
+    return inst?.description ?? '';
+  }, [instrument]);
+
   const vixInfo = useMemo(() => {
     if (nVix == null || !Number.isFinite(nVix)) return null;
     if (nVix < 25) return { msg: 'Riesgo normal — usar 1%', color: 'text-success', blocked: false };
