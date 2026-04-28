@@ -40,10 +40,10 @@ const ROW_ALT: [number, number, number] = [248, 249, 252];
 
 function brokerLabel(b: string): string {
   const k = (b || '').toLowerCase();
-  if (k === 'darwinex') return 'NKIS';
-  if (k === 'fxpro') return 'OCTX';
-  if (k === 'octx') return 'OCTX';
-  if (k === 'nkis') return 'NKIS';
+  if (k === 'darwinex') return 'NK';
+  if (k === 'fxpro') return 'OX';
+  if (k === 'octx') return 'OX';
+  if (k === 'nkis') return 'NK';
   return (b || '').toUpperCase();
 }
 
