@@ -108,11 +108,23 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const add = useAddToWatchlist();
   const { user } = useAuth();
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const near: NearItem[] = useMemo(
+  const allNear: NearItem[] = useMemo(
     () => buildNearItems(brokerFilter, scannerMap, items ?? []),
     [brokerFilter, scannerMap, items],
   );
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of allNear) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [allNear]);
+  const near = typeFilter.size === 0
+    ? allNear
+    : allNear.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
 
   const handleRemove = (item: NearItem) => {
     if (!item.watchlistId) {
