@@ -48,6 +48,9 @@ interface Raw {
   vol_estado?: string;
   volume?: number;
   momentum?: number;
+  current_price?: number;
+  precio_actual?: number;
+  price?: number;
 }
 
 export type StochEstado = 'ZONA_ENTRADA' | 'ZONA_MEDIA' | 'SOBRECOMPRADO' | null;
@@ -77,6 +80,7 @@ export interface UnifiedInstrument {
   structure: string | null;
   breakout: string | null;
   volume: number | null;
+  current_price: number | null;
   broker: 'darwinex' | 'octx';
 }
 
@@ -166,6 +170,7 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
           structure: r.estructura ?? r.structure ?? null,
           breakout: r.ruptura ?? r.breakout ?? null,
           volume: r.volume ?? null,
+          current_price: r.current_price ?? r.precio_actual ?? r.price ?? null,
           broker,
         });
       }
