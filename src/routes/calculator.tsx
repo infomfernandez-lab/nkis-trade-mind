@@ -323,6 +323,7 @@ const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
 function CalculatorPage() {
   const { data: settings } = useSettings();
+  const { data: latestVixSession } = useLatestVix();
   const balanceNkis = settings?.balance_nkis != null ? Number(settings.balance_nkis) : 0;
   const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 0;
 
@@ -334,6 +335,7 @@ function CalculatorPage() {
   const [entry, setEntry] = useState<string>('');
   const [atr, setAtr] = useState<string>('');
   const [riskPct, setRiskPct] = useState<string>('1');
+  const [riskManual, setRiskManual] = useState(false);
   const [pointValue, setPointValue] = useState<string>('1');
   const [tickSize, setTickSize] = useState<number | null>(null);
   const [vix, setVix] = useState<string>('');
@@ -342,6 +344,21 @@ function CalculatorPage() {
   const [tableOpen, setTableOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  // Auto-load VIX from latest scanner session (read-only, never editable manually).
+  useEffect(() => {
+    const v = latestVixSession?.vix;
+    setVix(v != null ? String(v) : '');
+  }, [latestVixSession?.vix, latestVixSession?.created_at]);
+
+  // Auto-update risk % from VIX according to CAP table, unless user overrode it.
+  useEffect(() => {
+    if (riskManual) return;
+    const v = latestVixSession?.vix != null ? Number(latestVixSession.vix) : null;
+    const cap = getCapRiskFromVix(v);
+    if (cap.riskPct != null) setRiskPct(String(cap.riskPct));
+  }, [latestVixSession?.vix, riskManual]);
 
   // Sync balance from Supabase whenever settings load/change, unless the user
   // overrode the value manually for this session.
