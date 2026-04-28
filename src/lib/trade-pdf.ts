@@ -157,6 +157,32 @@ export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, ch
   );
   kv('VIX al entrar', vixValue != null ? vixValue.toFixed(1) : '—');
 
+  // 2.5 Gráficos (entrada -> cierre)
+  const drawChart = async (label: string, url: string | null) => {
+    if (!url) return;
+    const img = await loadImageDataUrl(url);
+    if (!img) return;
+    sectionTitle(label);
+    const maxW = pageWidth - margin * 2;
+    const maxH = pageHeight - margin - y - 5;
+    const ratio = img.width / img.height;
+    let w = maxW;
+    let h = w / ratio;
+    if (h > maxH) {
+      // start a fresh page so the chart can be larger
+      doc.addPage();
+      y = margin;
+      const fullH = pageHeight - margin * 2;
+      h = Math.min(fullH, maxW / ratio);
+      w = h * ratio;
+    }
+    doc.addImage(img.dataUrl, img.format, margin, y, w, h);
+    y += h + 4;
+  };
+
+  await drawChart('Gráfico de entrada', chartUrls?.entrada ?? null);
+  await drawChart('Gráfico de cierre', chartUrls?.cierre ?? null);
+
   // 3. Antes
   sectionTitle('Antes de Entrar');
   kv('Estado Emocional', journal.emotionalState ?? '—');
