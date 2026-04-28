@@ -908,16 +908,6 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
     rightColor: pnlColor,
   });
 
-  y = sectionTitle(d, y, 'Métricas Globales');
-  y = drawStatGrid(d, y, [
-    { label: 'P&L Total', value: formatEur(m.totalPnl), color: pnlColor },
-    { label: 'Trades', value: String(trades.length) },
-    { label: 'Win Rate', value: `${m.winRate.toFixed(1)}%` },
-    { label: 'Profit Factor', value: m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2) },
-    { label: 'Avg Win', value: formatEur(m.avgWin), color: GREEN },
-    { label: 'Avg Loss', value: formatEur(m.avgLoss), color: RED },
-    { label: 'Expectancy', value: formatEur(m.expectancy) },
-    { label: 'Drawdown máx.', value: formatEur(-dd), color: RED },
   const sharpeP = sharpeRatio(trades, startingBalance);
   const recoveryP = recoveryFactor(trades);
   const rTotalP = totalR(trades);
