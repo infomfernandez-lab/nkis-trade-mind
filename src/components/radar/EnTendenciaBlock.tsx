@@ -225,8 +225,10 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-        Escáner v18 — {items.length} instrumentos · Top 20 y Score ≥ 90 destacados
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>Escáner v18 — {items.length} instrumentos</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
       </div>
 
       {/* Desktop table */}
