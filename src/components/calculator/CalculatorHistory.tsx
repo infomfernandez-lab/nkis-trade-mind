@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from 'react';
-import { ChevronDown, ChevronUp, RefreshCw, ClipboardList } from 'lucide-react';
+import { ChevronDown, ChevronUp, RefreshCw, ClipboardList, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -105,6 +105,57 @@ export function CalculatorHistory({ onRecover }: Props) {
   const refresh = () => fetchPage(0, true);
   const loadMore = () => fetchPage(rows.length, false);
 
+  const deleteRecord = async (r: CalcRecord) => {
+    if (typeof window !== 'undefined' && !window.confirm(`¿Borrar el cálculo de ${r.instrumento ?? '—'}?`)) return;
+    try {
+      const { error } = await (supabase as any)
+        .from('calculadora_registro')
+        .delete()
+        .eq('id', r.id);
+      if (error) throw error;
+      setRows(prev => prev.filter(x => x.id !== r.id));
+      setCount(c => (c != null ? Math.max(0, c - 1) : c));
+      toast.success(`✓ ${r.instrumento ?? '—'} borrado`);
+    } catch (e: any) {
+      toast.error('Error al borrar', { description: e?.message });
+    }
+  };
+
+  const exportRecord = (r: CalcRecord) => {
+    const headers = [
+      'fecha','instrumento','broker','direccion','precio_entrada','stop_loss','distancia_stop',
+      'lotes','riesgo_real','breakeven_precio','breakeven_sl','trailing_sl','atr','valor_punto',
+      'cuenta_balance','vix',
+    ];
+    const esc = (v: any) => {
+      if (v == null) return '';
+      const s = String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const row = [
+      r.created_at, r.instrumento, r.broker, r.direccion, r.precio_entrada, r.stop_loss,
+      r.distancia_stop, r.lotes, r.riesgo_real, r.breakeven_precio, r.breakeven_sl,
+      r.trailing_sl, r.atr, r.valor_punto, r.cuenta_balance, r.vix,
+    ].map(esc).join(',');
+    const csv = headers.join(',') + '\n' + row + '\n';
+    try {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = (r.instrumento ?? 'calculo').replace(/[^A-Za-z0-9_-]+/g, '_');
+      const ts = new Date(r.created_at).toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `calculo_${safeName}_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Cálculo exportado (CSV)');
+    } catch (e: any) {
+      toast.error('Error al exportar', { description: e?.message });
+    }
+  };
+
   return (
     <section className="rounded-xl border border-border bg-card">
       <button
@@ -197,12 +248,29 @@ export function CalculatorHistory({ onRecover }: Props) {
                           {fmtEur(r.riesgo_real)}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onRecover(r); toast.success(`✓ ${r.instrumento ?? '—'} recuperado`); }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[11px]"
-                          >
-                            <ClipboardList className="w-3 h-3" /> Recuperar
-                          </button>
+                          <div className="inline-flex items-center gap-1 justify-end">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onRecover(r); toast.success(`✓ ${r.instrumento ?? '—'} recuperado`); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[11px]"
+                              title="Recuperar"
+                            >
+                              <ClipboardList className="w-3 h-3" /> Recuperar
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); exportRecord(r); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary text-muted-foreground hover:text-foreground text-[11px]"
+                              title="Exportar CSV"
+                            >
+                              <Download className="w-3 h-3" /> Exportar
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteRecord(r); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 text-[11px]"
+                              title="Borrar"
+                            >
+                              <Trash2 className="w-3 h-3" /> Borrar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {isOpen && (

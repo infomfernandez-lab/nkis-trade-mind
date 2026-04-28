@@ -363,6 +363,18 @@ function CalculatorPage() {
   const nCurrent = parseFloat(currentPrice) || 0;
   const nTp = tp === '' ? null : parseFloat(tp);
 
+  const instrumentDescription = useMemo(() => {
+    const sym = instrument.trim();
+    if (!sym) return '';
+    const up = sym.toUpperCase();
+    const root = up.split('_')[0];
+    const auto = AUTOCOMPLETE.find(a => a.symbol.toUpperCase() === up)
+      ?? AUTOCOMPLETE.find(a => a.family.toUpperCase() === root);
+    if (auto) return auto.description;
+    const inst = INSTRUMENTS.find(i => i.symbol.toUpperCase() === up);
+    return inst?.description ?? '';
+  }, [instrument]);
+
   const vixInfo = useMemo(() => {
     if (nVix == null || !Number.isFinite(nVix)) return null;
     if (nVix < 25) return { msg: 'Riesgo normal — usar 1%', color: 'text-success', blocked: false };
@@ -535,11 +547,18 @@ function CalculatorPage() {
             📋 Resumen operativo
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-lg font-bold font-data">
-              <span className="text-foreground">{instrument || '—'}</span>{' '}
-              <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
-                {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
-              </span>
+            <div className="flex flex-col">
+              <div className="text-lg font-bold font-data leading-tight">
+                <span className="text-foreground">{instrument || '—'}</span>{' '}
+                <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
+                  {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
+                </span>
+              </div>
+              {instrumentDescription && (
+                <div className="text-xs text-muted-foreground leading-tight mt-0.5">
+                  {instrumentDescription}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
