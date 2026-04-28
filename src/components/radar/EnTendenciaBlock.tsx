@@ -262,7 +262,6 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
               <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
               <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
-              <th className="text-left px-2 py-2 w-[80px]">Div</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
               <th className="text-right px-2 py-2 w-[200px]">Acción</th>
             </tr>
@@ -271,7 +270,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={10} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
@@ -420,9 +419,16 @@ function StochCell({ inst }: { inst: UnifiedInstrument }) {
   const arrow = sub == null ? '' : sub ? '↑' : '↓';
   return (
     <span className={`font-data text-xs font-semibold ${color}`}>
-      {Math.round(k)} {arrow}
+      {k.toFixed(1)} {arrow}
     </span>
   );
+}
+
+function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
+  if (inst.atr == null) return <span className="text-xs text-muted-foreground">—</span>;
+  const v = inst.atr;
+  const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 5;
+  return <span className="font-data text-xs font-semibold text-foreground">{v.toFixed(decimals)}</span>;
 }
 
 function AdxCell({ inst }: { inst: UnifiedInstrument }) {
@@ -557,8 +563,6 @@ function rankColor(hl: HighlightTier): string {
 function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
-  const div = divMeta(inst.divergencia);
-  const atr = atrMeta(inst.atr_estado);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
@@ -600,8 +604,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
-      <td className={`px-2 py-2 text-[11px] font-bold ${div.color}`}>{div.label}</td>
-      <td className={`px-2 py-2 text-[11px] font-bold ${atr.color}`}>{atr.label}</td>
+      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} /></td>
     </tr>
   );
@@ -611,8 +614,6 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
-  const div = divMeta(inst.divergencia);
-  const atr = atrMeta(inst.atr_estado);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
@@ -638,8 +639,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
           <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span className={`font-data ${pend50Color(inst.pend50_pct)}`}>{inst.pend50_pct != null ? `${inst.pend50_pct.toFixed(2)}%` : (inst.distance_to_ma50 != null ? `d${inst.distance_to_ma50}%` : '—')}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Div</span><span className={`font-bold ${div.color}`}>{div.label}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span className={`font-bold ${atr.color}`}>{atr.label}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
             <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} />
           </div>
