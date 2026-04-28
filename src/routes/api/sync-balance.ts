@@ -33,7 +33,9 @@ export const Route = createFileRoute('/api/sync-balance')({
           const { broker, balance, field } = parsed.data;
           const column: 'balance_nkis' | 'balance_octx' =
             field ?? (broker === 'darwinex' ? 'balance_nkis' : 'balance_octx');
-          const updates = { [column]: balance } as Record<string, number>;
+          const updates = column === 'balance_nkis'
+            ? { balance_nkis: balance }
+            : { balance_octx: balance };
 
           const { error } = await supabaseAdmin
             .from('user_settings')
