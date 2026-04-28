@@ -242,9 +242,15 @@ function drawStatGrid(d: Doc, yStart: number, items: Array<{ label: string; valu
   return y + 2;
 }
 
-function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity: number }[], height = 60) {
+function drawEquityChart(
+  d: Doc,
+  yStart: number,
+  points: { date: string; equity: number }[],
+  height = 75,
+  trades: Trade[] = [],
+) {
   const { doc, margin, contentWidth, pageHeight } = d;
-  if (yStart + height + 10 > pageHeight - 18) {
+  if (yStart + height + 14 > pageHeight - 18) {
     doc.addPage();
     yStart = drawHeader(d);
   }
@@ -255,7 +261,7 @@ function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity:
     doc.text('Datos insuficientes para gráfico (se necesitan al menos 2 trades cerrados).', margin, yStart + 10);
     return yStart + 14;
   }
-  const padL = 18, padR = 6, padT = 6, padB = 10;
+  const padL = 22, padR = 22, padT = 8, padB = 12;
   const x0 = margin;
   const y0 = yStart;
   const w = contentWidth;
@@ -265,77 +271,154 @@ function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity:
   const innerW = w - padL - padR;
   const innerH = h - padT - padB;
 
-  // background card
+  // background — clean white card
   doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.2);
-  doc.setFillColor(252, 252, 254);
+  doc.setFillColor(255, 255, 255);
   doc.roundedRect(x0, y0, w, h, 1.5, 1.5, 'FD');
 
+  // ───── Equity series ─────
   const eqs = points.map(p => p.equity);
-  let min = Math.min(...eqs);
-  let max = Math.max(...eqs);
-  if (min === max) { min -= 1; max += 1; }
-  const range = max - min;
+  let eqMin = Math.min(...eqs);
+  let eqMax = Math.max(...eqs);
+  if (eqMin === eqMax) { eqMin -= 1; eqMax += 1; }
+  const eqRange = eqMax - eqMin;
+
+  // ───── Drawdown series (peak-to-trough at each point, in EUR, positive = depth) ─────
+  let peak = points[0].equity;
+  const dd: number[] = points.map(p => {
+    if (p.equity > peak) peak = p.equity;
+    return Math.max(0, peak - p.equity);
+  });
+  const ddMaxRaw = Math.max(...dd);
+  const ddMax = ddMaxRaw > 0 ? ddMaxRaw : 1;
 
   const px = (i: number) => innerX + (i / (points.length - 1)) * innerW;
-  const py = (eq: number) => innerY + innerH - ((eq - min) / range) * innerH;
+  const pyEq = (eq: number) => innerY + innerH - ((eq - eqMin) / eqRange) * innerH;
+  // drawdown uses bottom 35% of the chart area mirrored downward from baseline
+  const ddBandH = innerH * 0.35;
+  const pyDd = (v: number) => innerY + innerH - ddBandH + (v / ddMax) * ddBandH;
 
-  // gridlines
-  doc.setDrawColor(...BORDER);
+  // subtle horizontal gridlines (3 only)
+  doc.setDrawColor(230, 232, 238);
   doc.setLineWidth(0.1);
-  for (let i = 1; i < 4; i++) {
-    const yy = innerY + (innerH * i) / 4;
+  for (let i = 1; i < 3; i++) {
+    const yy = innerY + (innerH * i) / 3;
     doc.line(innerX, yy, innerX + innerW, yy);
   }
 
   // baseline (starting equity)
   const startEq = points[0].equity;
-  if (startEq >= min && startEq <= max) {
+  if (startEq >= eqMin && startEq <= eqMax) {
     doc.setDrawColor(...GOLD);
-    doc.setLineWidth(0.2);
-    const ys = py(startEq);
+    doc.setLineWidth(0.25);
+    const ys = pyEq(startEq);
     doc.line(innerX, ys, innerX + innerW, ys);
   }
 
-  // filled area under the curve (subtle)
-  const finalEq = points[points.length - 1].equity;
-  const areaColor: [number, number, number] = finalEq >= startEq ? GREEN : RED;
-  doc.setFillColor(areaColor[0], areaColor[1], areaColor[2]);
-  doc.setGState(new (doc as any).GState({ opacity: 0.08 }));
-  for (let i = 1; i < points.length; i++) {
-    const x1 = px(i - 1), x2 = px(i);
-    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
-    const baseY = innerY + innerH;
-    // simple polygon trapezoid per segment
-    doc.triangle(x1, y1, x2, y2, x2, baseY, 'F');
-    doc.triangle(x1, y1, x2, baseY, x1, baseY, 'F');
+  // ───── Drawdown red shaded area (own scale, anchored at baseline of band) ─────
+  if (ddMaxRaw > 0) {
+    doc.setFillColor(RED[0], RED[1], RED[2]);
+    doc.setGState(new (doc as any).GState({ opacity: 0.18 }));
+    const baseY = innerY + innerH - ddBandH;
+    for (let i = 1; i < points.length; i++) {
+      const x1 = px(i - 1), x2 = px(i);
+      const y1 = pyDd(dd[i - 1]), y2 = pyDd(dd[i]);
+      doc.triangle(x1, y1, x2, y2, x2, baseY, 'F');
+      doc.triangle(x1, y1, x2, baseY, x1, baseY, 'F');
+    }
+    doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    // drawdown outline
+    doc.setDrawColor(RED[0], RED[1], RED[2]);
+    doc.setLineWidth(0.35);
+    for (let i = 1; i < points.length; i++) {
+      doc.line(px(i - 1), pyDd(dd[i - 1]), px(i), pyDd(dd[i]));
+    }
   }
-  doc.setGState(new (doc as any).GState({ opacity: 1 }));
 
-  // line — drawn segment by segment, each segment with an explicit setDrawColor & setLineWidth call
-  // to avoid any state being reset by intermediate operations.
+  // ───── Equity main line (navy) ─────
   for (let i = 1; i < points.length; i++) {
     doc.setDrawColor(...NAVY);
-    doc.setLineWidth(0.7);
-    const x1 = px(i - 1), x2 = px(i);
-    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
-    doc.line(x1, y1, x2, y2);
+    doc.setLineWidth(0.8);
+    doc.line(px(i - 1), pyEq(points[i - 1].equity), px(i), pyEq(points[i].equity));
   }
 
-  // point markers
+  // small markers on every equity point
   doc.setFillColor(...NAVY);
   for (let i = 0; i < points.length; i++) {
-    doc.circle(px(i), py(points[i].equity), 0.5, 'F');
+    doc.circle(px(i), pyEq(points[i].equity), 0.45, 'F');
   }
 
-  // axis labels
-  doc.setTextColor(...TEXT_MUTED);
-  doc.setFontSize(7);
+  // ───── Best & worst trade markers ─────
+  // points[0] is the starting balance; points[i+1] corresponds to trades[i]
+  if (trades.length > 0) {
+    const indexed = trades.map((t, i) => ({ t, i: i + 1 }));
+    const sorted = [...indexed].sort((a, b) => b.t.netPnl - a.t.netPnl);
+    const best = sorted.slice(0, 3).filter(x => x.t.netPnl > 0);
+    const worst = sorted.slice(-3).reverse().filter(x => x.t.netPnl < 0);
+
+    const drawMarker = (idx: number, t: Trade, color: [number, number, number], above: boolean) => {
+      if (idx >= points.length) return;
+      const cx = px(idx);
+      const cy = pyEq(points[idx].equity);
+      // ring
+      doc.setDrawColor(...color);
+      doc.setLineWidth(0.6);
+      doc.setFillColor(255, 255, 255);
+      doc.circle(cx, cy, 1.4, 'FD');
+      doc.setFillColor(...color);
+      doc.circle(cx, cy, 0.7, 'F');
+
+      // label
+      const sign = t.netPnl >= 0 ? '+' : '';
+      const label = `${t.symbol} ${sign}${Math.round(t.netPnl)}€`;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...color);
+      const tw = doc.getTextWidth(label);
+      let lx = cx - tw / 2;
+      // keep label inside chart bounds
+      if (lx < innerX) lx = innerX;
+      if (lx + tw > innerX + innerW) lx = innerX + innerW - tw;
+      const ly = above ? Math.max(innerY + 3, cy - 2.2) : Math.min(innerY + innerH - 1, cy + 4);
+      // tiny white background for legibility
+      doc.setFillColor(255, 255, 255);
+      doc.rect(lx - 0.5, ly - 3, tw + 1, 3.6, 'F');
+      doc.setTextColor(...color);
+      doc.text(label, lx, ly);
+    };
+
+    best.forEach(({ t, i }) => drawMarker(i, t, GREEN, true));
+    worst.forEach(({ t, i }) => drawMarker(i, t, RED, false));
+  }
+
+  // ───── Axis labels ─────
   doc.setFont('helvetica', 'normal');
-  doc.text(`€${max.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + 2);
-  doc.text(`€${min.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + innerH);
+  doc.setFontSize(7);
+  doc.setTextColor(...TEXT_MUTED);
+  // Y left (equity)
+  doc.text(`€${eqMax.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 1, innerY + 2);
+  doc.text(`€${eqMin.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 1, innerY + innerH);
+  // Y right (drawdown)
+  if (ddMaxRaw > 0) {
+    doc.setTextColor(RED[0], RED[1], RED[2]);
+    doc.text(`DD -€${Math.round(ddMaxRaw).toLocaleString('es-ES')}`, x0 + w - 1, innerY + innerH, { align: 'right' });
+    doc.setTextColor(...TEXT_MUTED);
+  }
+  // X dates
   doc.text(points[0].date, innerX, y0 + h + 4);
   doc.text(points[points.length - 1].date, innerX + innerW, y0 + h + 4, { align: 'right' });
+
+  // legend
+  const legendY = y0 + h + 4;
+  const legendX = innerX + innerW / 2 - 22;
+  doc.setDrawColor(...NAVY); doc.setLineWidth(0.8);
+  doc.line(legendX, legendY - 1, legendX + 5, legendY - 1);
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text('Equity', legendX + 6, legendY);
+  doc.setDrawColor(RED[0], RED[1], RED[2]); doc.setLineWidth(0.8);
+  doc.line(legendX + 22, legendY - 1, legendX + 27, legendY - 1);
+  doc.text('Drawdown', legendX + 28, legendY);
 
   return y0 + h + 8;
 }
@@ -829,7 +912,7 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
   // Equity curve for the month
   y = sectionTitle(d, y, 'Curva de Equity del Mes');
   const points = buildEquityCurve(trades, startingBalance);
-  y = drawEquityChart(d, y, points, 55);
+  y = drawEquityChart(d, y, points, 75, trades);
 
   // NKIS vs OCTX
   y = sectionTitle(d, y, 'NKIS vs OCTX');
@@ -934,7 +1017,7 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
 
   y = sectionTitle(d, y, 'Curva de Equity Completa');
   const points = buildEquityCurve(trades, startingBalance);
-  y = drawEquityChart(d, y, points, 70);
+  y = drawEquityChart(d, y, points, 90, trades);
 
   // By instrument
   y = sectionTitle(d, y, 'Análisis por Instrumento');
