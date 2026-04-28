@@ -607,7 +607,7 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => onAccountChange('darwinex')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-medium border transition-colors ${
                   account === 'darwinex' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -616,7 +616,7 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => onAccountChange('octx')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-medium border transition-colors ${
                   account === 'octx' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -681,14 +681,14 @@ function CalculatorPage() {
               <button
                 type="button"
                 onClick={() => setDirection('BUY')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-bold border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-bold border transition-colors ${
                   direction === 'BUY' ? 'border-success bg-success/15 text-success' : 'border-border bg-secondary text-muted-foreground'
                 }`}
               >▲ BUY</button>
               <button
                 type="button"
                 onClick={() => setDirection('SELL')}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-bold border transition-colors ${
+                className={`flex-1 px-3 py-2.5 sm:py-2 rounded-md text-base sm:text-sm font-bold border transition-colors ${
                   direction === 'SELL' ? 'border-destructive bg-destructive/15 text-destructive' : 'border-border bg-secondary text-muted-foreground'
                 }`}
               >▼ SELL</button>
