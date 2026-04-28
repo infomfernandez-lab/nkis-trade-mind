@@ -48,6 +48,9 @@ interface Raw {
   vol_estado?: string;
   volume?: number;
   momentum?: number;
+  current_price?: number;
+  precio_actual?: number;
+  price?: number;
 }
 
 export type StochEstado = 'ZONA_ENTRADA' | 'ZONA_MEDIA' | 'SOBRECOMPRADO' | null;
@@ -77,6 +80,7 @@ export interface UnifiedInstrument {
   structure: string | null;
   breakout: string | null;
   volume: number | null;
+  current_price: number | null;
   broker: 'darwinex' | 'octx';
 }
 
@@ -166,6 +170,7 @@ function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] 
           structure: r.estructura ?? r.structure ?? null,
           breakout: r.ruptura ?? r.breakout ?? null,
           volume: r.volume ?? null,
+          current_price: r.current_price ?? r.precio_actual ?? r.price ?? null,
           broker,
         });
       }
@@ -548,6 +553,26 @@ export function SymbolMeta({ symbol, compact = false }: { symbol: string; compac
   );
 }
 
+export function formatPrice(p: number | null | undefined): string | null {
+  if (p == null || !isFinite(p)) return null;
+  const a = Math.abs(p);
+  const decimals = a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : 5;
+  return p.toFixed(decimals);
+}
+
+export function PriceTag({ price, compact = false }: { price: number | null | undefined; compact?: boolean }) {
+  const f = formatPrice(price);
+  if (!f) return null;
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded font-data font-semibold border border-border bg-secondary/60 text-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+      title="Precio actual"
+    >
+      {f}
+    </span>
+  );
+}
+
 function highlightClasses(hl: HighlightTier): string {
   if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
   if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
@@ -574,11 +599,12 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       </td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {inst.symbol}
+            <PriceTag price={inst.current_price} />
             <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
               inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-            }`}>{inst.broker === 'darwinex' ? 'DW' : 'FX'}</span>
+            }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
           </div>
           <SymbolMeta symbol={inst.symbol} />
         </div>
@@ -623,6 +649,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
         <span className={`font-data font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
+        <PriceTag price={inst.current_price} compact />
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'

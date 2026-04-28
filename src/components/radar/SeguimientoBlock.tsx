@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import type { UnifiedInstrument } from './EnTendenciaBlock';
-import { SymbolMeta } from './EnTendenciaBlock';
+import { SymbolMeta, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
@@ -23,6 +23,7 @@ interface SeguimientoItem {
   score: number | null;
   stoch: number | null;
   adx: number | null;
+  current_price: number | null;
 }
 
 function isAlcistaDir(d: string): boolean {
@@ -52,6 +53,7 @@ function buildItems(
       score: scan?.score ?? w.scanner_score ?? null,
       stoch: scan?.stoch_k ?? w.stochastic_level ?? null,
       adx: scan?.adx_value ?? w.adx_value ?? null,
+      current_price: scan?.current_price ?? null,
     });
   }
   return out.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -121,7 +123,10 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>
               <td className="px-3 py-2 font-bold text-foreground">
                 <div className="flex flex-col gap-0.5">
-                  <span>{item.symbol}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span>{item.symbol}</span>
+                    <PriceTag price={item.current_price} />
+                  </div>
                   <SymbolMeta symbol={item.symbol} />
                 </div>
               </td>
@@ -158,6 +163,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-data text-xs text-muted-foreground">#{idx + 1}</span>
               <span className="font-bold text-sm text-foreground">{item.symbol}</span>
+              <PriceTag price={item.current_price} compact />
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                 item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
               }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
