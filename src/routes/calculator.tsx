@@ -510,10 +510,10 @@ function CalculatorPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4 lg:space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Calculadora</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="font-display text-2xl lg:text-2xl font-bold tracking-tight">Calculadora</h1>
+        <p className="text-sm lg:text-sm text-muted-foreground mt-1">
           Calculadora de posición CAP Trend Following. Cálculo en tiempo real.
         </p>
       </div>
