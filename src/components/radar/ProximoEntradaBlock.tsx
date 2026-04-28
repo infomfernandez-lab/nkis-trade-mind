@@ -170,7 +170,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
     }
   };
 
-  if (near.length === 0) {
+  if (allNear.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Zap className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
@@ -181,6 +181,10 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-destructive/40 bg-destructive/[0.03] overflow-hidden">
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>{near.length} de {allNear.length}</span>
+        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+      </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
