@@ -735,6 +735,10 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
     rightColor: pnlColor,
   });
 
+  const sharpe = sharpeRatio(trades, startingBalance);
+  const recovery = recoveryFactor(trades);
+  const rTotal = totalR(trades);
+
   y = sectionTitle(d, y, 'Métricas del Mes');
   y = drawStatGrid(d, y, [
     { label: 'P&L Total', value: formatEur(m.totalPnl), color: pnlColor },
@@ -745,6 +749,10 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
     { label: 'Avg Loss', value: formatEur(m.avgLoss), color: RED },
     { label: 'Drawdown máx.', value: formatEur(-dd), color: RED },
     { label: 'Cumplimiento', value: `${compliance.toFixed(0)}%` },
+    { label: 'Ratio Sharpe', value: sharpe.toFixed(2), color: sharpe >= 1 ? GREEN : sharpe >= 0 ? NAVY : RED },
+    { label: 'Recovery Factor', value: recovery === Infinity ? '∞' : recovery.toFixed(2), color: recovery >= 3 ? GREEN : recovery >= 1 ? NAVY : RED },
+    { label: 'R Total', value: `${rTotal.total >= 0 ? '+' : ''}${rTotal.total.toFixed(2)}R`, color: rTotal.total >= 0 ? GREEN : RED },
+    { label: 'Trades con R', value: String(rTotal.count) },
   ]);
 
   y = sectionTitle(d, y, 'Comparativa con Mes Anterior');
