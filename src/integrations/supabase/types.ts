@@ -74,6 +74,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_reports: {
+        Row: {
+          broker_filter: string
+          created_at: string
+          errors: Json | null
+          id: string
+          lesson: string | null
+          market_context: string | null
+          plan_tomorrow: string | null
+          report_date: string
+          system_followed: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broker_filter?: string
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          lesson?: string | null
+          market_context?: string | null
+          plan_tomorrow?: string | null
+          report_date: string
+          system_followed?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broker_filter?: string
+          created_at?: string
+          errors?: Json | null
+          id?: string
+          lesson?: string | null
+          market_context?: string | null
+          plan_tomorrow?: string | null
+          report_date?: string
+          system_followed?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       momentum_sessions: {
         Row: {
           adx: number | null
