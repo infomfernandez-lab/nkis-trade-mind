@@ -918,10 +918,28 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
     { label: 'Avg Loss', value: formatEur(m.avgLoss), color: RED },
     { label: 'Expectancy', value: formatEur(m.expectancy) },
     { label: 'Drawdown máx.', value: formatEur(-dd), color: RED },
+  const sharpeP = sharpeRatio(trades, startingBalance);
+  const recoveryP = recoveryFactor(trades);
+  const rTotalP = totalR(trades);
+
+  y = sectionTitle(d, y, 'Métricas Globales');
+  y = drawStatGrid(d, y, [
+    { label: 'P&L Total', value: formatEur(m.totalPnl), color: pnlColor },
+    { label: 'Trades', value: String(trades.length) },
+    { label: 'Win Rate', value: `${m.winRate.toFixed(1)}%` },
+    { label: 'Profit Factor', value: m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2) },
+    { label: 'Avg Win', value: formatEur(m.avgWin), color: GREEN },
+    { label: 'Avg Loss', value: formatEur(m.avgLoss), color: RED },
+    { label: 'Expectancy', value: formatEur(m.expectancy) },
+    { label: 'Drawdown máx.', value: formatEur(-dd), color: RED },
     { label: 'Cumplimiento', value: `${compliance.toFixed(0)}%` },
     { label: 'Ganadores', value: String(m.wins), color: GREEN },
     { label: 'Perdedores', value: String(m.losses), color: RED },
     { label: 'Bal. inicial', value: `€${startingBalance.toFixed(0)}` },
+    { label: 'Ratio Sharpe', value: sharpeP.toFixed(2), color: sharpeP >= 1 ? GREEN : sharpeP >= 0 ? NAVY : RED },
+    { label: 'Recovery Factor', value: recoveryP === Infinity ? '∞' : recoveryP.toFixed(2), color: recoveryP >= 3 ? GREEN : recoveryP >= 1 ? NAVY : RED },
+    { label: 'R Total', value: `${rTotalP.total >= 0 ? '+' : ''}${rTotalP.total.toFixed(2)}R`, color: rTotalP.total >= 0 ? GREEN : RED },
+    { label: 'Trades con R', value: String(rTotalP.count) },
   ]);
 
   y = sectionTitle(d, y, 'Curva de Equity Completa');
