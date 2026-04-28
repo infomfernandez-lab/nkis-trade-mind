@@ -127,6 +127,7 @@ function serializePostNotes(respected: string | null, notes: string | null): str
 export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJournalProps) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [chartUrls, setChartUrls] = useState<{ entrada: string | null; cierre: string | null }>({ entrada: null, cierre: null });
 
   const initialDuring = parseDuringNotes(trade.duringTradeNotes);
   const initialPost = parsePostNotes(trade.postTradeNotes);
