@@ -38,13 +38,13 @@ const tradeSchema = z.object({
 });
 
 const requestSchema = z.object({
-  trades: z.array(tradeSchema).min(1).max(2000),
+  // Use passthrough so individual rows can be re-validated per-row below.
+  // This lets us reject single bad rows instead of failing the whole batch.
+  trades: z.array(z.any()).min(1).max(2000),
   close_stale: z.boolean().optional().default(false),
   broker: z.enum(['darwinex', 'octx', 'nkis', 'fxpro']).optional()
     .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'fxpro' ? 'octx' : v)),
   open_tickets: z.array(z.number().int()).optional(),
-  // If provided, the endpoint will report which of these tickets are missing in the DB
-  // after the upsert (verification mode). Useful to detect sync gaps.
   expected_tickets: z.array(z.number().int()).max(10000).optional(),
 });
 
