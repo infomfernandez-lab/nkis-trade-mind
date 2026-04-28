@@ -563,8 +563,6 @@ function rankColor(hl: HighlightTier): string {
 function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
-  const div = divMeta(inst.divergencia);
-  const atr = atrMeta(inst.atr_estado);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
