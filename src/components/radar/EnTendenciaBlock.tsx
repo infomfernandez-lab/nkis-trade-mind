@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useAddToSeguimiento } from './SeguimientoBlock';
 import { Eye } from 'lucide-react';
 import { TypeFilter } from './TypeFilter';
-import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 
 interface Raw {
   rank?: number;
@@ -553,11 +553,39 @@ export function SymbolMeta({ symbol, compact = false }: { symbol: string; compac
   );
 }
 
+export function TypeIcon({ symbol, className = '' }: { symbol: string; className?: string }) {
+  const meta = classifyInstrument(symbol);
+  return (
+    <span
+      className={`inline-flex items-center justify-center text-[12px] leading-none ${className}`}
+      title={TYPE_LABEL[meta.type]}
+      aria-label={TYPE_LABEL[meta.type]}
+    >
+      {TYPE_ICON[meta.type]}
+    </span>
+  );
+}
+
+export function SymbolName({ symbol }: { symbol: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <TypeIcon symbol={symbol} />
+      <span>{symbol}</span>
+    </span>
+  );
+}
+
 export function formatPrice(p: number | null | undefined): string | null {
   if (p == null || !isFinite(p)) return null;
   const a = Math.abs(p);
   const decimals = a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : 5;
   return p.toFixed(decimals);
+}
+
+export function PriceCell({ price }: { price: number | null | undefined }) {
+  const f = formatPrice(price);
+  if (!f) return <span className="text-xs text-muted-foreground">—</span>;
+  return <span className="font-data text-xs font-semibold text-foreground">{f}</span>;
 }
 
 export function PriceTag({ price, compact = false }: { price: number | null | undefined; compact?: boolean }) {
