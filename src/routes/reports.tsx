@@ -1,11 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
-import { FileText, Calendar, TrendingUp, BarChart3, Download, Loader2 } from 'lucide-react';
-import { useClosedTrades } from '@/hooks/use-trades';
+import { useEffect, useMemo, useState } from 'react';
+import { FileText, Calendar, TrendingUp, BarChart3, Download, Loader2, CalendarDays, Save } from 'lucide-react';
+import { useClosedTrades, useOpenTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
+import { useLatestVix } from '@/hooks/use-latest-vix';
+import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
 import { formatCurrency, filterByBroker, type Trade } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
-import { exportWeeklyReport, exportMonthlyReport, exportPerformanceReport } from '@/lib/report-pdf';
+import { exportWeeklyReport, exportMonthlyReport, exportPerformanceReport, exportDailyReport, type DailyEliteSignal, type DailyOpenPos } from '@/lib/report-pdf';
 
 export const Route = createFileRoute('/reports')({
   component: Reports,
