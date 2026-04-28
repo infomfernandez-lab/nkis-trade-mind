@@ -631,6 +631,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         </span>
         {open ? <ChevronUp className="w-4 h-4 ml-auto text-muted-foreground" /> : <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />}
       </button>
+      <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
       {open && (
         <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
           <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span className={`font-data font-semibold ${adxColor(inst.adx_value)}`}>{inst.adx_value ?? '—'} {adxAbbr(inst.adx_state)}</span></div>
