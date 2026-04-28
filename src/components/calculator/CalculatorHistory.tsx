@@ -248,12 +248,29 @@ export function CalculatorHistory({ onRecover }: Props) {
                           {fmtEur(r.riesgo_real)}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onRecover(r); toast.success(`✓ ${r.instrumento ?? '—'} recuperado`); }}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[11px]"
-                          >
-                            <ClipboardList className="w-3 h-3" /> Recuperar
-                          </button>
+                          <div className="inline-flex items-center gap-1 justify-end">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onRecover(r); toast.success(`✓ ${r.instrumento ?? '—'} recuperado`); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 text-[11px]"
+                              title="Recuperar"
+                            >
+                              <ClipboardList className="w-3 h-3" /> Recuperar
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); exportRecord(r); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary text-muted-foreground hover:text-foreground text-[11px]"
+                              title="Exportar CSV"
+                            >
+                              <Download className="w-3 h-3" /> Exportar
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteRecord(r); }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 text-[11px]"
+                              title="Borrar"
+                            >
+                              <Trash2 className="w-3 h-3" /> Borrar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                       {isOpen && (
