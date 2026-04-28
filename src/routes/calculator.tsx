@@ -750,12 +750,31 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="% Riesgo" hint="Sistema CAP: 1% por trade">
-            <input
-              type="number" step="0.1" min="0.1" max="3" inputMode="decimal"
-              value={riskPct} onChange={e => setRiskPct(e.target.value)}
-              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
-            />
+          <Field
+            label={riskManual ? '% Riesgo (manual)' : '% Riesgo (auto · CAP/VIX)'}
+            hint={
+              riskManual
+                ? 'Override manual — pulsa "Auto" para recalcular según VIX'
+                : 'Calculado automáticamente según el VIX del último scanner'
+            }
+          >
+            <div className="flex gap-2">
+              <input
+                type="number" step="0.05" min="0" max="3" inputMode="decimal"
+                value={riskPct}
+                onChange={e => { setRiskPct(e.target.value); setRiskManual(true); }}
+                className="flex-1 h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
+              />
+              {riskManual && (
+                <button
+                  type="button"
+                  onClick={() => setRiskManual(false)}
+                  className="px-2 h-11 sm:h-10 rounded-md border border-input text-xs hover:bg-accent"
+                >
+                  Auto
+                </button>
+              )}
+            </div>
           </Field>
 
           <Field label="Valor del punto (auto)" hint="Cargado automáticamente desde las especificaciones MT5 al seleccionar el instrumento">
@@ -767,14 +786,65 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="VIX actual (opcional)" hint={vixInfo?.msg ?? 'Si lo rellenas, sugerimos % de riesgo según volatilidad'} hintClass={vixInfo?.color}>
-            <input
-              type="number" step="0.1" inputMode="decimal"
-              value={vix} onChange={e => setVix(e.target.value)}
-              placeholder="—"
-              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
-            />
-          </Field>
+          <div className="md:col-span-2">
+            <Field
+              label="VIX actual (auto · scanner)"
+              hint={
+                latestVixSession?.vix != null
+                  ? `Sincronizado desde el scanner · ${new Date(latestVixSession.created_at).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}`
+                  : 'Sin datos — sincroniza el scanner desde MT5'
+              }
+              hintClass={vixInfo?.color}
+            >
+              <input
+                type="number" step="0.1" inputMode="decimal"
+                value={vix}
+                readOnly
+                placeholder="—"
+                className="w-full h-11 sm:h-10 rounded-md border border-input bg-muted/40 px-3 text-base sm:text-sm font-data text-muted-foreground cursor-not-allowed"
+              />
+            </Field>
+
+            <button
+              type="button"
+              onClick={() => setLegendOpen(o => !o)}
+              className="mt-2 w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-md border border-dashed border-border bg-muted/20"
+            >
+              <span>📖 Sistema CAP — Tabla de riesgo según VIX</span>
+              {legendOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {legendOpen && (
+              <div className="mt-2 rounded-md border border-border bg-card text-xs overflow-hidden">
+                {CAP_VIX_LEGEND.map((row) => {
+                  const v = latestVixSession?.vix != null ? Number(latestVixSession.vix) : null;
+                  const active = v != null && getCapRiskFromVix(v).label === row.state + (row.tone === 'block' ? '' : '') ||
+                    (v != null && (
+                      (row.tone === 'success' && v < 15) ||
+                      (row.tone === 'normal' && v >= 15 && v < 20) ||
+                      (row.tone === 'warn' && v >= 20 && v < 25) ||
+                      (row.tone === 'high' && v >= 25 && v < 30) ||
+                      (row.tone === 'block' && v >= 30)
+                    ));
+                  const toneClass =
+                    row.tone === 'success' ? 'text-success'
+                    : row.tone === 'normal' ? 'text-foreground'
+                    : row.tone === 'warn' ? 'text-[#B85C00]'
+                    : row.tone === 'high' ? 'text-[#B85C00]'
+                    : 'text-destructive';
+                  return (
+                    <div
+                      key={row.range}
+                      className={`flex items-center justify-between px-3 py-2 border-b border-border last:border-b-0 ${active ? 'bg-primary/10 font-semibold' : ''}`}
+                    >
+                      <span className={`font-data ${toneClass}`}>{row.range}</span>
+                      <span className="text-muted-foreground flex-1 px-3">{row.state}</span>
+                      <span className={`${toneClass}`}>→ {row.risk}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
