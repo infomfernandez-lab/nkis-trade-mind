@@ -9,6 +9,7 @@ import type { UnifiedInstrument } from './EnTendenciaBlock';
 import { SymbolMeta, PriceCell, SymbolName } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { RadarCaptureButton } from './RadarCaptureButton';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -143,12 +144,15 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <td className="px-2 py-2 text-center font-data text-xs">{item.stoch != null ? Math.round(item.stoch) : '—'}</td>
               <td className="px-2 py-2 text-center font-data text-xs">{item.adx ?? '—'}</td>
               <td className="px-2 py-2 text-right">
-                <button
-                  onClick={() => handleRemove(item)}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" /> Quitar
-                </button>
+                <div className="inline-flex items-center gap-1 justify-end">
+                  <RadarCaptureButton symbol={item.symbol} />
+                  <button
+                    onClick={() => handleRemove(item)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Quitar
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -172,14 +176,17 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <span className="text-xs font-data font-bold ml-auto">Score {item.score ?? '—'}</span>
             </div>
             <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
-            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground gap-2 flex-wrap">
               <span>Stoch {item.stoch != null ? Math.round(item.stoch) : '—'} · ADX {item.adx ?? '—'}</span>
-              <button
-                onClick={() => handleRemove(item)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-3 h-3" /> Quitar
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <RadarCaptureButton symbol={item.symbol} />
+                <button
+                  onClick={() => handleRemove(item)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-3 h-3" /> Quitar
+                </button>
+              </div>
             </div>
           </div>
         ))}

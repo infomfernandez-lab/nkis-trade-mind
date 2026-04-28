@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Trade } from '@/lib/trade-utils';
 import { exportTradePdf } from '@/lib/trade-pdf';
+import { TradeChartsUploader } from '@/components/TradeChartsUploader';
 
 interface ChipFieldProps {
   label: string;
@@ -126,6 +127,7 @@ function serializePostNotes(respected: string | null, notes: string | null): str
 export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJournalProps) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [chartUrls, setChartUrls] = useState<{ entrada: string | null; cierre: string | null }>({ entrada: null, cierre: null });
 
   const initialDuring = parseDuringNotes(trade.duringTradeNotes);
   const initialPost = parsePostNotes(trade.postTradeNotes);
@@ -190,7 +192,7 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      await exportTradePdf({ trade, journal: data, scannerInfo, vixValue });
+      await exportTradePdf({ trade, journal: data, scannerInfo, vixValue, chartUrls });
       toast.success('PDF exportado');
     } catch (err: any) {
       toast.error(`Error al exportar: ${err.message}`);
@@ -201,6 +203,10 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
 
   return (
     <div className="space-y-6">
+      <Section title="Capturas de gráficos">
+        <TradeChartsUploader ticket={trade.ticket ?? null} onUrlsChange={setChartUrls} />
+      </Section>
+
       {/* Antes de Entrar */}
       <Section title="Antes de Entrar">
         <ChipField

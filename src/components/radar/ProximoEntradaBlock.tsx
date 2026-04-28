@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { SymbolMeta, PriceCell, SymbolName, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { RadarCaptureButton } from './RadarCaptureButton';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -250,9 +251,10 @@ function whatToDo(item: NearItem): string {
   return `Stoch(5,2,2) cruce ${cross}. ${atrPart} Anotar en bitácora.`;
 }
 
-function ActionButtons({ onRemove, onDiscard, hasWatchlistRow }: { onRemove: () => void; onDiscard: () => void; hasWatchlistRow: boolean }) {
+function ActionButtons({ symbol, onRemove, onDiscard, hasWatchlistRow }: { symbol: string; onRemove: () => void; onDiscard: () => void; hasWatchlistRow: boolean }) {
   return (
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
+      <RadarCaptureButton symbol={symbol} />
       <button
         onClick={onDiscard}
         title="Ocultar de la lista (queda registrado como descartado)"
@@ -295,7 +297,7 @@ function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () =
       </td>
       <td className="px-2 py-2 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</td>
       <td className="px-2 py-2">
-        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+        <ActionButtons symbol={item.symbol} onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
       </td>
     </tr>
   );
@@ -317,7 +319,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
       <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
       <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</div>
       <div className="mt-2 flex justify-end">
-        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+        <ActionButtons symbol={item.symbol} onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ interface ExportArgs {
   journal: JournalData;
   scannerInfo?: { rank: number | null; total: number | null; score: number | null };
   vixValue?: number | null;
+  chartUrls?: { entrada: string | null; cierre: string | null };
 }
 
 function formatCurrencyEur(value: number): string {
@@ -35,7 +36,31 @@ function fmtDate(d: string | null): string {
   return new Date(d).toLocaleString('es-ES');
 }
 
-export async function exportTradePdf({ trade, journal, scannerInfo, vixValue }: ExportArgs) {
+async function loadImageDataUrl(url: string): Promise<{ dataUrl: string; format: 'PNG' | 'JPEG'; width: number; height: number } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+    const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const format: 'PNG' | 'JPEG' = blob.type.includes('png') ? 'PNG' : 'JPEG';
+    return { dataUrl, format, width: dims.w, height: dims.h };
+  } catch {
+    return null;
+  }
+}
+
+export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, chartUrls }: ExportArgs) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -131,6 +156,32 @@ export async function exportTradePdf({ trade, journal, scannerInfo, vixValue }: 
       : 'No estaba en el radar',
   );
   kv('VIX al entrar', vixValue != null ? vixValue.toFixed(1) : '—');
+
+  // 2.5 Gráficos (entrada -> cierre)
+  const drawChart = async (label: string, url: string | null) => {
+    if (!url) return;
+    const img = await loadImageDataUrl(url);
+    if (!img) return;
+    sectionTitle(label);
+    const maxW = pageWidth - margin * 2;
+    const maxH = pageHeight - margin - y - 5;
+    const ratio = img.width / img.height;
+    let w = maxW;
+    let h = w / ratio;
+    if (h > maxH) {
+      // start a fresh page so the chart can be larger
+      doc.addPage();
+      y = margin;
+      const fullH = pageHeight - margin * 2;
+      h = Math.min(fullH, maxW / ratio);
+      w = h * ratio;
+    }
+    doc.addImage(img.dataUrl, img.format, margin, y, w, h);
+    y += h + 4;
+  };
+
+  await drawChart('Gráfico de entrada', chartUrls?.entrada ?? null);
+  await drawChart('Gráfico de cierre', chartUrls?.cierre ?? null);
 
   // 3. Antes
   sectionTitle('Antes de Entrar');
