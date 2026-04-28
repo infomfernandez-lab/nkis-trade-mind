@@ -510,18 +510,33 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
   );
 }
 
-function DesktopRow({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+export type HighlightTier = 'gold' | 'top' | 'none';
+
+function highlightClasses(hl: HighlightTier): string {
+  if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
+  if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
+  return '';
+}
+
+function rankColor(hl: HighlightTier): string {
+  if (hl === 'gold') return 'text-purple-300';
+  if (hl === 'top') return 'text-blue-300';
+  return 'text-muted-foreground';
+}
+
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
-  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+  const highlightCls = highlightClasses(hl);
+  const isHl = hl !== 'none';
 
   return (
     <tr className={`border-t border-border text-sm ${highlightCls}`}>
-      <td className="px-2 py-2 font-data text-xs text-muted-foreground text-center">
-        {highlight ? <span className="font-bold text-yellow-400">#{rank}</span> : `#${rank}`}
+      <td className="px-2 py-2 font-data text-center">
+        <span className={`font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
       </td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
