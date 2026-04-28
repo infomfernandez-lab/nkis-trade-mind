@@ -606,8 +606,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
-      <td className={`px-2 py-2 text-[11px] font-bold ${div.color}`}>{div.label}</td>
-      <td className={`px-2 py-2 text-[11px] font-bold ${atr.color}`}>{atr.label}</td>
+      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} /></td>
     </tr>
   );
