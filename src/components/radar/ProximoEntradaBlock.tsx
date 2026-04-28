@@ -251,9 +251,10 @@ function whatToDo(item: NearItem): string {
   return `Stoch(5,2,2) cruce ${cross}. ${atrPart} Anotar en bitácora.`;
 }
 
-function ActionButtons({ onRemove, onDiscard, hasWatchlistRow }: { onRemove: () => void; onDiscard: () => void; hasWatchlistRow: boolean }) {
+function ActionButtons({ symbol, onRemove, onDiscard, hasWatchlistRow }: { symbol: string; onRemove: () => void; onDiscard: () => void; hasWatchlistRow: boolean }) {
   return (
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
+      <RadarCaptureButton symbol={symbol} />
       <button
         onClick={onDiscard}
         title="Ocultar de la lista (queda registrado como descartado)"
