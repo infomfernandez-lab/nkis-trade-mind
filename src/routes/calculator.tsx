@@ -735,17 +735,6 @@ function CalculatorPage() {
             />
           </Field>
         </div>
-
-        {tableOpen && (
-          <div className="mt-5 border-t border-border pt-4">
-            <InstrumentTable
-              search={tableSearch}
-              onSearch={setTableSearch}
-              rows={filteredInstruments}
-              onPick={pickInstrument}
-            />
-          </div>
-        )}
       </section>
 
       {/* RESULTADOS */}
