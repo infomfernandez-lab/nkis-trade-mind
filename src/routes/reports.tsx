@@ -79,6 +79,7 @@ function Reports() {
   });
 
   const tabs: Array<{ key: typeof activeTab; label: string; icon: typeof Calendar }> = [
+    { key: 'daily', label: 'Diario', icon: CalendarDays },
     { key: 'weekly', label: 'Semanal', icon: Calendar },
     { key: 'monthly', label: 'Mensual', icon: TrendingUp },
     { key: 'performance', label: 'Performance', icon: BarChart3 },
