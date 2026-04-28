@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 import { useSettings } from '@/hooks/use-settings';
+import { useLatestVix, getCapRiskFromVix, CAP_VIX_LEGEND } from '@/hooks/use-latest-vix';
 import { CONTRACT_SPECS, getContractSpec, getPointValue, calcLots, type ContractSpec } from '@/lib/contract-specs';
 
 /**
