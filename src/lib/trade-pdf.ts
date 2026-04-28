@@ -60,7 +60,7 @@ async function loadImageDataUrl(url: string): Promise<{ dataUrl: string; format:
   }
 }
 
-export async function exportTradePdf({ trade, journal, scannerInfo, vixValue }: ExportArgs) {
+export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, chartUrls }: ExportArgs) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
