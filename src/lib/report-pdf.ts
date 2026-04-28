@@ -368,6 +368,175 @@ function topErrors(trades: Trade[]): Array<[string, number]> {
 }
 
 // =====================================================================
+// 0) DAILY REPORT
+// =====================================================================
+export interface DailyOpenPos {
+  symbol: string;
+  broker: string;
+  direction: 'BUY' | 'SELL';
+  lotSize: number;
+  entryPrice: number;
+  slPrice: number;
+  floatingPnl: number;
+  status?: string;
+}
+export interface DailyEliteSignal {
+  symbol: string;
+  broker: 'darwinex' | 'octx' | string;
+  direction: string;
+  score: number;
+}
+export interface DailyArgs {
+  date: Date;
+  brokerFilter: 'all' | 'darwinex' | 'octx';
+  closedToday: Trade[];
+  openNow: DailyOpenPos[];
+  eliteNkis: DailyEliteSignal[];
+  eliteOctx: DailyEliteSignal[];
+  vix: number | null;
+  marketContext: string;
+  systemFollowed: string;
+  errors: string[];
+  lesson: string;
+  planTomorrow: string;
+}
+
+export function exportDailyReport(args: DailyArgs) {
+  const { date, brokerFilter, closedToday, openNow, eliteNkis, eliteOctx, vix,
+    marketContext, systemFollowed, errors, lesson, planTomorrow } = args;
+  const d = newDoc('Informe Diario · DARWIN NKIS');
+  const totalPnl = closedToday.reduce((s, t) => s + t.netPnl, 0);
+  const floating = openNow.reduce((s, p) => s + p.floatingPnl, 0);
+  const pnlColor: [number, number, number] = totalPnl >= 0 ? GREEN : RED;
+  const dateLabel = date.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
+  let y = drawHeader(d, {
+    title: 'Informe Diario',
+    meta: dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1),
+    right: formatEur(totalPnl),
+    rightColor: pnlColor,
+  });
+
+  y = sectionTitle(d, y, 'Resumen del Día');
+  y = drawStatGrid(d, y, [
+    { label: 'P&L Cerrado', value: formatEur(totalPnl), color: pnlColor },
+    { label: 'Trades cerrados', value: String(closedToday.length) },
+    { label: 'Posiciones abiertas', value: String(openNow.length) },
+    { label: 'P&L Flotante', value: formatEur(floating), color: floating >= 0 ? GREEN : RED },
+    { label: 'VIX del día', value: vix != null ? vix.toFixed(2) : '—' },
+    { label: 'Cuenta', value: brokerFilter === 'all' ? 'NKIS + OCTX' : brokerLabel(brokerFilter) },
+    { label: 'Señales ÉLITE NKIS', value: String(eliteNkis.length) },
+    { label: 'Señales ÉLITE OCTX', value: String(eliteOctx.length) },
+  ]);
+
+  y = sectionTitle(d, y, 'Posiciones Cerradas Hoy');
+  if (closedToday.length === 0) {
+    d.doc.setTextColor(...TEXT_MUTED); d.doc.setFont('helvetica', 'italic'); d.doc.setFontSize(10);
+    d.doc.text('Sin trades cerrados hoy.', d.margin, y + 4); y += 10;
+  } else {
+    y = drawTable(d, y,
+      [
+        { label: 'Hora', width: 16 },
+        { label: 'Broker', width: 14 },
+        { label: 'Símbolo', width: 22 },
+        { label: 'Dir', width: 12 },
+        { label: 'P&L', width: 22, align: 'right' },
+        { label: 'Cumpl.', width: 16, align: 'center' },
+      ],
+      closedToday.map(t => [
+        { text: new Date(t.exitDate ?? t.entryDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) },
+        { text: brokerLabel(t.broker) },
+        { text: t.symbol },
+        { text: t.direction, color: t.direction === 'BUY' ? GREEN : RED },
+        { text: formatEur(t.netPnl), color: t.netPnl >= 0 ? GREEN : RED },
+        { text: t.systemCompliance ?? '—' },
+      ]),
+    );
+  }
+
+  y = sectionTitle(d, y, 'Posiciones Abiertas Ahora');
+  if (openNow.length === 0) {
+    d.doc.setTextColor(...TEXT_MUTED); d.doc.setFont('helvetica', 'italic'); d.doc.setFontSize(10);
+    d.doc.text('Sin posiciones abiertas.', d.margin, y + 4); y += 10;
+  } else {
+    y = drawTable(d, y,
+      [
+        { label: 'Broker', width: 14 },
+        { label: 'Símbolo', width: 22 },
+        { label: 'Dir', width: 12 },
+        { label: 'Lotes', width: 14, align: 'right' },
+        { label: 'Entrada', width: 18, align: 'right' },
+        { label: 'SL', width: 18, align: 'right' },
+        { label: 'P&L Flot.', width: 22, align: 'right' },
+      ],
+      openNow.map(p => [
+        { text: brokerLabel(p.broker) },
+        { text: p.symbol },
+        { text: p.direction, color: p.direction === 'BUY' ? GREEN : RED },
+        { text: p.lotSize.toFixed(2) },
+        { text: p.entryPrice.toFixed(2) },
+        { text: p.slPrice ? p.slPrice.toFixed(2) : '—' },
+        { text: formatEur(p.floatingPnl), color: p.floatingPnl >= 0 ? GREEN : RED },
+      ]),
+    );
+  }
+
+  const renderElite = (label: string, list: DailyEliteSignal[]) => {
+    y = sectionTitle(d, y, label);
+    if (list.length === 0) {
+      d.doc.setTextColor(...TEXT_MUTED); d.doc.setFont('helvetica', 'italic'); d.doc.setFontSize(10);
+      d.doc.text('Sin señales ÉLITE hoy.', d.margin, y + 4); y += 10;
+    } else {
+      y = drawTable(d, y,
+        [
+          { label: 'Símbolo', width: 28 },
+          { label: 'Dirección', width: 24 },
+          { label: 'Score', width: 18, align: 'right' },
+        ],
+        list.map(s => [
+          { text: s.symbol },
+          { text: s.direction },
+          { text: String(s.score) },
+        ]),
+      );
+    }
+  };
+  renderElite('Señales ÉLITE — NKIS', eliteNkis);
+  renderElite('Señales ÉLITE — OCTX', eliteOctx);
+
+  // Manual section
+  const drawTextBox = (title: string, content: string) => {
+    y = sectionTitle(d, y, title);
+    y = ensureSpace(d, y, 24);
+    const lines = d.doc.splitTextToSize(content?.trim() || '—', d.contentWidth - 6);
+    const boxH = Math.max(20, lines.length * 4.6 + 4);
+    d.doc.setDrawColor(...BORDER); d.doc.setFillColor(252, 252, 254);
+    d.doc.roundedRect(d.margin, y, d.contentWidth, boxH, 1, 1, 'FD');
+    d.doc.setTextColor(...TEXT); d.doc.setFont('helvetica', 'normal'); d.doc.setFontSize(9.5);
+    d.doc.text(lines, d.margin + 3, y + 5);
+    y += boxH + 4;
+  };
+  drawTextBox('Contexto de Mercado del Día', marketContext);
+
+  y = sectionTitle(d, y, 'Cumplimiento del Sistema');
+  y = drawKeyValueTable(d, y, [
+    ['¿Seguiste el sistema hoy?', systemFollowed || '—'],
+    ['Errores', errors.length > 0 ? errors.join(' · ') : 'Ninguno'],
+  ]);
+
+  drawTextBox('Lección del Día', lesson);
+  drawTextBox('Plan para Mañana', planTomorrow);
+
+  drawFooter(d);
+  const brokerTag = brokerFilter === 'all' ? 'NKIS-OCTX' : brokerLabel(brokerFilter);
+  const dateStr = date.toISOString().slice(0, 10);
+  const pnlSign = totalPnl >= 0 ? '+' : '-';
+  const pnlPart = `${pnlSign}${Math.round(Math.abs(totalPnl))}€`;
+  const filename = `DIARIO_${dateStr}_${brokerTag}_${pnlPart}.pdf`;
+  d.doc.save(filename);
+}
+
+// =====================================================================
 // 1) WEEKLY REPORT
 // =====================================================================
 export interface WeeklyArgs {
