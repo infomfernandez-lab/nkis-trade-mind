@@ -260,13 +260,13 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                 {g.items.map((inst, i) => {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
-                  const highlight = rank <= 20 || inst.score >= 90;
+                  const tier: HighlightTier = inst.score >= 90 ? 'gold' : rank <= 20 ? 'top' : 'none';
                   return (
                     <DesktopRow
                       key={`${inst.symbol}-${inst.broker}-${i}`}
                       inst={inst}
                       rank={rank}
-                      highlight={highlight}
+                      hl={tier}
                       isWatched={watchedSymbols.has(key)}
                       isInSeguimiento={seguimientoSymbols.has(key)}
                       isOpen={openSymbols.has(inst.symbol)}
