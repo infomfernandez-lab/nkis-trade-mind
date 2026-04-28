@@ -535,11 +535,18 @@ function CalculatorPage() {
             📋 Resumen operativo
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-lg font-bold font-data">
-              <span className="text-foreground">{instrument || '—'}</span>{' '}
-              <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
-                {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
-              </span>
+            <div className="flex flex-col">
+              <div className="text-lg font-bold font-data leading-tight">
+                <span className="text-foreground">{instrument || '—'}</span>{' '}
+                <span className={direction === 'BUY' ? 'text-success' : 'text-destructive'}>
+                  {direction === 'BUY' ? '▲ BUY' : '▼ SELL'}
+                </span>
+              </div>
+              {instrumentDescription && (
+                <div className="text-xs text-muted-foreground leading-tight mt-0.5">
+                  {instrumentDescription}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <button onClick={copySummary} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20">
