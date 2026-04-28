@@ -8,6 +8,8 @@ const requestSchema = z.object({
   broker: z.enum(['darwinex', 'octx', 'nkis', 'fxpro'])
     .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'fxpro' ? 'octx' : v)),
   balance: z.number(),
+  // Opcional: forzar la columna destino. Si se omite, se deriva de `broker`.
+  field: z.enum(['balance_nkis', 'balance_octx']).optional(),
 });
 
 export const Route = createFileRoute('/api/sync-balance')({
@@ -28,11 +30,10 @@ export const Route = createFileRoute('/api/sync-balance')({
             }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
           }
 
-          const { broker, balance } = parsed.data;
-          const updates = broker === 'darwinex'
-            ? { balance_nkis: balance }
-            : { balance_octx: balance };
-          const column = broker === 'darwinex' ? 'balance_nkis' : 'balance_octx';
+          const { broker, balance, field } = parsed.data;
+          const column: 'balance_nkis' | 'balance_octx' =
+            field ?? (broker === 'darwinex' ? 'balance_nkis' : 'balance_octx');
+          const updates = { [column]: balance } as Record<string, number>;
 
           const { error } = await supabaseAdmin
             .from('user_settings')
