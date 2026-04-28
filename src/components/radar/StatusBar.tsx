@@ -117,7 +117,7 @@ export function StatusBar({ brokerFilter }: Props) {
             <>
               NKIS{' '}
               {darwinex ? (
-                <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(darwinex.created_at)}</span>
+                <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(darwinex.session_date ?? darwinex.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
