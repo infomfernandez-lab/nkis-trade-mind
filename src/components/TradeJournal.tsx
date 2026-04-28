@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Trade } from '@/lib/trade-utils';
 import { exportTradePdf } from '@/lib/trade-pdf';
+import { TradeChartsUploader } from '@/components/TradeChartsUploader';
 
 interface ChipFieldProps {
   label: string;
