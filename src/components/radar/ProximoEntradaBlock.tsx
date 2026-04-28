@@ -272,7 +272,12 @@ function ActionButtons({ onRemove, onDiscard, hasWatchlistRow }: { onRemove: () 
 function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
     <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
-      <td className="px-3 py-2 font-bold text-foreground text-sm">{item.symbol}</td>
+      <td className="px-3 py-2 font-bold text-foreground text-sm">
+        <div className="flex flex-col gap-0.5">
+          <span>{item.symbol}</span>
+          <SymbolMeta symbol={item.symbol} />
+        </div>
+      </td>
       <td className="px-2 py-2">
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -303,6 +308,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
           {signalText(item)}
         </span>
       </div>
+      <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
       <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</div>
       <div className="mt-2 flex justify-end">
         <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
