@@ -148,9 +148,19 @@ export function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+/** True if a systemCompliance value represents full (100%) compliance.
+ *  Accepts "100%", "Sí al 100%", "Si al 100%", "Sí completamente", or any string containing "100%". */
+export function isFullCompliance(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const v = value.trim();
+  if (!v) return false;
+  if (v === 'Sí completamente') return true;
+  return v.includes('100%');
+}
+
 export function getTradeColorStrip(trade: Trade): string {
   if (trade.status === 'open') return 'bg-primary';
-  const followedSystem = trade.systemCompliance === '100%' && trade.manualIntervention === 'None, EA managing';
+  const followedSystem = isFullCompliance(trade.systemCompliance) && trade.manualIntervention === 'None, EA managing';
   if (trade.isWin && followedSystem) return 'bg-success';
   if (trade.isWin && !followedSystem) return 'bg-yellow-500';
   if (!trade.isWin && followedSystem) return 'bg-orange-500';
