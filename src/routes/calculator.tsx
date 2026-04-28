@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 import { useSettings } from '@/hooks/use-settings';
+import { useLatestVix, getCapRiskFromVix, CAP_VIX_LEGEND } from '@/hooks/use-latest-vix';
 import { CONTRACT_SPECS, getContractSpec, getPointValue, calcLots, type ContractSpec } from '@/lib/contract-specs';
 
 /**
@@ -322,6 +323,7 @@ const fmtEur = (n: number) => Number.isFinite(n) ? `€${n.toFixed(2)}` : '—';
 
 function CalculatorPage() {
   const { data: settings } = useSettings();
+  const { data: latestVixSession } = useLatestVix();
   const balanceNkis = settings?.balance_nkis != null ? Number(settings.balance_nkis) : 0;
   const balanceOctx = settings?.balance_octx != null ? Number(settings.balance_octx) : 0;
 
@@ -333,6 +335,7 @@ function CalculatorPage() {
   const [entry, setEntry] = useState<string>('');
   const [atr, setAtr] = useState<string>('');
   const [riskPct, setRiskPct] = useState<string>('1');
+  const [riskManual, setRiskManual] = useState(false);
   const [pointValue, setPointValue] = useState<string>('1');
   const [tickSize, setTickSize] = useState<number | null>(null);
   const [vix, setVix] = useState<string>('');
@@ -341,6 +344,21 @@ function CalculatorPage() {
   const [tableOpen, setTableOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+
+  // Auto-load VIX from latest scanner session (read-only, never editable manually).
+  useEffect(() => {
+    const v = latestVixSession?.vix;
+    setVix(v != null ? String(v) : '');
+  }, [latestVixSession?.vix, latestVixSession?.created_at]);
+
+  // Auto-update risk % from VIX according to CAP table, unless user overrode it.
+  useEffect(() => {
+    if (riskManual) return;
+    const v = latestVixSession?.vix != null ? Number(latestVixSession.vix) : null;
+    const cap = getCapRiskFromVix(v);
+    if (cap.riskPct != null) setRiskPct(String(cap.riskPct));
+  }, [latestVixSession?.vix, riskManual]);
 
   // Sync balance from Supabase whenever settings load/change, unless the user
   // overrode the value manually for this session.
@@ -448,8 +466,8 @@ function CalculatorPage() {
   };
 
   const clearAll = () => {
-    setInstrument(''); setEntry(''); setAtr(''); setRiskPct('1');
-    setPointValue('1'); setTickSize(null); setVix(''); setCurrentPrice(''); setTp('');
+    setInstrument(''); setEntry(''); setAtr(''); setRiskPct('1'); setRiskManual(false);
+    setPointValue('1'); setTickSize(null); setCurrentPrice(''); setTp('');
     toast.success('Calculadora limpiada');
   };
 
@@ -482,7 +500,7 @@ function CalculatorPage() {
     if (r.precio_entrada != null) setEntry(String(r.precio_entrada));
     if (r.atr != null) setAtr(String(r.atr));
     if (r.valor_punto != null) setPointValue(String(r.valor_punto));
-    setVix(r.vix != null ? String(r.vix) : '');
+    // VIX se carga automáticamente desde el último scanner — ignoramos el del historial
     setCurrentPrice('');
     setTp('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -732,12 +750,31 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="% Riesgo" hint="Sistema CAP: 1% por trade">
-            <input
-              type="number" step="0.1" min="0.1" max="3" inputMode="decimal"
-              value={riskPct} onChange={e => setRiskPct(e.target.value)}
-              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
-            />
+          <Field
+            label={riskManual ? '% Riesgo (manual)' : '% Riesgo (auto · CAP/VIX)'}
+            hint={
+              riskManual
+                ? 'Override manual — pulsa "Auto" para recalcular según VIX'
+                : 'Calculado automáticamente según el VIX del último scanner'
+            }
+          >
+            <div className="flex gap-2">
+              <input
+                type="number" step="0.05" min="0" max="3" inputMode="decimal"
+                value={riskPct}
+                onChange={e => { setRiskPct(e.target.value); setRiskManual(true); }}
+                className="flex-1 h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
+              />
+              {riskManual && (
+                <button
+                  type="button"
+                  onClick={() => setRiskManual(false)}
+                  className="px-2 h-11 sm:h-10 rounded-md border border-input text-xs hover:bg-accent"
+                >
+                  Auto
+                </button>
+              )}
+            </div>
           </Field>
 
           <Field label="Valor del punto (auto)" hint="Cargado automáticamente desde las especificaciones MT5 al seleccionar el instrumento">
@@ -749,14 +786,65 @@ function CalculatorPage() {
             />
           </Field>
 
-          <Field label="VIX actual (opcional)" hint={vixInfo?.msg ?? 'Si lo rellenas, sugerimos % de riesgo según volatilidad'} hintClass={vixInfo?.color}>
-            <input
-              type="number" step="0.1" inputMode="decimal"
-              value={vix} onChange={e => setVix(e.target.value)}
-              placeholder="—"
-              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
-            />
-          </Field>
+          <div className="md:col-span-2">
+            <Field
+              label="VIX actual (auto · scanner)"
+              hint={
+                latestVixSession?.vix != null
+                  ? `Sincronizado desde el scanner · ${new Date(latestVixSession.created_at).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}`
+                  : 'Sin datos — sincroniza el scanner desde MT5'
+              }
+              hintClass={vixInfo?.color}
+            >
+              <input
+                type="number" step="0.1" inputMode="decimal"
+                value={vix}
+                readOnly
+                placeholder="—"
+                className="w-full h-11 sm:h-10 rounded-md border border-input bg-muted/40 px-3 text-base sm:text-sm font-data text-muted-foreground cursor-not-allowed"
+              />
+            </Field>
+
+            <button
+              type="button"
+              onClick={() => setLegendOpen(o => !o)}
+              className="mt-2 w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-md border border-dashed border-border bg-muted/20"
+            >
+              <span>📖 Sistema CAP — Tabla de riesgo según VIX</span>
+              {legendOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {legendOpen && (
+              <div className="mt-2 rounded-md border border-border bg-card text-xs overflow-hidden">
+                {CAP_VIX_LEGEND.map((row) => {
+                  const v = latestVixSession?.vix != null ? Number(latestVixSession.vix) : null;
+                  const active = v != null && getCapRiskFromVix(v).label === row.state + (row.tone === 'block' ? '' : '') ||
+                    (v != null && (
+                      (row.tone === 'success' && v < 15) ||
+                      (row.tone === 'normal' && v >= 15 && v < 20) ||
+                      (row.tone === 'warn' && v >= 20 && v < 25) ||
+                      (row.tone === 'high' && v >= 25 && v < 30) ||
+                      (row.tone === 'block' && v >= 30)
+                    ));
+                  const toneClass =
+                    row.tone === 'success' ? 'text-success'
+                    : row.tone === 'normal' ? 'text-foreground'
+                    : row.tone === 'warn' ? 'text-[#B85C00]'
+                    : row.tone === 'high' ? 'text-[#B85C00]'
+                    : 'text-destructive';
+                  return (
+                    <div
+                      key={row.range}
+                      className={`flex items-center justify-between px-3 py-2 border-b border-border last:border-b-0 ${active ? 'bg-primary/10 font-semibold' : ''}`}
+                    >
+                      <span className={`font-data ${toneClass}`}>{row.range}</span>
+                      <span className="text-muted-foreground flex-1 px-3">{row.state}</span>
+                      <span className={`${toneClass}`}>→ {row.risk}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
