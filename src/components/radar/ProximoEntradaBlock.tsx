@@ -1,15 +1,18 @@
 import { useMemo } from 'react';
-import { Zap } from 'lucide-react';
-import { useWatchlist } from '@/hooks/use-watchlist';
+import { Zap, Trash2, EyeOff } from 'lucide-react';
+import { useWatchlist, useDeleteWatchlistItem, useAddToWatchlist } from '@/hooks/use-watchlist';
 import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
+import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
+import { toast } from 'sonner';
 
 interface Props {
   brokerFilter: BrokerFilter;
 }
 
 interface NearItem {
-  id: string;
+  id: string;                       // either watchlist UUID or `${symbol}::${broker}` synthetic
+  watchlistId: string | null;       // real watchlist row id if present
   symbol: string;
   broker: 'darwinex' | 'octx';
   direction: 'alcista' | 'bajista';
@@ -17,6 +20,8 @@ interface NearItem {
   pullback: boolean;
   pullbackBars: number | null;
   atr: number | null;
+  source: 'scanner' | 'manual';
+  scannerScore: number | null;
 }
 
 function isAlcistaDir(d: string): boolean {
@@ -31,13 +36,28 @@ function buildNearItems(
 ): NearItem[] {
   const out = new Map<string, NearItem>();
 
+  // Build set of discarded keys so the scanner-driven loop ignores them
+  const discarded = new Set<string>();
+  const watchlistByKey = new Map<string, typeof watchlist[number]>();
+  for (const w of watchlist) {
+    const broker = normalizeBroker(w.broker) === 'octx' ? 'octx' : 'darwinex';
+    const key = `${w.symbol}::${broker}`;
+    if ((w.status ?? '').toUpperCase() === 'DESCARTADO') {
+      discarded.add(key);
+    }
+    if (!watchlistByKey.has(key)) watchlistByKey.set(key, w);
+  }
+
   // 1) Scanner-driven: ZONA_ENTRADA OR pullback_active
   for (const [key, inst] of scannerMap.entries()) {
     if (brokerFilter !== 'all' && brokerFilter !== inst.broker) continue;
+    if (discarded.has(key)) continue;
     const matches = inst.pullback_active || inst.stoch_estado === 'ZONA_ENTRADA';
     if (!matches) continue;
+    const wl = watchlistByKey.get(key);
     out.set(key, {
       id: key,
+      watchlistId: wl?.id ?? null,
       symbol: inst.symbol,
       broker: inst.broker,
       direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
@@ -45,6 +65,8 @@ function buildNearItems(
       pullback: inst.pullback_active,
       pullbackBars: inst.pullback_bars,
       atr: inst.atr,
+      source: 'scanner',
+      scannerScore: inst.score ?? null,
     });
   }
 
@@ -57,7 +79,8 @@ function buildNearItems(
     if (out.has(key)) continue;
     const scan = scannerMap.get(key);
     out.set(key, {
-      id: w.id,
+      id: key,
+      watchlistId: w.id,
       symbol: w.symbol,
       broker,
       direction: isAlcistaDir(scan?.direction ?? w.direction) ? 'alcista' : 'bajista',
@@ -65,23 +88,72 @@ function buildNearItems(
       pullback: scan?.pullback_active ?? false,
       pullbackBars: scan?.pullback_bars ?? null,
       atr: scan?.atr ?? null,
+      source: 'manual',
+      scannerScore: scan?.score ?? null,
     });
   }
 
   return Array.from(out.values()).sort((a, b) => {
     if (a.pullback !== b.pullback) return a.pullback ? -1 : 1;
-    return 0;
+    return (b.scannerScore ?? 0) - (a.scannerScore ?? 0);
   });
 }
 
 export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
   const scannerMap = useLatestScannerByKey();
+  const del = useDeleteWatchlistItem();
+  const add = useAddToWatchlist();
+  const { user } = useAuth();
 
   const near: NearItem[] = useMemo(
     () => buildNearItems(brokerFilter, scannerMap, items ?? []),
     [brokerFilter, scannerMap, items],
   );
+
+  const handleRemove = (item: NearItem) => {
+    if (!item.watchlistId) {
+      toast.info(`${item.symbol} viene del escáner — usa "Descartar" para ocultarlo`);
+      return;
+    }
+    del.mutate(item.watchlistId, {
+      onSuccess: () => toast.success(`${item.symbol} eliminado`),
+      onError: () => toast.error('Error al eliminar'),
+    });
+  };
+
+  const handleDiscard = (item: NearItem) => {
+    if (!user) {
+      toast.error('Inicia sesión para descartar');
+      return;
+    }
+    // If already in watchlist, update via delete + reinsert as DESCARTADO would require update.
+    // Simpler path: if there's a watchlist row, delete it first, then insert as DESCARTADO.
+    const insertDiscarded = () => {
+      add.mutate({
+        symbol: item.symbol,
+        direction: item.direction,
+        watch_reason: 'Descartado manualmente desde Entrada Próxima',
+        stochastic_level: item.stoch,
+        scanner_score: item.scannerScore,
+        adx_value: null,
+        adx_state: null,
+        distance_to_ma50: null,
+        status: 'DESCARTADO',
+        added_from_scanner: item.source === 'scanner',
+        trade_id: null,
+        broker: item.broker,
+      }, {
+        onSuccess: () => toast.success(`${item.symbol} descartado`),
+        onError: () => toast.error('Error al descartar'),
+      });
+    };
+    if (item.watchlistId) {
+      del.mutate(item.watchlistId, { onSuccess: insertDiscarded, onError: () => toast.error('Error al descartar') });
+    } else {
+      insertDiscarded();
+    }
+  };
 
   if (near.length === 0) {
     return (
@@ -102,16 +174,31 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
             <th className="text-left px-2 py-2 w-[90px]">Cuenta</th>
             <th className="text-left px-2 py-2 w-[200px]">Señal</th>
             <th className="text-left px-2 py-2">Qué hacer</th>
+            <th className="text-right px-2 py-2 w-[180px]">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {near.map(item => <NearRow key={item.id} item={item} />)}
+          {near.map(item => (
+            <NearRow
+              key={item.id}
+              item={item}
+              onRemove={() => handleRemove(item)}
+              onDiscard={() => handleDiscard(item)}
+            />
+          ))}
         </tbody>
       </table>
 
       {/* Mobile */}
       <div className="md:hidden divide-y divide-border">
-        {near.map(item => <NearMobileCard key={item.id} item={item} />)}
+        {near.map(item => (
+          <NearMobileCard
+            key={item.id}
+            item={item}
+            onRemove={() => handleRemove(item)}
+            onDiscard={() => handleDiscard(item)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -126,7 +213,6 @@ function signalText(item: NearItem): string {
 
 function formatAtr(atr: number | null): string {
   if (atr == null) return '';
-  // 4 decimals for FX-like values, fewer for larger numbers
   if (Math.abs(atr) >= 100) return atr.toFixed(2);
   if (Math.abs(atr) >= 1) return atr.toFixed(3);
   return atr.toFixed(4);
@@ -141,7 +227,30 @@ function whatToDo(item: NearItem): string {
   return `Stoch(5,2,2) cruce ${cross}. ${atrPart} Anotar en bitácora.`;
 }
 
-function NearRow({ item }: { item: NearItem }) {
+function ActionButtons({ onRemove, onDiscard, hasWatchlistRow }: { onRemove: () => void; onDiscard: () => void; hasWatchlistRow: boolean }) {
+  return (
+    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+      <button
+        onClick={onDiscard}
+        title="Ocultar de la lista (queda registrado como descartado)"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+      >
+        <EyeOff className="w-3 h-3" /> Descartar
+      </button>
+      {hasWatchlistRow && (
+        <button
+          onClick={onRemove}
+          title="Eliminar definitivamente de la watchlist"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          <Trash2 className="w-3 h-3" /> Eliminar
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
     <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <td className="px-3 py-2 font-bold text-foreground text-sm">{item.symbol}</td>
@@ -156,11 +265,14 @@ function NearRow({ item }: { item: NearItem }) {
         </span>
       </td>
       <td className="px-2 py-2 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</td>
+      <td className="px-2 py-2">
+        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+      </td>
     </tr>
   );
 }
 
-function NearMobileCard({ item }: { item: NearItem }) {
+function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
     <div className={`p-3 ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <div className="flex items-center gap-2 flex-wrap">
@@ -173,6 +285,9 @@ function NearMobileCard({ item }: { item: NearItem }) {
         </span>
       </div>
       <div className="mt-1.5 text-[11px] text-muted-foreground leading-snug">{whatToDo(item)}</div>
+      <div className="mt-2 flex justify-end">
+        <ActionButtons onRemove={onRemove} onDiscard={onDiscard} hasWatchlistRow={!!item.watchlistId} />
+      </div>
     </div>
   );
 }

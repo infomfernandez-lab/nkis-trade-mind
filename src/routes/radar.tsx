@@ -36,10 +36,10 @@ function RadarPage() {
         <h1 className="font-display text-xl font-bold">Centro de mando</h1>
       </div>
 
-      {/* ① En tendencia */}
+      {/* ① Escáner */}
       <CollapsibleBlock
-        id="tendencia"
-        title="① EN TENDENCIA"
+        id="escaner"
+        title="① ESCÁNER"
         countLabel={`${tendenciaCount} instrumentos`}
         defaultOpen
       >

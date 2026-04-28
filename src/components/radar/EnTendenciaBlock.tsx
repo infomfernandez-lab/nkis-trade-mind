@@ -211,7 +211,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-        Scanner v18 — Medias + Estructura + Stoch(14,3,3) + ADX
+        Escáner v18 — Medias + Estructura + Stoch(14,3,3) + ADX · Ordenado por Score
       </div>
 
       {/* Desktop table */}
