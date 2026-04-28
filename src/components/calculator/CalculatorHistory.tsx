@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from 'react';
-import { ChevronDown, ChevronUp, RefreshCw, ClipboardList } from 'lucide-react';
+import { ChevronDown, ChevronUp, RefreshCw, ClipboardList, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
