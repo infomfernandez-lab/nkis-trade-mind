@@ -1,1 +1,4 @@
 project_id = "tadpthjpwgqpakzuzhoo"
+
+[functions.generate-market-context]
+verify_jwt = false
