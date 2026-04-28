@@ -5,7 +5,7 @@ import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
-import { SymbolMeta, PriceTag } from './EnTendenciaBlock';
+import { SymbolMeta, PriceCell, SymbolName, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
@@ -193,6 +193,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
         <thead>
           <tr className="bg-destructive/10 text-[10px] uppercase tracking-wider text-destructive/90">
             <th className="text-left px-3 py-2">Símbolo</th>
+            <th className="text-right px-2 py-2 w-[90px]">Precio</th>
             <th className="text-left px-2 py-2 w-[90px]">Cuenta</th>
             <th className="text-left px-2 py-2 w-[200px]">Señal</th>
             <th className="text-left px-2 py-2">Qué hacer</th>
@@ -277,13 +278,11 @@ function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () =
     <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <td className="px-3 py-2 font-bold text-foreground text-sm">
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span>{item.symbol}</span>
-            <PriceTag price={item.current_price} />
-          </div>
+          <SymbolName symbol={item.symbol} />
           <SymbolMeta symbol={item.symbol} />
         </div>
       </td>
+      <td className="px-2 py-2 text-right"><PriceCell price={item.current_price} /></td>
       <td className="px-2 py-2">
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -306,7 +305,7 @@ function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemov
   return (
     <div className={`p-3 ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-sm text-foreground">{item.symbol}</span>
+        <span className="font-bold text-sm text-foreground"><SymbolName symbol={item.symbol} /></span>
         <PriceTag price={item.current_price} compact />
         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
