@@ -614,8 +614,6 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
-  const div = divMeta(inst.divergencia);
-  const atr = atrMeta(inst.atr_estado);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
