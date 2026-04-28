@@ -1004,19 +1004,24 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
     }),
   );
 
-  // By month
+  // By month — group by exit date (close date), use a stable YYYY-MM key so
+  // count + P&L stay in sync regardless of locale formatting.
   y = sectionTitle(d, y, 'Análisis por Mes');
-  const monthly = buildMonthlyPnl(trades);
-  if (monthly.length === 0) {
+  const byMonthKey: Record<string, { trades: Trade[]; label: string; sortKey: string }> = {};
+  for (const t of trades) {
+    const dt = new Date(t.exitDate ?? t.entryDate);
+    if (Number.isNaN(dt.getTime())) continue;
+    const sortKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+    const monthShort = dt.toLocaleString('es-ES', { month: 'short' });
+    const label = `${monthShort.charAt(0).toUpperCase()}${monthShort.slice(1)} ${dt.getFullYear()}`;
+    if (!byMonthKey[sortKey]) byMonthKey[sortKey] = { trades: [], label, sortKey };
+    byMonthKey[sortKey].trades.push(t);
+  }
+  const monthRows = Object.values(byMonthKey).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  if (monthRows.length === 0) {
     d.doc.setTextColor(...TEXT_MUTED); d.doc.setFontSize(10); d.doc.setFont('helvetica', 'italic');
     d.doc.text('Sin datos.', d.margin, y + 4); y += 10;
   } else {
-    const byMonth: Record<string, Trade[]> = {};
-    trades.forEach(t => {
-      const dt = new Date(t.exitDate ?? t.entryDate);
-      const k = `${dt.toLocaleString('es-ES', { month: 'short' })} ${String(dt.getFullYear()).slice(2)}`;
-      (byMonth[k] ??= []).push(t);
-    });
     y = drawTable(d, y,
       [
         { label: 'Mes', width: 22 },
@@ -1024,13 +1029,12 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
         { label: 'P&L', width: 26, align: 'right' },
         { label: 'Win Rate', width: 20, align: 'right' },
       ],
-      monthly.map(r => {
-        const ts = byMonth[r.month] ?? [];
-        const mm = computeMetrics(ts);
+      monthRows.map(r => {
+        const mm = computeMetrics(r.trades);
         return [
-          { text: r.month },
-          { text: String(ts.length) },
-          { text: formatEur(r.pnl), color: r.pnl >= 0 ? GREEN : RED },
+          { text: r.label },
+          { text: String(r.trades.length) },
+          { text: formatEur(mm.totalPnl), color: mm.totalPnl >= 0 ? GREEN : RED },
           { text: `${mm.winRate.toFixed(1)}%` },
         ];
       }),
