@@ -26,6 +26,27 @@ interface ExportArgs {
   chartUrls?: { entrada: string | null; cierre: string | null };
 }
 
+// Brand palette
+const NAVY: [number, number, number] = [15, 27, 58];
+const NAVY_SOFT: [number, number, number] = [30, 45, 85];
+const GOLD: [number, number, number] = [196, 160, 75];
+const GOLD_SOFT: [number, number, number] = [232, 213, 165];
+const GREEN: [number, number, number] = [22, 145, 80];
+const RED: [number, number, number] = [200, 45, 55];
+const TEXT: [number, number, number] = [25, 30, 45];
+const TEXT_MUTED: [number, number, number] = [110, 118, 135];
+const BORDER: [number, number, number] = [220, 224, 232];
+const ROW_ALT: [number, number, number] = [248, 249, 252];
+
+function brokerLabel(b: string): string {
+  const k = (b || '').toLowerCase();
+  if (k === 'darwinex') return 'NKIS';
+  if (k === 'fxpro') return 'OCTX';
+  if (k === 'octx') return 'OCTX';
+  if (k === 'nkis') return 'NKIS';
+  return (b || '').toUpperCase();
+}
+
 function formatCurrencyEur(value: number): string {
   const sign = value >= 0 ? '+' : '-';
   return `${sign}€${Math.abs(value).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -34,6 +55,15 @@ function formatCurrencyEur(value: number): string {
 function fmtDate(d: string | null): string {
   if (!d) return '—';
   return new Date(d).toLocaleString('es-ES');
+}
+
+function fmtDateShort(d: string | null): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('es-ES');
+}
+
+function safeFilenamePart(s: string): string {
+  return (s || '').replace(/[^A-Za-z0-9+\-_€]/g, '');
 }
 
 async function loadImageDataUrl(url: string): Promise<{ dataUrl: string; format: 'PNG' | 'JPEG'; width: number; height: number } | null> {
@@ -65,158 +95,283 @@ export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, ch
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
-  let y = margin;
+  const contentWidth = pageWidth - margin * 2;
 
-  const ensureSpace = (needed: number) => {
-    if (y + needed > pageHeight - margin) {
-      doc.addPage();
-      y = margin;
-    }
-  };
+  const broker = brokerLabel(trade.broker);
+  const close = detectCloseType(trade);
+  const rr = computeRR(trade);
+  const pnlColor: [number, number, number] = trade.netPnl >= 0 ? GREEN : RED;
+  const exportDate = new Date().toLocaleString('es-ES');
 
-  // Header
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageWidth, 20, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('CAP Trading — Sistema 1', margin, 13);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(`Exportado: ${new Date().toLocaleString('es-ES')}`, pageWidth - margin, 13, { align: 'right' });
-  y = 28;
+  // ---------- header / footer ----------
+  const drawHeader = (showHero: boolean) => {
+    // Top navy band
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    // Gold accent line
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 22, pageWidth, 1.2, 'F');
 
-  doc.setTextColor(20, 20, 20);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.text('CAP Trading — Sistema 1', margin, 11);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...GOLD_SOFT);
+    doc.text('DARWIN NKIS', margin, 17);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Exportado: ${exportDate}`, pageWidth - margin, 17, { align: 'right' });
 
-  const sectionTitle = (title: string) => {
-    ensureSpace(10);
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, y - 4, pageWidth - margin * 2, 7, 'F');
+    if (!showHero) return 30;
+
+    // Hero block: symbol + direction + dates + pnl
+    let y = 32;
+    const heroH = 34;
+    doc.setDrawColor(...BORDER);
+    doc.setFillColor(252, 252, 254);
+    doc.roundedRect(margin, y, contentWidth, heroH, 2, 2, 'FD');
+
+    // Left: symbol + direction
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    doc.text(trade.symbol, margin + 5, y + 13);
+
+    const dirColor = trade.direction === 'BUY' ? GREEN : RED;
+    doc.setFillColor(...dirColor);
+    doc.roundedRect(margin + 5, y + 17, 22, 8, 1.5, 1.5, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
-    doc.text(title.toUpperCase(), margin + 2, y + 1);
-    y += 8;
-    doc.setTextColor(20, 20, 20);
-  };
+    doc.text(trade.direction, margin + 16, y + 22.6, { align: 'center' });
 
-  const kv = (label: string, value: string) => {
-    ensureSpace(6);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text(`${label}:`, margin, y);
+    doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'normal');
-    const text = value || '—';
-    const lines = doc.splitTextToSize(text, pageWidth - margin * 2 - 45);
-    doc.text(lines, margin + 45, y);
-    y += Math.max(5, lines.length * 5);
-  };
-
-  const longText = (label: string, value: string | null) => {
-    ensureSpace(8);
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text(`${label}:`, margin, y);
-    y += 5;
+    doc.text(`Broker: ${broker}  ·  Ticket #${trade.ticket}`, margin + 30, y + 22.6);
+
+    // Middle: dates
+    const midX = margin + contentWidth * 0.46;
+    doc.setTextColor(...TEXT_MUTED);
+    doc.setFontSize(8);
+    doc.text('ENTRADA', midX, y + 8);
+    doc.text('CIERRE', midX, y + 19);
+    doc.setTextColor(...TEXT);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(fmtDate(trade.entryDate), midX + 18, y + 8);
     doc.setFont('helvetica', 'normal');
-    const text = value && value.trim() ? value : '—';
-    const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
-    ensureSpace(lines.length * 4.5 + 2);
-    doc.text(lines, margin, y);
-    y += lines.length * 4.5 + 2;
+    doc.text(fmtDate(trade.exitDate), midX + 18, y + 19);
+
+    // Right: PnL
+    doc.setTextColor(...TEXT_MUTED);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('RESULTADO', pageWidth - margin - 5, y + 8, { align: 'right' });
+    doc.setTextColor(...pnlColor);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text(formatCurrencyEur(trade.netPnl), pageWidth - margin - 5, y + 22, { align: 'right' });
+
+    return y + heroH + 6;
   };
 
-  // 1. Datos del trade
-  const closeType = detectCloseType(trade);
-  const rr = computeRR(trade);
-  sectionTitle('Datos del Trade');
-  kv('Símbolo', trade.symbol);
-  kv('Broker', trade.broker);
-  kv('Dirección', trade.direction);
-  kv('Ticket', `#${trade.ticket}`);
-  kv('Entrada', `${trade.entryPrice} (${fmtDate(trade.entryDate)})`);
-  kv('Salida', `${trade.exitPrice ?? '—'} (${fmtDate(trade.exitDate)})`);
-  kv('SL / TP', `${trade.slPrice} / ${trade.tpPrice}`);
-  kv('Lotaje', String(trade.lotSize));
-  kv('P&L Neto', formatCurrencyEur(trade.netPnl));
-  kv('Duración', `${trade.durationHours}h`);
-  kv('RR real', rr != null ? rr.toFixed(2) : '—');
-  kv('Tipo de cierre', closeType.label);
+  const sectionTitle = (yStart: number, title: string) => {
+    doc.setFillColor(...NAVY);
+    doc.rect(margin, yStart, contentWidth, 7, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(margin, yStart + 7, contentWidth, 0.6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(title.toUpperCase(), margin + 3, yStart + 5);
+    return yStart + 11;
+  };
 
-  // 2. Indicadores
-  sectionTitle('Indicadores al momento de entrada');
-  kv('ADX', `${trade.adxValue} (${trade.adxState})`);
-  kv('Dist. MA50', `${trade.distanceToMA50}% (${trade.distanceToMA50Label})`);
-  kv('Momentum 20d', `${trade.momentum20d}% ${trade.momentumAligned ? '✓ Alineado' : '✗ No alineado'}`);
-  kv('Estocástico K', String(trade.stochasticK));
-  kv(
-    'Ranking Scanner',
-    scannerInfo && scannerInfo.rank != null
+  const drawTable = (yStart: number, rows: Array<[string, string, [number, number, number]?]>) => {
+    const rowH = 7.5;
+    const labelW = 55;
+    let y = yStart;
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.2);
+    rows.forEach((row, i) => {
+      if (i % 2 === 0) {
+        doc.setFillColor(...ROW_ALT);
+        doc.rect(margin, y, contentWidth, rowH, 'F');
+      }
+      doc.setTextColor(...TEXT_MUTED);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(row[0], margin + 3, y + 5);
+      doc.setTextColor(...(row[2] ?? TEXT));
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      const lines = doc.splitTextToSize(row[1] || '—', contentWidth - labelW - 6);
+      doc.text(lines, margin + labelW, y + 5);
+      // bottom border
+      doc.setDrawColor(...BORDER);
+      doc.line(margin, y + rowH, margin + contentWidth, y + rowH);
+      y += rowH;
+    });
+    // outer border
+    doc.setDrawColor(...BORDER);
+    doc.rect(margin, yStart, contentWidth, y - yStart);
+    return y + 4;
+  };
+
+  const drawJournalSection = (yStart: number, title: string, rows: Array<[string, string | null]>, longRows: Array<[string, string | null]> = []) => {
+    let y = sectionTitle(yStart, title);
+    y = drawTable(y, rows.map(([l, v]) => [l, v ?? '—']));
+    longRows.forEach(([label, value]) => {
+      doc.setTextColor(...NAVY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(label.toUpperCase(), margin, y + 1);
+      y += 4;
+      doc.setDrawColor(...BORDER);
+      doc.setFillColor(252, 252, 254);
+      const text = value && value.trim() ? value : '—';
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...TEXT);
+      const lines = doc.splitTextToSize(text, contentWidth - 6);
+      const boxH = Math.max(10, lines.length * 4.6 + 4);
+      doc.roundedRect(margin, y, contentWidth, boxH, 1, 1, 'FD');
+      doc.text(lines, margin + 3, y + 5);
+      y += boxH + 3;
+    });
+    return y + 2;
+  };
+
+  // ---------- PAGE 1: data + indicators ----------
+  let y = drawHeader(true);
+  y = sectionTitle(y, 'Datos del Trade');
+  y = drawTable(y, [
+    ['Símbolo', trade.symbol],
+    ['Broker', broker],
+    ['Dirección', trade.direction, trade.direction === 'BUY' ? GREEN : RED],
+    ['Ticket', `#${trade.ticket}`],
+    ['Entrada', `${trade.entryPrice}  (${fmtDate(trade.entryDate)})`],
+    ['Salida', `${trade.exitPrice ?? '—'}  (${fmtDate(trade.exitDate)})`],
+    ['SL / TP', `${trade.slPrice} / ${trade.tpPrice}`],
+    ['Lotaje', String(trade.lotSize)],
+    ['P&L Bruto', formatCurrencyEur(trade.grossPnl), trade.grossPnl >= 0 ? GREEN : RED],
+    ['Comisión / Swap', `€${trade.commission}  /  €${trade.swap}`],
+    ['P&L Neto', formatCurrencyEur(trade.netPnl), pnlColor],
+    ['Duración', `${trade.durationHours}h`],
+    ['RR real', rr != null ? rr.toFixed(2) : '—'],
+    ['Tipo de cierre', close.label],
+  ]);
+
+  y = sectionTitle(y, 'Indicadores al Momento de Entrada');
+  drawTable(y, [
+    ['ADX', `${trade.adxValue}  (${trade.adxState})`],
+    ['Distancia a MA50', `${trade.distanceToMA50}%  (${trade.distanceToMA50Label})`],
+    ['Momentum 20d', `${trade.momentum20d}%   ${trade.momentumAligned ? '✓ Alineado' : '✗ No alineado'}`],
+    ['Estocástico K', String(trade.stochasticK)],
+    ['Ranking Scanner', scannerInfo && scannerInfo.rank != null
       ? `#${scannerInfo.rank} de ${scannerInfo.total} — Score: ${scannerInfo.score}`
-      : 'No estaba en el radar',
-  );
-  kv('VIX al entrar', vixValue != null ? vixValue.toFixed(1) : '—');
+      : 'No estaba en el radar'],
+    ['VIX al entrar', vixValue != null ? vixValue.toFixed(1) : '—'],
+  ]);
 
-  // 2.5 Gráficos (entrada -> cierre)
-  const drawChart = async (label: string, url: string | null) => {
-    if (!url) return;
+  // ---------- PAGE 2: journal ----------
+  doc.addPage();
+  let y2 = drawHeader(false);
+  y2 = drawJournalSection(y2, 'Antes de Entrar',
+    [
+      ['Estado emocional', journal.emotionalState],
+      ['Razón de entrada', journal.reasonForEntry],
+      ['Cumplimiento sistema', journal.systemCompliance],
+      ['Dudas del setup', journal.setupDoubts],
+    ],
+    [['Notas', journal.preTradeNotes]],
+  );
+
+  y2 = drawJournalSection(y2, 'Durante el Trade',
+    [
+      ['Gestión de la espera', journal.managingWait],
+      ['Intervención manual', journal.manualIntervention],
+      ...(journal.manualIntervention && journal.manualIntervention !== 'EA gestionando solo'
+        ? [['Por qué intervine', journal.interventionReason] as [string, string | null]]
+        : []),
+    ],
+    [['Notas', journal.duringTradeNotes]],
+  );
+
+  drawJournalSection(y2, 'Después del Cierre',
+    [
+      ['Sensación', journal.feelingResult],
+      ['¿Respeté el sistema?', journal.respectedSystem],
+      ['¿Qué haría diferente?', journal.whatDoDifferently],
+    ],
+    [['Notas', journal.postTradeNotes]],
+  );
+
+  // ---------- PAGE 3 & 4: charts (full page) ----------
+  const drawFullPageChart = async (title: string, url: string | null) => {
+    doc.addPage();
+    const yTop = drawHeader(false);
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(title, margin, yTop + 4);
+
+    const areaY = yTop + 8;
+    const areaH = pageHeight - areaY - 18; // leave room for footer
+    const areaW = contentWidth;
+
+    if (!url) {
+      doc.setDrawColor(...BORDER);
+      doc.setFillColor(...ROW_ALT);
+      doc.roundedRect(margin, areaY, areaW, areaH, 2, 2, 'FD');
+      doc.setTextColor(...TEXT_MUTED);
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(11);
+      doc.text('No se ha subido captura', pageWidth / 2, areaY + areaH / 2, { align: 'center' });
+      return;
+    }
     const img = await loadImageDataUrl(url);
-    if (!img) return;
-    sectionTitle(label);
-    const maxW = pageWidth - margin * 2;
-    const maxH = pageHeight - margin - y - 5;
+    if (!img) {
+      doc.setTextColor(...RED);
+      doc.text('No se pudo cargar la imagen', pageWidth / 2, areaY + areaH / 2, { align: 'center' });
+      return;
+    }
     const ratio = img.width / img.height;
-    let w = maxW;
+    let w = areaW;
     let h = w / ratio;
-    if (h > maxH) {
-      // start a fresh page so the chart can be larger
-      doc.addPage();
-      y = margin;
-      const fullH = pageHeight - margin * 2;
-      h = Math.min(fullH, maxW / ratio);
+    if (h > areaH) {
+      h = areaH;
       w = h * ratio;
     }
-    doc.addImage(img.dataUrl, img.format, margin, y, w, h);
-    y += h + 4;
+    const x = margin + (areaW - w) / 2;
+    const yImg = areaY + (areaH - h) / 2;
+    doc.addImage(img.dataUrl, img.format, x, yImg, w, h);
   };
 
-  await drawChart('Gráfico de entrada', chartUrls?.entrada ?? null);
-  await drawChart('Gráfico de cierre', chartUrls?.cierre ?? null);
+  await drawFullPageChart('Gráfico de entrada', chartUrls?.entrada ?? null);
+  await drawFullPageChart('Gráfico de cierre', chartUrls?.cierre ?? null);
 
-  // 3. Antes
-  sectionTitle('Antes de Entrar');
-  kv('Estado Emocional', journal.emotionalState ?? '—');
-  kv('Razón de Entrada', journal.reasonForEntry ?? '—');
-  kv('Cumplimiento Sistema', journal.systemCompliance ?? '—');
-  kv('Dudas del setup', journal.setupDoubts ?? '—');
-  longText('Notas', journal.preTradeNotes);
-
-  // 4. Durante
-  sectionTitle('Durante el Trade');
-  kv('Gestión de la espera', journal.managingWait ?? '—');
-  kv('Intervención manual', journal.manualIntervention ?? '—');
-  if (journal.manualIntervention && journal.manualIntervention !== 'EA gestionando solo') {
-    kv('Por qué intervine', journal.interventionReason ?? '—');
-  }
-  longText('Notas', journal.duringTradeNotes);
-
-  // 5. Después
-  sectionTitle('Después del Cierre');
-  kv('Sensación', journal.feelingResult ?? '—');
-  kv('¿Respeté el sistema?', journal.respectedSystem ?? '—');
-  kv('¿Qué haría diferente?', journal.whatDoDifferently ?? '—');
-  longText('Notas', journal.postTradeNotes);
-
-  // Footer en todas las páginas
+  // ---------- footer on every page ----------
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    // gold separator
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.4);
+    doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text('DARWIN NKIS — Confidencial', pageWidth / 2, pageHeight - 8, { align: 'center' });
-    doc.text(`${i} / ${pageCount}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+    doc.setTextColor(...TEXT_MUTED);
+    doc.text('DARWIN NKIS — Confidencial', margin, pageHeight - 7);
+    doc.text(exportDate, pageWidth / 2, pageHeight - 7, { align: 'center' });
+    doc.text(`Página ${i} / ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }
 
-  const datePart = (trade.exitDate ?? trade.entryDate).slice(0, 10);
-  doc.save(`trade_${trade.symbol}_${datePart}.pdf`);
+  // ---------- filename ----------
+  const datePart = (trade.entryDate ?? trade.exitDate ?? new Date().toISOString()).slice(0, 10);
+  const pnlPart = formatCurrencyEur(trade.netPnl).replace(/\s/g, '');
+  const filename = `${broker}_${safeFilenamePart(trade.symbol)}_${trade.direction}_${datePart}_${safeFilenamePart(pnlPart)}.pdf`;
+  doc.save(filename);
 }
