@@ -203,6 +203,10 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
 
   return (
     <div className="space-y-6">
+      <Section title="Capturas de gráficos">
+        <TradeChartsUploader ticket={trade.ticket ?? null} onUrlsChange={setChartUrls} />
+      </Section>
+
       {/* Antes de Entrar */}
       <Section title="Antes de Entrar">
         <ChipField
