@@ -85,7 +85,7 @@ function TradeLog() {
     );
   }
 
-  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NKIS' : 'OCTX'}`;
+  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
 
   return (
     <div className="space-y-6">
@@ -106,7 +106,7 @@ function TradeLog() {
         ))}
         {trades.length === 0 && (
           <div className="rounded-lg border border-border bg-card p-12 text-center">
-            <p className="text-muted-foreground text-sm">No hay trades de {broker === 'darwinex' ? 'NKIS' : 'OCTX'}.</p>
+            <p className="text-muted-foreground text-sm">No hay trades de {broker === 'darwinex' ? 'NK' : 'OX'}.</p>
           </div>
         )}
       </div>
@@ -133,7 +133,7 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
     ? 'bg-success/[0.04] hover:bg-success/[0.08]'
     : 'bg-destructive/[0.04] hover:bg-destructive/[0.08]';
 
-  const brokerLabel = trade.broker === 'darwinex' ? 'NKIS' : trade.broker === 'octx' ? 'OCTX' : trade.broker;
+  const brokerLabel = trade.broker === 'darwinex' ? 'NK' : trade.broker === 'octx' ? 'OX' : trade.broker;
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden transition-colors">

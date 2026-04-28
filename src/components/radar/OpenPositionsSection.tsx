@@ -121,7 +121,7 @@ function PositionCard({ trade, balance }: { trade: TradeWithSL; balance: number 
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
               broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
             }`}>
-              {broker === 'darwinex' ? 'NKIS' : 'OCTX'}
+              {broker === 'darwinex' ? 'NK' : 'OX'}
             </span>
           </div>
 

@@ -1018,7 +1018,7 @@ function InstrumentTable({
   const grouped = useMemo(() => {
     const map = new Map<string, InstrumentRow[]>();
     rows.forEach(r => {
-      const key = `${r.broker === 'darwinex' ? 'NKIS' : 'OCTX'} · ${r.group}`;
+      const key = `${r.broker === 'darwinex' ? 'NK' : 'OX'} · ${r.group}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(r);
     });
@@ -1192,7 +1192,7 @@ function InstrumentAutocomplete({
   }, []);
 
   const handleSelect = (e: AutocompleteEntry) => {
-    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'NKIS' : 'OCTX'}`);
+    setSelectedDesc(`${e.description} · ${e.pointValue} ${e.currency} por punto · ${e.broker === 'darwinex' ? 'NK' : 'OX'}`);
     setOpen(false);
     onSelect(e);
   };
@@ -1246,7 +1246,7 @@ function InstrumentAutocomplete({
               return (
                 <div key={gi} className="border-b border-border/40 last:border-b-0">
                   <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 flex items-center gap-2">
-                    <span>{head.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
+                    <span>{head.broker === 'darwinex' ? 'NK' : 'OX'}</span>
                     <span>·</span>
                     <span>{head.group}</span>
                     {group.length > 1 && (

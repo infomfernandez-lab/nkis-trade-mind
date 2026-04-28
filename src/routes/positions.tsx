@@ -58,8 +58,8 @@ function timeSinceText(dateStr: string): { text: string; stale: boolean } {
 
 const TAB_OPTIONS: { value: BrokerFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'darwinex', label: 'NKIS' },
-  { value: 'octx', label: 'OCTX' },
+  { value: 'darwinex', label: 'NK' },
+  { value: 'octx', label: 'OX' },
 ];
 
 function InlineNotes({ trade }: { trade: Trade }) {
@@ -266,7 +266,7 @@ function PositionsPage() {
                           ? 'bg-primary/15 text-primary'
                           : 'bg-blue-500/15 text-blue-400'
                       }`}>
-                        {trade.broker === 'darwinex' ? 'NKIS' : 'OCTX'}
+                        {trade.broker === 'darwinex' ? 'NK' : 'OX'}
                       </span>
                     </TableCell>
 

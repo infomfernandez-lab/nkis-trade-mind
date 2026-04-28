@@ -181,8 +181,8 @@ export function CalculatorHistory({ onRecover }: Props) {
               onChange={setBrokerFilter}
               options={[
                 { v: 'all', label: 'Todos brokers' },
-                { v: 'darwinex', label: 'NKIS' },
-                { v: 'octx', label: 'OCTX' },
+                { v: 'darwinex', label: 'NK' },
+                { v: 'octx', label: 'OX' },
               ]}
             />
             <FilterGroup
