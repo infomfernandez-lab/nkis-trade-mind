@@ -7,6 +7,7 @@ import { Loader2, Info } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import { filterByBroker, type Trade } from '@/lib/trade-utils';
+import { computeRR, hasJournal } from '@/lib/trade-derived';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -142,8 +143,95 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
   }));
 
   // Return % and reliability factor
+  // Reliability Factor = Recovery Factor normalized to [0,1] range.
+  // Formula: netTotal / (|netTotal| + maxDdAbs) — works for negative netTotal too.
   const returnPct = startingBalance > 0 ? (netTotal / startingBalance) * 100 : 0;
-  const reliabilityFactor = netTotal > 0 ? netTotal / (netTotal + maxDdAbs) : 0;
+  const denom = Math.abs(netTotal) + maxDdAbs;
+  const reliabilityFactor = denom > 0 ? netTotal / denom : 0;
+
+  // ── Sharpe & Sortino (per-trade returns annualized with √252) ──
+  const returns = trades.map(t => startingBalance > 0 ? t.netPnl / startingBalance : 0);
+  const meanRet = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+  const variance = returns.length > 1
+    ? returns.reduce((s, r) => s + (r - meanRet) ** 2, 0) / (returns.length - 1)
+    : 0;
+  const stdDev = Math.sqrt(variance);
+  const negReturns = returns.filter(r => r < 0);
+  const downsideVar = negReturns.length > 0
+    ? negReturns.reduce((s, r) => s + r * r, 0) / negReturns.length
+    : 0;
+  const downsideDev = Math.sqrt(downsideVar);
+  const sharpeRatio = stdDev > 0 ? (meanRet / stdDev) * Math.sqrt(252) : 0;
+  const sortinoRatio = downsideDev > 0 ? (meanRet / downsideDev) * Math.sqrt(252) : 0;
+
+  // ── R-multiples (rr_real per trade) ──
+  const rrValues = trades.map(t => computeRR(t)).filter((v): v is number => v !== null);
+  const rTotal = rrValues.reduce((s, v) => s + v, 0);
+  const rAvg = rrValues.length > 0 ? rTotal / rrValues.length : 0;
+
+  // ── Calidad de Ejecución ──
+  const journalPct = trades.length > 0 ? (trades.filter(hasJournal).length / trades.length) * 100 : 0;
+  const withCompliance = trades.filter(t => t.systemCompliance && t.systemCompliance.trim() !== '');
+  const fullCompliance = withCompliance.filter(t => t.systemCompliance === '100%').length;
+  const compliancePct = withCompliance.length > 0 ? (fullCompliance / withCompliance.length) * 100 : 0;
+  const intervened = trades.filter(t => {
+    const v = (t.manualIntervention ?? '').trim();
+    return v !== '' && v !== 'None, EA managing' && v !== 'No EA gestionando solo' && v.toLowerCase() !== 'ninguna';
+  });
+  const interventionPct = trades.length > 0 ? (intervened.length / trades.length) * 100 : 0;
+  const errorCounts: Record<string, number> = {};
+  for (const t of trades) {
+    const v = (t.whatDoDifferently ?? '').trim();
+    if (!v) continue;
+    errorCounts[v] = (errorCounts[v] ?? 0) + 1;
+  }
+  let mostFrequentError = '—';
+  let mostFrequentErrorCount = 0;
+  for (const [k, v] of Object.entries(errorCounts)) {
+    if (v > mostFrequentErrorCount) { mostFrequentError = k; mostFrequentErrorCount = v; }
+  }
+
+  // ── Análisis Temporal ──
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const byDow: Record<number, Trade[]> = {};
+  for (const t of trades) {
+    const d = new Date(t.entryDate).getDay();
+    (byDow[d] ??= []).push(t);
+  }
+  let bestDow = '—';
+  let bestDowWr = -1;
+  for (const [k, list] of Object.entries(byDow)) {
+    if (list.length < 3) continue;
+    const wr = (list.filter(t => t.netPnl > 0).length / list.length) * 100;
+    if (wr > bestDowWr) { bestDowWr = wr; bestDow = dayNames[Number(k)]; }
+  }
+
+  const byMonthKey: Record<string, { pnl: number; label: string }> = {};
+  for (const t of trades) {
+    const d = new Date(t.exitDate ?? t.entryDate);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${monthShort(d.getMonth())} ${d.getFullYear()}`;
+    if (!byMonthKey[key]) byMonthKey[key] = { pnl: 0, label };
+    byMonthKey[key].pnl += t.netPnl;
+  }
+  let bestMonthLabel = '—';
+  let bestMonthPnl = -Infinity;
+  for (const m of Object.values(byMonthKey)) {
+    if (m.pnl > bestMonthPnl) { bestMonthPnl = m.pnl; bestMonthLabel = m.label; }
+  }
+  if (bestMonthPnl === -Infinity) bestMonthPnl = 0;
+
+  const avgDurWinners = winners.length > 0
+    ? winners.reduce((s, t) => s + t.durationHours, 0) / winners.length
+    : 0;
+  const avgDurLosers = losers.length > 0
+    ? losers.reduce((s, t) => s + t.durationHours, 0) / losers.length
+    : 0;
+
+  const under24h = trades.filter(t => t.durationHours < 24).length;
+  const over24h = trades.length - under24h;
+  const under24hPct = trades.length > 0 ? (under24h / trades.length) * 100 : 0;
+  const over24hPct = trades.length > 0 ? (over24h / trades.length) * 100 : 0;
 
   // Summary block
   const totalTrades = trades.length;
@@ -158,9 +246,19 @@ function computeAllStats(trades: Trade[], startingBalance: number) {
     tradesPerDay, winnersPerMonth, losersPerMonth,
     maxDdAbs, maxDdPct, avgDdDurationDays, outlierPct,
     returnPct, reliabilityFactor,
+    sharpeRatio, sortinoRatio, rTotal, rAvg, rrCount: rrValues.length,
+    journalPct, compliancePct, complianceCount: withCompliance.length,
+    interventionPct, interventionCount: intervened.length,
+    mostFrequentError, mostFrequentErrorCount,
+    bestDow, bestDowWr, bestMonthLabel, bestMonthPnl,
+    avgDurWinners, avgDurLosers, under24hPct, over24hPct,
     heatmap, histogramData, activeMonths, netTotal,
     totalTrades, winnersCount, losersCount, winPct, lossPct,
   };
+}
+
+function monthShort(m: number): string {
+  return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][m];
 }
 
 /* ─── Page ─── */
@@ -231,6 +329,30 @@ function StatisticsPage() {
             <StatCard label="Mayor Ganador" value={fmtCurrency(stats.bestTrade)} color="success" tip="El trade con mayor beneficio." />
             <StatCard label="Mayor Perdedor" value={`€${fmt(Math.abs(stats.worstTrade))}`} color="destructive" tip="El trade con mayor pérdida (valor absoluto)." />
             <StatCard label="Beneficio/Mes" value={fmtCurrency(stats.avgPnlPerMonth)} color={stats.avgPnlPerMonth >= 0 ? 'success' : 'destructive'} tip={`P&L neto total dividido entre ${stats.activeMonths} meses activos.`} />
+            <StatCard label="Ratio Sharpe" value={fmt(stats.sharpeRatio)} color={stats.sharpeRatio >= 1 ? 'success' : stats.sharpeRatio >= 0 ? 'warning' : 'destructive'} tip="(retorno medio / desviación estándar) × √252. Mide retorno ajustado al riesgo. >1 bueno, >2 excelente." />
+            <StatCard label="Ratio Sortino" value={fmt(stats.sortinoRatio)} color={stats.sortinoRatio >= 1 ? 'success' : stats.sortinoRatio >= 0 ? 'warning' : 'destructive'} tip="Igual que Sharpe pero solo penaliza la volatilidad negativa. Más realista para sistemas asimétricos." />
+            <StatCard label="R Total" value={`${stats.rTotal >= 0 ? '+' : ''}${fmt(stats.rTotal, 2)}R`} color={stats.rTotal >= 0 ? 'success' : 'destructive'} sub={`${stats.rrCount} trades con R válido`} tip="Suma de todos los R reales (rr_real) de los trades cerrados." />
+            <StatCard label="R Medio / trade" value={`${stats.rAvg >= 0 ? '+' : ''}${fmt(stats.rAvg, 2)}R`} color={stats.rAvg >= 0 ? 'success' : 'destructive'} tip="Promedio de R reales. Esperanza matemática expresada en múltiplos de riesgo." />
+          </div>
+        </Section>
+
+        {/* BLOQUE Calidad de Ejecución */}
+        <Section title="Calidad de Ejecución">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Diario completado" value={`${fmt(stats.journalPct, 1)}%`} color={stats.journalPct >= 80 ? 'success' : stats.journalPct >= 50 ? 'warning' : 'destructive'} tip="% de trades con al menos un campo del diario rellenado." />
+            <StatCard label="Cumplimiento sistema" value={`${fmt(stats.compliancePct, 1)}%`} sub={`${stats.complianceCount} trades con dato`} color={stats.compliancePct >= 80 ? 'success' : stats.compliancePct >= 50 ? 'warning' : 'destructive'} tip="% de trades marcados como '100%' en cumplimiento del sistema (solo cuenta trades con dato)." />
+            <StatCard label="Intervención manual" value={`${fmt(stats.interventionPct, 1)}%`} sub={`${stats.interventionCount} trades intervenidos`} color={stats.interventionPct <= 20 ? 'success' : stats.interventionPct <= 40 ? 'warning' : 'destructive'} tip="% de trades en los que interviniste manualmente (mover SL, cerrar antes, añadir posición...)." />
+            <StatCard label="Error más frecuente" value={stats.mostFrequentErrorCount > 0 ? `${stats.mostFrequentErrorCount}×` : '—'} sub={stats.mostFrequentError.length > 40 ? stats.mostFrequentError.slice(0, 40) + '…' : stats.mostFrequentError} color="warning" tip="Texto más repetido en el campo 'Qué haría diferente'." />
+          </div>
+        </Section>
+
+        {/* BLOQUE Análisis Temporal */}
+        <Section title="Análisis Temporal">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Mejor día semana" value={stats.bestDow} sub={stats.bestDowWr >= 0 ? `Win Rate ${fmt(stats.bestDowWr, 1)}%` : 'datos insuficientes'} color="success" tip="Día de la semana con mayor win rate (mín. 3 trades por día)." />
+            <StatCard label="Mejor mes histórico" value={stats.bestMonthLabel} sub={fmtCurrency(stats.bestMonthPnl)} color="success" tip="Mes con mayor P&L neto acumulado." />
+            <StatCard label="Duración Win vs Loss" value={`${fmt(stats.avgDurWinners, 1)}h / ${fmt(stats.avgDurLosers, 1)}h`} color={stats.avgDurWinners >= stats.avgDurLosers ? 'success' : 'warning'} tip="Duración media (horas) de los trades ganadores vs perdedores. 'Cut losses, let winners run' implica W > L." />
+            <StatCard label="< 24h vs > 24h" value={`${fmt(stats.under24hPct, 0)}% / ${fmt(stats.over24hPct, 0)}%`} color="muted" tip="Porcentaje de trades cerrados en menos de 24 horas vs más de 24 horas." />
           </div>
         </Section>
 
