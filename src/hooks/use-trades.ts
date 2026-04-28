@@ -7,7 +7,8 @@ async function fetchTrades(isOpen: boolean): Promise<Trade[]> {
     .from('trades')
     .select('*')
     .eq('is_open', isOpen)
-    .order('entry_date', { ascending: true });
+    .order('entry_date', { ascending: true })
+    .limit(1000);
 
   if (error) throw error;
   return (data ?? []).map(rowToTrade);
