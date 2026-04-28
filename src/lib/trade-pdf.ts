@@ -23,6 +23,7 @@ interface ExportArgs {
   journal: JournalData;
   scannerInfo?: { rank: number | null; total: number | null; score: number | null };
   vixValue?: number | null;
+  chartUrls?: { entrada: string | null; cierre: string | null };
 }
 
 function formatCurrencyEur(value: number): string {
@@ -33,6 +34,30 @@ function formatCurrencyEur(value: number): string {
 function fmtDate(d: string | null): string {
   if (!d) return '—';
   return new Date(d).toLocaleString('es-ES');
+}
+
+async function loadImageDataUrl(url: string): Promise<{ dataUrl: string; format: 'PNG' | 'JPEG'; width: number; height: number } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+    const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const format: 'PNG' | 'JPEG' = blob.type.includes('png') ? 'PNG' : 'JPEG';
+    return { dataUrl, format, width: dims.w, height: dims.h };
+  } catch {
+    return null;
+  }
 }
 
 export async function exportTradePdf({ trade, journal, scannerInfo, vixValue }: ExportArgs) {
