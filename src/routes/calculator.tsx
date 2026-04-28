@@ -466,8 +466,8 @@ function CalculatorPage() {
   };
 
   const clearAll = () => {
-    setInstrument(''); setEntry(''); setAtr(''); setRiskPct('1');
-    setPointValue('1'); setTickSize(null); setVix(''); setCurrentPrice(''); setTp('');
+    setInstrument(''); setEntry(''); setAtr(''); setRiskPct('1'); setRiskManual(false);
+    setPointValue('1'); setTickSize(null); setCurrentPrice(''); setTp('');
     toast.success('Calculadora limpiada');
   };
 
