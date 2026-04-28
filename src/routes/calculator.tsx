@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CalculatorHistory, type CalcRecord } from '@/components/calculator/CalculatorHistory';
 import { useSettings } from '@/hooks/use-settings';
-import { getContractSpec, getPointValue, calcLots } from '@/lib/contract-specs';
+import { CONTRACT_SPECS, getContractSpec, getPointValue, calcLots, type ContractSpec } from '@/lib/contract-specs';
 
 /**
  * Resolve point value and tick size from CONTRACT_SPECS (real MT5 specs).
