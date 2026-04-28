@@ -639,8 +639,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
           <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span className={`font-data ${pend50Color(inst.pend50_pct)}`}>{inst.pend50_pct != null ? `${inst.pend50_pct.toFixed(2)}%` : (inst.distance_to_ma50 != null ? `d${inst.distance_to_ma50}%` : '—')}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Div</span><span className={`font-bold ${div.color}`}>{div.label}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span className={`font-bold ${atr.color}`}>{atr.label}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
             <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} />
           </div>
