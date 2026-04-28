@@ -1,4 +1,5 @@
 import type { Trade } from './trade-utils';
+import { isFullCompliance } from './trade-utils';
 
 const MIN_TRADES = 3;
 
@@ -327,7 +328,7 @@ export function getMonthlyConsistencyScore(trades: Trade[]): { score: number; co
   let compliant = 0;
   const months = Object.values(byMonth);
   for (const monthTrades of months) {
-    if (monthTrades.every(t => t.systemCompliance === '100%')) compliant++;
+    if (monthTrades.every(t => isFullCompliance(t.systemCompliance))) compliant++;
   }
   return {
     score: months.length > 0 ? (compliant / months.length) * 100 : 0,
