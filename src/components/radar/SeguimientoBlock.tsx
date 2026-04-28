@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import type { UnifiedInstrument } from './EnTendenciaBlock';
-import { SymbolMeta, PriceTag } from './EnTendenciaBlock';
+import { SymbolMeta, PriceCell, SymbolName } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
@@ -109,6 +109,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
           <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="text-left px-3 py-2 w-[50px]">#</th>
             <th className="text-left px-3 py-2">Símbolo</th>
+            <th className="text-right px-2 py-2 w-[90px]">Precio</th>
             <th className="text-left px-2 py-2 w-[80px]">Cuenta</th>
             <th className="text-left px-2 py-2 w-[80px]">Dir</th>
             <th className="text-center px-2 py-2 w-[70px]">Score</th>
@@ -123,13 +124,11 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>
               <td className="px-3 py-2 font-bold text-foreground">
                 <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span>{item.symbol}</span>
-                    <PriceTag price={item.current_price} />
-                  </div>
+                  <SymbolName symbol={item.symbol} />
                   <SymbolMeta symbol={item.symbol} />
                 </div>
               </td>
+              <td className="px-2 py-2 text-right"><PriceCell price={item.current_price} /></td>
               <td className="px-2 py-2">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
@@ -162,8 +161,8 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
           <div key={item.id} className="p-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-data text-xs text-muted-foreground">#{idx + 1}</span>
-              <span className="font-bold text-sm text-foreground">{item.symbol}</span>
-              <PriceTag price={item.current_price} compact />
+              <span className="font-bold text-sm text-foreground"><SymbolName symbol={item.symbol} /></span>
+              <span className="font-data text-xs font-semibold text-foreground">{item.current_price != null ? item.current_price.toLocaleString(undefined, { maximumFractionDigits: 5 }) : ''}</span>
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                 item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
               }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
