@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
 import type { UnifiedInstrument } from './EnTendenciaBlock';
-import { SymbolMeta } from './EnTendenciaBlock';
+import { SymbolMeta, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 
@@ -23,6 +23,7 @@ interface SeguimientoItem {
   score: number | null;
   stoch: number | null;
   adx: number | null;
+  current_price: number | null;
 }
 
 function isAlcistaDir(d: string): boolean {
@@ -52,6 +53,7 @@ function buildItems(
       score: scan?.score ?? w.scanner_score ?? null,
       stoch: scan?.stoch_k ?? w.stochastic_level ?? null,
       adx: scan?.adx_value ?? w.adx_value ?? null,
+      current_price: scan?.current_price ?? null,
     });
   }
   return out.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
