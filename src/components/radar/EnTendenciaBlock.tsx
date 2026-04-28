@@ -190,7 +190,16 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const items = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
-  const watchedSymbols = new Set((watchlist ?? []).map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`));
+  const watchedSymbols = new Set(
+    (watchlist ?? [])
+      .filter(w => (w.status ?? '').toUpperCase() !== 'SEGUIMIENTO')
+      .map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`)
+  );
+  const seguimientoSymbols = new Set(
+    (watchlist ?? [])
+      .filter(w => (w.status ?? '').toUpperCase() === 'SEGUIMIENTO')
+      .map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`)
+  );
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
   if (items.length === 0) {
@@ -200,6 +209,10 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
       </div>
     );
   }
+
+  // Build a map symbol::broker → global rank (1..N) following sort order
+  const rankByKey = new Map<string, number>();
+  items.forEach((it, idx) => rankByKey.set(`${it.symbol}::${it.broker}`, idx + 1));
 
   // Group by tier preserving sort
   const grouped: { tier: Tier; items: UnifiedInstrument[] }[] = [];
@@ -213,7 +226,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-        Escáner v18 — Medias + Estructura + Stoch(14,3,3) + ADX · Ordenado por Score
+        Escáner v18 — {items.length} instrumentos · Top 20 y Score ≥ 90 destacados
       </div>
 
       {/* Desktop table */}
@@ -221,6 +234,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
         <table className="w-full">
           <thead>
             <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="text-left px-2 py-2 w-[50px]">#</th>
               <th className="text-left px-3 py-2">Símbolo</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
@@ -230,25 +244,33 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
               <th className="text-left px-2 py-2 w-[80px]">Div</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
-              <th className="text-right px-2 py-2 w-[140px]">Acción</th>
+              <th className="text-right px-2 py-2 w-[200px]">Acción</th>
             </tr>
           </thead>
           <tbody>
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={10} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
-                {g.items.map((inst, i) => (
-                  <DesktopRow
-                    key={`${inst.symbol}-${inst.broker}-${i}`}
-                    inst={inst}
-                    isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-                    isOpen={openSymbols.has(inst.symbol)}
-                  />
-                ))}
+                {g.items.map((inst, i) => {
+                  const key = `${inst.symbol}::${inst.broker}`;
+                  const rank = rankByKey.get(key) ?? 0;
+                  const highlight = rank <= 20 || inst.score >= 90;
+                  return (
+                    <DesktopRow
+                      key={`${inst.symbol}-${inst.broker}-${i}`}
+                      inst={inst}
+                      rank={rank}
+                      highlight={highlight}
+                      isWatched={watchedSymbols.has(key)}
+                      isInSeguimiento={seguimientoSymbols.has(key)}
+                      isOpen={openSymbols.has(inst.symbol)}
+                    />
+                  );
+                })}
               </Fragment>
             ))}
           </tbody>
@@ -263,14 +285,22 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               {TIER_LABEL[g.tier]}
             </div>
             <div className="divide-y divide-border">
-              {g.items.map((inst, i) => (
-                <MobileCard
-                  key={`${inst.symbol}-${inst.broker}-${i}`}
-                  inst={inst}
-                  isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-                  isOpen={openSymbols.has(inst.symbol)}
-                />
-              ))}
+              {g.items.map((inst, i) => {
+                const key = `${inst.symbol}::${inst.broker}`;
+                const rank = rankByKey.get(key) ?? 0;
+                const highlight = rank <= 20 || inst.score >= 90;
+                return (
+                  <MobileCard
+                    key={`${inst.symbol}-${inst.broker}-${i}`}
+                    inst={inst}
+                    rank={rank}
+                    highlight={highlight}
+                    isWatched={watchedSymbols.has(key)}
+                    isInSeguimiento={seguimientoSymbols.has(key)}
+                    isOpen={openSymbols.has(inst.symbol)}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}
