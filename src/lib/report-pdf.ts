@@ -506,16 +506,16 @@ function totalR(trades: Trade[]): { total: number; count: number } {
 
 function complianceRate(trades: Trade[]): number {
   if (trades.length === 0) return 0;
-  const ok = trades.filter(t => t.systemCompliance === '100%').length;
-  return (ok / trades.length) * 100;
-}
-
-function topErrors(trades: Trade[]): Array<[string, number]> {
-  const map: Record<string, number> = {};
-  for (const t of trades) {
-    if (t.systemCompliance && t.systemCompliance !== '100%') {
-      map[`Cumplimiento: ${t.systemCompliance}`] = (map[`Cumplimiento: ${t.systemCompliance}`] ?? 0) + 1;
-    }
+  const ok = trades.filter(t => isFullCompliance(t.systemCompliance)).length;
+   return (ok / trades.length) * 100;
+ }
+ 
+ function topErrors(trades: Trade[]): Array<[string, number]> {
+   const map: Record<string, number> = {};
+   for (const t of trades) {
+     if (t.systemCompliance && !isFullCompliance(t.systemCompliance)) {
+       map[`Cumplimiento: ${t.systemCompliance}`] = (map[`Cumplimiento: ${t.systemCompliance}`] ?? 0) + 1;
+     }
     if (t.manualIntervention && t.manualIntervention !== 'EA gestionando solo' && t.manualIntervention !== 'None, EA managing') {
       map[`Intervención: ${t.manualIntervention}`] = (map[`Intervención: ${t.manualIntervention}`] ?? 0) + 1;
     }
