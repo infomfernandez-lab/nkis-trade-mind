@@ -1,0 +1,197 @@
+import { useMemo } from 'react';
+import { Eye, Trash2 } from 'lucide-react';
+import { useWatchlist, useDeleteWatchlistItem, useAddToWatchlist } from '@/hooks/use-watchlist';
+import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
+import { useAuth } from '@/hooks/use-auth';
+import { normalizeBroker, type BrokerFilter } from '@/lib/trade-utils';
+import { toast } from 'sonner';
+import type { UnifiedInstrument } from './EnTendenciaBlock';
+
+interface Props {
+  brokerFilter: BrokerFilter;
+}
+
+interface SeguimientoItem {
+  id: string;
+  watchlistId: string;
+  symbol: string;
+  broker: 'darwinex' | 'octx';
+  direction: 'alcista' | 'bajista';
+  score: number | null;
+  stoch: number | null;
+  adx: number | null;
+}
+
+function isAlcistaDir(d: string): boolean {
+  const v = (d ?? '').toLowerCase();
+  return v === 'alcista' || v === 'buy';
+}
+
+function buildItems(
+  brokerFilter: BrokerFilter,
+  scannerMap: Map<string, UnifiedInstrument>,
+  watchlist: Array<{ id: string; symbol: string; broker: string; direction: string; status?: string; scanner_score?: number | null; stochastic_level?: number | null; adx_value?: number | null }>,
+): SeguimientoItem[] {
+  const out: SeguimientoItem[] = [];
+  for (const w of watchlist) {
+    const status = (w.status ?? '').toUpperCase();
+    if (status !== 'SEGUIMIENTO') continue;
+    const broker = normalizeBroker(w.broker) === 'octx' ? 'octx' : 'darwinex';
+    if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
+    const key = `${w.symbol}::${broker}`;
+    const scan = scannerMap.get(key);
+    out.push({
+      id: w.id,
+      watchlistId: w.id,
+      symbol: w.symbol,
+      broker,
+      direction: isAlcistaDir(scan?.direction ?? w.direction) ? 'alcista' : 'bajista',
+      score: scan?.score ?? w.scanner_score ?? null,
+      stoch: scan?.stoch_k ?? w.stochastic_level ?? null,
+      adx: scan?.adx_value ?? w.adx_value ?? null,
+    });
+  }
+  return out.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+}
+
+export function SeguimientoBlock({ brokerFilter }: Props) {
+  const { data: items } = useWatchlist();
+  const scannerMap = useLatestScannerByKey();
+  const del = useDeleteWatchlistItem();
+
+  const list = useMemo(
+    () => buildItems(brokerFilter, scannerMap, items ?? []),
+    [brokerFilter, scannerMap, items],
+  );
+
+  const handleRemove = (item: SeguimientoItem) => {
+    del.mutate(item.watchlistId, {
+      onSuccess: () => toast.success(`${item.symbol} fuera de seguimiento`),
+      onError: () => toast.error('Error al quitar'),
+    });
+  };
+
+  if (list.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-6 text-center">
+        <Eye className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
+        <p className="text-sm text-muted-foreground">Sin instrumentos en seguimiento — añade desde el escáner con "👁 Seguir"</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {/* Desktop */}
+      <table className="w-full hidden md:table">
+        <thead>
+          <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <th className="text-left px-3 py-2 w-[50px]">#</th>
+            <th className="text-left px-3 py-2">Símbolo</th>
+            <th className="text-left px-2 py-2 w-[80px]">Cuenta</th>
+            <th className="text-left px-2 py-2 w-[80px]">Dir</th>
+            <th className="text-center px-2 py-2 w-[70px]">Score</th>
+            <th className="text-center px-2 py-2 w-[70px]">Stoch</th>
+            <th className="text-center px-2 py-2 w-[70px]">ADX</th>
+            <th className="text-right px-2 py-2 w-[120px]">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((item, idx) => (
+            <tr key={item.id} className="border-t border-border text-sm">
+              <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>
+              <td className="px-3 py-2 font-bold text-foreground">{item.symbol}</td>
+              <td className="px-2 py-2">
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                  item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
+              </td>
+              <td className="px-2 py-2">
+                <span className={`font-bold text-xs ${item.direction === 'alcista' ? 'text-success' : 'text-destructive'}`}>
+                  {item.direction === 'alcista' ? 'BUY' : 'SELL'}
+                </span>
+              </td>
+              <td className="px-2 py-2 text-center font-data text-xs font-bold">{item.score ?? '—'}</td>
+              <td className="px-2 py-2 text-center font-data text-xs">{item.stoch != null ? Math.round(item.stoch) : '—'}</td>
+              <td className="px-2 py-2 text-center font-data text-xs">{item.adx ?? '—'}</td>
+              <td className="px-2 py-2 text-right">
+                <button
+                  onClick={() => handleRemove(item)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" /> Quitar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Mobile */}
+      <div className="md:hidden divide-y divide-border">
+        {list.map((item, idx) => (
+          <div key={item.id} className="p-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-data text-xs text-muted-foreground">#{idx + 1}</span>
+              <span className="font-bold text-sm text-foreground">{item.symbol}</span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+              }`}>{item.broker === 'darwinex' ? 'NKIS' : 'OCTX'}</span>
+              <span className={`text-xs font-bold ${item.direction === 'alcista' ? 'text-success' : 'text-destructive'}`}>
+                {item.direction === 'alcista' ? 'BUY' : 'SELL'}
+              </span>
+              <span className="text-xs font-data font-bold ml-auto">Score {item.score ?? '—'}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Stoch {item.stoch != null ? Math.round(item.stoch) : '—'} · ADX {item.adx ?? '—'}</span>
+              <button
+                onClick={() => handleRemove(item)}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="w-3 h-3" /> Quitar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function useSeguimientoCount(brokerFilter: BrokerFilter): number {
+  const { data: items } = useWatchlist();
+  const scannerMap = useLatestScannerByKey();
+  return useMemo(
+    () => buildItems(brokerFilter, scannerMap, items ?? []).length,
+    [brokerFilter, scannerMap, items],
+  );
+}
+
+/** Hook to add an instrument to seguimiento from the scanner */
+export function useAddToSeguimiento() {
+  const add = useAddToWatchlist();
+  const { user } = useAuth();
+  return (inst: UnifiedInstrument) => {
+    if (!user) {
+      toast.error('Inicia sesión para seguir');
+      return;
+    }
+    add.mutate({
+      symbol: inst.symbol,
+      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
+      watch_reason: `Seguimiento manual — Score ${inst.score}/100`,
+      stochastic_level: inst.stoch_k ?? null,
+      scanner_score: inst.score,
+      adx_value: inst.adx_value,
+      adx_state: inst.adx_state,
+      distance_to_ma50: inst.distance_to_ma50,
+      status: 'SEGUIMIENTO',
+      added_from_scanner: true,
+      trade_id: null,
+      broker: inst.broker,
+    }, {
+      onSuccess: () => toast.success(`${inst.symbol} → Seguimiento`),
+      onError: () => toast.error('Error al añadir a seguimiento'),
+    });
+  };
+}

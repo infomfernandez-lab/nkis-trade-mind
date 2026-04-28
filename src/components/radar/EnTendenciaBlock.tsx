@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAllTrades } from '@/hooks/use-trades';
 import type { BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
+import { useAddToSeguimiento } from './SeguimientoBlock';
+import { Eye } from 'lucide-react';
 
 interface Raw {
   rank?: number;
@@ -188,7 +190,16 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const items = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
-  const watchedSymbols = new Set((watchlist ?? []).map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`));
+  const watchedSymbols = new Set(
+    (watchlist ?? [])
+      .filter(w => (w.status ?? '').toUpperCase() !== 'SEGUIMIENTO')
+      .map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`)
+  );
+  const seguimientoSymbols = new Set(
+    (watchlist ?? [])
+      .filter(w => (w.status ?? '').toUpperCase() === 'SEGUIMIENTO')
+      .map(w => `${w.symbol}::${(w.broker ?? 'darwinex')}`)
+  );
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
   if (items.length === 0) {
@@ -198,6 +209,10 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
       </div>
     );
   }
+
+  // Build a map symbol::broker → global rank (1..N) following sort order
+  const rankByKey = new Map<string, number>();
+  items.forEach((it, idx) => rankByKey.set(`${it.symbol}::${it.broker}`, idx + 1));
 
   // Group by tier preserving sort
   const grouped: { tier: Tier; items: UnifiedInstrument[] }[] = [];
@@ -211,7 +226,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-        Escáner v18 — Medias + Estructura + Stoch(14,3,3) + ADX · Ordenado por Score
+        Escáner v18 — {items.length} instrumentos · Top 20 y Score ≥ 90 destacados
       </div>
 
       {/* Desktop table */}
@@ -219,6 +234,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
         <table className="w-full">
           <thead>
             <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <th className="text-left px-2 py-2 w-[50px]">#</th>
               <th className="text-left px-3 py-2">Símbolo</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
@@ -228,25 +244,33 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
               <th className="text-left px-2 py-2 w-[80px]">Div</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
-              <th className="text-right px-2 py-2 w-[140px]">Acción</th>
+              <th className="text-right px-2 py-2 w-[200px]">Acción</th>
             </tr>
           </thead>
           <tbody>
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={10} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
-                {g.items.map((inst, i) => (
-                  <DesktopRow
-                    key={`${inst.symbol}-${inst.broker}-${i}`}
-                    inst={inst}
-                    isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-                    isOpen={openSymbols.has(inst.symbol)}
-                  />
-                ))}
+                {g.items.map((inst, i) => {
+                  const key = `${inst.symbol}::${inst.broker}`;
+                  const rank = rankByKey.get(key) ?? 0;
+                  const highlight = rank <= 20 || inst.score >= 90;
+                  return (
+                    <DesktopRow
+                      key={`${inst.symbol}-${inst.broker}-${i}`}
+                      inst={inst}
+                      rank={rank}
+                      highlight={highlight}
+                      isWatched={watchedSymbols.has(key)}
+                      isInSeguimiento={seguimientoSymbols.has(key)}
+                      isOpen={openSymbols.has(inst.symbol)}
+                    />
+                  );
+                })}
               </Fragment>
             ))}
           </tbody>
@@ -261,14 +285,22 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               {TIER_LABEL[g.tier]}
             </div>
             <div className="divide-y divide-border">
-              {g.items.map((inst, i) => (
-                <MobileCard
-                  key={`${inst.symbol}-${inst.broker}-${i}`}
-                  inst={inst}
-                  isWatched={watchedSymbols.has(`${inst.symbol}::${inst.broker}`)}
-                  isOpen={openSymbols.has(inst.symbol)}
-                />
-              ))}
+              {g.items.map((inst, i) => {
+                const key = `${inst.symbol}::${inst.broker}`;
+                const rank = rankByKey.get(key) ?? 0;
+                const highlight = rank <= 20 || inst.score >= 90;
+                return (
+                  <MobileCard
+                    key={`${inst.symbol}-${inst.broker}-${i}`}
+                    inst={inst}
+                    rank={rank}
+                    highlight={highlight}
+                    isWatched={watchedSymbols.has(key)}
+                    isInSeguimiento={seguimientoSymbols.has(key)}
+                    isOpen={openSymbols.has(inst.symbol)}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}
@@ -447,8 +479,9 @@ function useSendToProximo(inst: UnifiedInstrument) {
   };
 }
 
-function ActionCell({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
+function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const onSendToProximo = useSendToProximo(inst);
+  const onAddSeguimiento = useAddToSeguimiento();
   return (
     <div className="flex items-center justify-end gap-1.5 flex-wrap">
       {isOpen ? (
@@ -460,18 +493,34 @@ function ActionCell({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           → Entrada próxima
         </button>
       )}
+      {!isInSeguimiento ? (
+        <button
+          onClick={() => onAddSeguimiento(inst)}
+          title="Añadir a Seguimiento"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+        >
+          <Eye className="w-3 h-3" /> Seguir
+        </button>
+      ) : (
+        <span className="inline-flex items-center gap-0.5 text-[11px] text-yellow-400"><Eye className="w-3 h-3" />En seguimiento</span>
+      )}
     </div>
   );
 }
 
-function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
+function DesktopRow({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
+  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+
   return (
-    <tr className="border-t border-border text-sm">
+    <tr className={`border-t border-border text-sm ${highlightCls}`}>
+      <td className="px-2 py-2 font-data text-xs text-muted-foreground text-center">
+        {highlight ? <span className="font-bold text-yellow-400">#{rank}</span> : `#${rank}`}
+      </td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
           {inst.symbol}
@@ -503,21 +552,24 @@ function DesktopRow({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
       <td className={`px-2 py-2 text-[11px] font-bold ${div.color}`}>{div.label}</td>
       <td className={`px-2 py-2 text-[11px] font-bold ${atr.color}`}>{atr.label}</td>
-      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isOpen={isOpen} /></td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} /></td>
     </tr>
   );
 }
 
-function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isOpen: boolean }) {
+function MobileCard({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
+  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+
   return (
-    <div className="p-3">
+    <div className={`p-3 ${highlightCls}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
+        <span className={`font-data text-xs ${highlight ? 'text-yellow-400 font-bold' : 'text-muted-foreground'}`}>#{rank}</span>
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
@@ -537,7 +589,7 @@ function MobileCard({ inst, isWatched, isOpen }: { inst: UnifiedInstrument; isWa
           <div className="flex justify-between"><span className="text-muted-foreground">Div</span><span className={`font-bold ${div.color}`}>{div.label}</span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span className={`font-bold ${atr.color}`}>{atr.label}</span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
-            <ActionCell inst={inst} isWatched={isWatched} isOpen={isOpen} />
+            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} />
           </div>
         </div>
       )}
