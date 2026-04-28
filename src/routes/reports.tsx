@@ -8,7 +8,7 @@ import { useLatestScannerByKey } from '@/hooks/use-scanner-instruments';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
-import { formatCurrency, filterByBroker, type Trade } from '@/lib/trade-utils';
+import { formatCurrency, filterByBroker, isFullCompliance, type Trade } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { exportWeeklyReport, exportMonthlyReport, exportPerformanceReport, exportDailyReport, type DailyEliteSignal, type DailyOpenPos } from '@/lib/report-pdf';
 
@@ -177,7 +177,7 @@ function maxDD(trades: Trade[]) {
 
 function compliance(trades: Trade[]) {
   if (!trades.length) return 0;
-  return (trades.filter(t => t.systemCompliance === '100%').length / trades.length) * 100;
+  return (trades.filter(t => isFullCompliance(t.systemCompliance)).length / trades.length) * 100;
 }
 
 function ExportButton({ onClick }: { onClick: () => void }) {

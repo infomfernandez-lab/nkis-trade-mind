@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { Loader2, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useClosedTrades } from '@/hooks/use-trades';
-import { filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
+import { filterByBroker, isFullCompliance, type Trade, type BrokerFilter } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnchorNav } from '@/components/radar/AnchorNav';
@@ -776,7 +776,7 @@ function Block5Consistency({ trades }: { trades: Trade[] }) {
       cumTotal += arr.length;
       const interventions = arr.filter(t => t.manualIntervention != null && isIntervened(t)).length;
       const withCompliance = arr.filter(t => t.systemCompliance);
-      const respectFull = withCompliance.filter(t => t.systemCompliance === '100%' || t.systemCompliance === 'Sí completamente').length;
+      const respectFull = withCompliance.filter(t => isFullCompliance(t.systemCompliance)).length;
       const respectPct = withCompliance.length > 0 ? pct(respectFull, withCompliance.length) : null;
       const [year, month] = key.split('-');
       const label = new Date(Number(year), Number(month) - 1, 1).toLocaleString('es-ES', { month: 'short', year: '2-digit' });
