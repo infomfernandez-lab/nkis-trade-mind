@@ -37,9 +37,11 @@ function latestForBroker(rows: ScannerSessionMeta[], broker: 'darwinex' | 'octx'
   }) ?? null;
 }
 
-function timeShort(iso: string): string {
+function dateTimeShort(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  const time = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 function isStale(iso: string): boolean {
