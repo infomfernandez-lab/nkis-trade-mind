@@ -97,13 +97,13 @@ export function StatusBar({ brokerFilter }: Props) {
         {/* Open positions per broker */}
         {showDarwinex && (
           <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 mr-1">NKIS</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 mr-1">NK</span>
             <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
           </span>
         )}
         {showOctx && (
           <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">OCTX</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">OX</span>
             <span className="font-data font-bold text-foreground">{fxOpen}</span> pos
           </span>
         )}
