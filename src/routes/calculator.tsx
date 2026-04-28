@@ -917,7 +917,7 @@ function InstrumentTable({
   }, [rows]);
 
   return (
-    <div className="mt-3 rounded-lg border border-border bg-[#0d0d0d]">
+    <div className="mt-3 rounded-lg border border-border bg-card">
       <div className="p-3 border-b border-border">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -962,14 +962,14 @@ function InstrumentTable({
                         {r.variable && (
                           <span
                             title="El valor exacto depende del tipo de cambio actual. Usa este valor como aproximación."
-                            className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 align-middle"
+                            className="ml-2 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/40 align-middle"
                           >VAR</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground hidden md:table-cell">
                         {r.description}
                         {r.note && (
-                          <div className={`text-[10px] mt-0.5 font-semibold ${r.warn ? 'text-destructive' : 'text-orange-400/80'}`}>{r.note}</div>
+                          <div className={`text-[10px] mt-0.5 font-semibold ${r.warn ? 'text-destructive' : 'text-orange-700 dark:text-orange-300'}`}>{r.note}</div>
                         )}
                       </td>
                       <td className="px-3 py-2 hidden md:table-cell">
