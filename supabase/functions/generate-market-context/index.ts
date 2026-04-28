@@ -12,6 +12,12 @@ interface TradeBrief {
   broker?: string;
 }
 
+interface OpenPositionBrief {
+  symbol: string;
+  direction: string;
+  floatingPnl: number;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,27 +25,53 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY no configurada");
 
-    const { date, vix, trades } = await req.json() as {
+    const body = await req.json() as {
+      mode?: "daily" | "briefing";
       date: string;
-      vix: number | null;
-      trades: TradeBrief[];
+      vix?: number | null;
+      trades?: TradeBrief[];
+      openPositions?: OpenPositionBrief[];
+      contextNote?: string;
     };
 
-    const totalPnl = (trades ?? []).reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const tradesText = (trades ?? []).length === 0
-      ? "Sin trades cerrados hoy."
-      : trades.map(t => `- ${t.direction} ${t.symbol}: ${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}€`).join("\n");
+    const mode = body.mode ?? "daily";
 
-    const userPrompt = `Fecha: ${date}
-VIX del día: ${vix != null ? vix.toFixed(2) : "no disponible"}
+    let systemPrompt = "";
+    let userPrompt = "";
+
+    if (mode === "briefing") {
+      systemPrompt = `Eres un analista de mercados profesional estilo Pablo Gil. Con el contexto proporcionado y los instrumentos actualmente en cartera, genera un briefing operativo del día en 5-6 líneas: régimen de mercado, qué esperar de los instrumentos en cartera, sesgo operativo recomendado (tendencia o rango), y un riesgo clave a vigilar. Directo, sin florituras, lenguaje técnico.`;
+
+      const positions = body.openPositions ?? [];
+      const positionsText = positions.length === 0
+        ? "Sin posiciones abiertas actualmente."
+        : positions.map(p => `- ${p.direction} ${p.symbol} (flotante: ${p.floatingPnl >= 0 ? "+" : ""}${p.floatingPnl.toFixed(2)}€)`).join("\n");
+
+      userPrompt = `Fecha: ${body.date}
+Contexto rápido del operador: ${body.contextNote || "(no proporcionado)"}
+
+Posiciones abiertas en cartera:
+${positionsText}
+
+Genera el briefing operativo.`;
+    } else {
+      systemPrompt = `Eres un analista de mercados estilo Pablo Gil. Dado el VIX del día, los instrumentos operados, y los resultados del día, genera un párrafo breve (4-6 líneas) de contexto de mercado: qué estaba pasando macro ese día, por qué tiene sentido el resultado, qué régimen de mercado describe. Sé concreto, directo, sin florituras.`;
+
+      const trades = body.trades ?? [];
+      const totalPnl = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+      const tradesText = trades.length === 0
+        ? "Sin trades cerrados hoy."
+        : trades.map(t => `- ${t.direction} ${t.symbol}: ${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}€`).join("\n");
+
+      userPrompt = `Fecha: ${body.date}
+VIX del día: ${body.vix != null ? body.vix.toFixed(2) : "no disponible"}
 P&L total del día: ${totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}€
 
 Trades cerrados:
 ${tradesText}
 
 Genera el contexto de mercado para esta sesión.`;
-
-    const systemPrompt = `Eres un analista de mercados estilo Pablo Gil. Dado el VIX del día, los instrumentos operados, y los resultados del día, genera un párrafo breve (4-6 líneas) de contexto de mercado: qué estaba pasando macro ese día, por qué tiene sentido el resultado, qué régimen de mercado describe. Sé concreto, directo, sin florituras.`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -11,6 +11,7 @@ import { StatusBar } from '@/components/radar/StatusBar';
 import { ProximoEntradaBlock, useProximoEntradaCount } from '@/components/radar/ProximoEntradaBlock';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
 import { MomentumBlock, useMomentumCount } from '@/components/radar/MomentumBlock';
+import { MarketBriefing } from '@/components/dashboard/MarketBriefing';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -69,6 +70,9 @@ function Dashboard() {
           Centro de mando completo <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
+
+      {/* Briefing de mercado */}
+      <MarketBriefing openTrades={openTrades} />
 
       {/* ④ Próximo a entrada — siempre visible y prioritario */}
       <section className="space-y-2">
