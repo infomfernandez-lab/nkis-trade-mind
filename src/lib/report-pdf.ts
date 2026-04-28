@@ -244,7 +244,7 @@ function drawStatGrid(d: Doc, yStart: number, items: Array<{ label: string; valu
 
 function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity: number }[], height = 60) {
   const { doc, margin, contentWidth, pageHeight } = d;
-  if (yStart + height > pageHeight - 18) {
+  if (yStart + height + 10 > pageHeight - 18) {
     doc.addPage();
     yStart = drawHeader(d);
   }
@@ -252,50 +252,90 @@ function drawEquityChart(d: Doc, yStart: number, points: { date: string; equity:
     doc.setTextColor(...TEXT_MUTED);
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(10);
-    doc.text('Datos insuficientes para gráfico', margin, yStart + 10);
-    return yStart + 12;
+    doc.text('Datos insuficientes para gráfico (se necesitan al menos 2 trades cerrados).', margin, yStart + 10);
+    return yStart + 14;
   }
+  const padL = 18, padR = 6, padT = 6, padB = 10;
   const x0 = margin;
   const y0 = yStart;
   const w = contentWidth;
   const h = height;
+  const innerX = x0 + padL;
+  const innerY = y0 + padT;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
 
+  // background card
   doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
   doc.setFillColor(252, 252, 254);
   doc.roundedRect(x0, y0, w, h, 1.5, 1.5, 'FD');
 
   const eqs = points.map(p => p.equity);
-  const min = Math.min(...eqs);
-  const max = Math.max(...eqs);
-  const range = max - min || 1;
+  let min = Math.min(...eqs);
+  let max = Math.max(...eqs);
+  if (min === max) { min -= 1; max += 1; }
+  const range = max - min;
+
+  const px = (i: number) => innerX + (i / (points.length - 1)) * innerW;
+  const py = (eq: number) => innerY + innerH - ((eq - min) / range) * innerH;
 
   // gridlines
   doc.setDrawColor(...BORDER);
   doc.setLineWidth(0.1);
   for (let i = 1; i < 4; i++) {
-    const yy = y0 + (h * i) / 4;
-    doc.line(x0, yy, x0 + w, yy);
+    const yy = innerY + (innerH * i) / 4;
+    doc.line(innerX, yy, innerX + innerW, yy);
   }
 
-  // line
-  doc.setDrawColor(...NAVY);
-  doc.setLineWidth(0.6);
+  // baseline (starting equity)
+  const startEq = points[0].equity;
+  if (startEq >= min && startEq <= max) {
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.2);
+    const ys = py(startEq);
+    doc.line(innerX, ys, innerX + innerW, ys);
+  }
+
+  // filled area under the curve (subtle)
+  const finalEq = points[points.length - 1].equity;
+  const areaColor: [number, number, number] = finalEq >= startEq ? GREEN : RED;
+  doc.setFillColor(areaColor[0], areaColor[1], areaColor[2]);
+  doc.setGState(new (doc as any).GState({ opacity: 0.08 }));
   for (let i = 1; i < points.length; i++) {
-    const x1 = x0 + ((i - 1) / (points.length - 1)) * w;
-    const x2 = x0 + (i / (points.length - 1)) * w;
-    const y1 = y0 + h - ((points[i - 1].equity - min) / range) * h;
-    const y2 = y0 + h - ((points[i].equity - min) / range) * h;
+    const x1 = px(i - 1), x2 = px(i);
+    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
+    const baseY = innerY + innerH;
+    // simple polygon trapezoid per segment
+    doc.triangle(x1, y1, x2, y2, x2, baseY, 'F');
+    doc.triangle(x1, y1, x2, baseY, x1, baseY, 'F');
+  }
+  doc.setGState(new (doc as any).GState({ opacity: 1 }));
+
+  // line — drawn segment by segment, each segment with an explicit setDrawColor & setLineWidth call
+  // to avoid any state being reset by intermediate operations.
+  for (let i = 1; i < points.length; i++) {
+    doc.setDrawColor(...NAVY);
+    doc.setLineWidth(0.7);
+    const x1 = px(i - 1), x2 = px(i);
+    const y1 = py(points[i - 1].equity), y2 = py(points[i].equity);
     doc.line(x1, y1, x2, y2);
+  }
+
+  // point markers
+  doc.setFillColor(...NAVY);
+  for (let i = 0; i < points.length; i++) {
+    doc.circle(px(i), py(points[i].equity), 0.5, 'F');
   }
 
   // axis labels
   doc.setTextColor(...TEXT_MUTED);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.text(`€${min.toFixed(0)}`, x0 + 1, y0 + h - 1);
-  doc.text(`€${max.toFixed(0)}`, x0 + 1, y0 + 4);
-  doc.text(points[0].date, x0 + 1, y0 + h + 4);
-  doc.text(points[points.length - 1].date, x0 + w - 1, y0 + h + 4, { align: 'right' });
+  doc.text(`€${max.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + 2);
+  doc.text(`€${min.toLocaleString('es-ES', { maximumFractionDigits: 0 })}`, x0 + 2, innerY + innerH);
+  doc.text(points[0].date, innerX, y0 + h + 4);
+  doc.text(points[points.length - 1].date, innerX + innerW, y0 + h + 4, { align: 'right' });
 
   return y0 + h + 8;
 }
