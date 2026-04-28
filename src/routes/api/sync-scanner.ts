@@ -73,7 +73,7 @@ export const Route = createFileRoute('/api/sync-scanner')({
             notes: parsed.data.notes ?? null,
             broker,
             timeframe: parsed.data.timeframe ?? null,
-            vix: parsed.data.vix ?? parsed.data.vix_value ?? null,
+            vix: pickVix(body) ?? parsed.data.vix ?? parsed.data.vix_value ?? parsed.data.vix_level ?? null,
             total_analyzed: parsed.data.total_analyzed ?? null,
             discarded: parsed.data.discarded ?? null,
             tradeable: parsed.data.tradeable ?? null,
