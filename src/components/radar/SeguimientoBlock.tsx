@@ -176,14 +176,17 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <span className="text-xs font-data font-bold ml-auto">Score {item.score ?? '—'}</span>
             </div>
             <div className="mt-1"><SymbolMeta symbol={item.symbol} compact /></div>
-            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground gap-2 flex-wrap">
               <span>Stoch {item.stoch != null ? Math.round(item.stoch) : '—'} · ADX {item.adx ?? '—'}</span>
-              <button
-                onClick={() => handleRemove(item)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="w-3 h-3" /> Quitar
-              </button>
+              <div className="inline-flex items-center gap-1">
+                <RadarCaptureButton symbol={item.symbol} />
+                <button
+                  onClick={() => handleRemove(item)}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="w-3 h-3" /> Quitar
+                </button>
+              </div>
             </div>
           </div>
         ))}
