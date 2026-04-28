@@ -986,6 +986,9 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
       if (v >= buckets[i].range[0] && v < buckets[i].range[1]) { buckets[i].trades.push(t); break; }
     }
   }
+  // Show all VIX buckets that have trades, plus ALWAYS show "Sin VIX registrado"
+  // even if empty — so the user can see whether they have unlogged VIX trades.
+  const vixRowsToShow = buckets.filter((b, i) => i === 5 || b.trades.length > 0);
   y = drawTable(d, y,
     [
       { label: 'Régimen VIX', width: 40 },
@@ -993,13 +996,15 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
       { label: 'P&L', width: 26, align: 'right' },
       { label: 'Win Rate', width: 20, align: 'right' },
     ],
-    buckets.filter(b => b.trades.length > 0).map(b => {
+    vixRowsToShow.map(b => {
       const mm = computeMetrics(b.trades);
+      const muted: [number, number, number] = TEXT_MUTED;
+      const pnlColor: [number, number, number] = b.trades.length === 0 ? muted : (mm.totalPnl >= 0 ? GREEN : RED);
       return [
-        { text: b.label },
-        { text: String(b.trades.length) },
-        { text: formatEur(mm.totalPnl), color: mm.totalPnl >= 0 ? GREEN : RED },
-        { text: `${mm.winRate.toFixed(1)}%` },
+        { text: b.label, color: b.trades.length === 0 ? muted : TEXT },
+        { text: String(b.trades.length), color: b.trades.length === 0 ? muted : TEXT },
+        { text: b.trades.length === 0 ? '—' : formatEur(mm.totalPnl), color: pnlColor },
+        { text: b.trades.length === 0 ? '—' : `${mm.winRate.toFixed(1)}%`, color: b.trades.length === 0 ? muted : TEXT },
       ];
     }),
   );
