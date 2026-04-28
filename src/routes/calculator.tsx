@@ -651,27 +651,29 @@ function CalculatorPage() {
                 }
               }}
             />
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setTableOpen(o => !o)}
+                className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
+              >
+                {tableOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {tableOpen ? 'Ocultar tabla de instrumentos' : 'Ver tabla de instrumentos'}
+              </button>
+            </div>
           </Field>
 
-          {/* Toggle + tabla de instrumentos (ocupa las dos columnas) */}
-          <div className="md:col-span-2">
-            <button
-              type="button"
-              onClick={() => setTableOpen(o => !o)}
-              className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
-            >
-              {tableOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              {tableOpen ? 'Ocultar tabla de instrumentos' : 'Ver tabla de instrumentos'}
-            </button>
-            {tableOpen && (
+          {/* Tabla desplegada — ocupa las dos columnas */}
+          {tableOpen && (
+            <div className="md:col-span-2">
               <InstrumentTable
                 search={tableSearch}
                 onSearch={setTableSearch}
                 rows={filteredInstruments}
                 onPick={pickInstrument}
               />
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Dirección */}
           <Field label="Dirección">
