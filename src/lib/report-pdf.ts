@@ -1017,7 +1017,7 @@ export function exportPerformanceReport({ trades, startingBalance, vixCautionThr
 
   y = sectionTitle(d, y, 'Curva de Equity Completa');
   const points = buildEquityCurve(trades, startingBalance);
-  y = drawEquityChart(d, y, points, 90, trades);
+  y = drawEquityChart(d, y, points, 75, trades);
 
   // By instrument
   y = sectionTitle(d, y, 'Análisis por Instrumento');
