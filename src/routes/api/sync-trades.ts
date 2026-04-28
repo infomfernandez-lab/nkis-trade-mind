@@ -38,13 +38,13 @@ const tradeSchema = z.object({
 });
 
 const requestSchema = z.object({
-  trades: z.array(tradeSchema).min(1).max(2000),
+  // Use passthrough so individual rows can be re-validated per-row below.
+  // This lets us reject single bad rows instead of failing the whole batch.
+  trades: z.array(z.any()).min(1).max(2000),
   close_stale: z.boolean().optional().default(false),
   broker: z.enum(['darwinex', 'octx', 'nkis', 'fxpro']).optional()
     .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'fxpro' ? 'octx' : v)),
   open_tickets: z.array(z.number().int()).optional(),
-  // If provided, the endpoint will report which of these tickets are missing in the DB
-  // after the upsert (verification mode). Useful to detect sync gaps.
   expected_tickets: z.array(z.number().int()).max(10000).optional(),
 });
 
@@ -68,21 +68,51 @@ export const Route = createFileRoute('/api/sync-trades')({
             }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
           }
 
-          const rows = parsed.data.trades.map((t) => ({
-            ...t,
-            user_id: userId,
-          }));
+          // Per-row validation so one bad row doesn't kill the whole batch.
+          // Track which tickets were rejected and why.
+          const validRows: any[] = [];
+          const rejected: { ticket: number | null; reason: string; field_errors?: any }[] = [];
+          const rawTrades = Array.isArray((body as any)?.trades) ? (body as any).trades : [];
+          for (const raw of rawTrades) {
+            const single = tradeSchema.safeParse(raw);
+            if (single.success) {
+              validRows.push({ ...single.data, user_id: userId });
+            } else {
+              rejected.push({
+                ticket: typeof raw?.ticket === 'number' ? raw.ticket : null,
+                reason: 'zod_validation_failed',
+                field_errors: single.error.flatten().fieldErrors,
+              });
+            }
+          }
 
-          const { data, error } = await supabaseAdmin
-            .from('trades')
-            .upsert(rows, { onConflict: 'user_id,ticket', ignoreDuplicates: false })
-            .select('id, ticket');
-
-          if (error) {
-            return withCors(new Response(JSON.stringify({ error: 'Database error', details: error.message }), {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }));
+          // Upsert in chunks to avoid silent failures on very large payloads.
+          const CHUNK = 500;
+          const upsertedTickets: number[] = [];
+          const upsertErrors: { chunk_index: number; tickets: number[]; error: string }[] = [];
+          for (let i = 0; i < validRows.length; i += CHUNK) {
+            const chunk = validRows.slice(i, i + CHUNK);
+            const { data, error } = await supabaseAdmin
+              .from('trades')
+              .upsert(chunk, { onConflict: 'user_id,ticket', ignoreDuplicates: false })
+              .select('ticket');
+            if (error) {
+              upsertErrors.push({
+                chunk_index: i / CHUNK,
+                tickets: chunk.map((r: any) => Number(r.ticket)),
+                error: error.message,
+              });
+              // Mark these as rejected too
+              for (const r of chunk) {
+                rejected.push({
+                  ticket: Number(r.ticket),
+                  reason: 'db_upsert_failed',
+                  field_errors: { db: [error.message] },
+                });
+              }
+            } else if (data) {
+              for (const r of data) upsertedTickets.push(Number(r.ticket));
+            }
           }
 
           // Handle close_stale: close positions no longer open in MT5
@@ -91,7 +121,6 @@ export const Route = createFileRoute('/api/sync-trades')({
             const brokerVal = parsed.data.broker;
             const openTickets = parsed.data.open_tickets;
 
-            // Find all open trades for this broker
             const { data: openDbTrades } = await supabaseAdmin
               .from('trades')
               .select('id, ticket')
@@ -114,35 +143,58 @@ export const Route = createFileRoute('/api/sync-trades')({
             }
           }
 
-          // Verification mode: detect which expected tickets are missing in DB
-          let missingTickets: number[] = [];
-          let dbTicketCount: number | null = null;
+          // Verification mode: full reconciliation against expected_tickets
+          let verification: any = null;
           if (parsed.data.expected_tickets && parsed.data.expected_tickets.length > 0) {
-            const expected = parsed.data.expected_tickets;
+            const expected = parsed.data.expected_tickets.map(Number);
+            const expectedSet = new Set(expected);
+
+            // Pull ALL tickets in DB for this user (paginated by .range)
             let query = supabaseAdmin
               .from('trades')
               .select('ticket')
               .eq('user_id', userId);
             if (parsed.data.broker) query = query.eq('broker', parsed.data.broker);
-            const { data: existing } = await query.range(0, 9999);
+            const { data: existing, error: vErr } = await query.range(0, 9999);
+
             const existingSet = new Set((existing ?? []).map((r: any) => Number(r.ticket)));
-            dbTicketCount = existingSet.size;
-            missingTickets = expected.filter((t) => !existingSet.has(Number(t)));
+            const sentSet = new Set(rawTrades.map((t: any) => Number(t?.ticket)).filter((n: number) => Number.isFinite(n)));
+            const rejectedSet = new Set(rejected.map(r => r.ticket).filter((n): n is number => n != null));
+
+            // Categorize each missing ticket
+            const missing = expected.filter((t) => !existingSet.has(t));
+            const missingDetails = missing.map((ticket) => {
+              if (rejectedSet.has(ticket)) {
+                const r = rejected.find(x => x.ticket === ticket);
+                return { ticket, reason: r?.reason ?? 'rejected', details: r?.field_errors };
+              }
+              if (!sentSet.has(ticket)) {
+                return { ticket, reason: 'not_sent_in_payload' };
+              }
+              return { ticket, reason: 'sent_but_not_persisted' };
+            });
+
+            verification = {
+              expected_count: expected.length,
+              sent_count: sentSet.size,
+              db_count: existingSet.size,
+              upserted_count: upsertedTickets.length,
+              rejected_count: rejected.length,
+              missing_count: missing.length,
+              missing: missingDetails,
+              query_error: vErr?.message ?? null,
+            };
           }
 
           return withCors(Response.json({
             success: true,
-            upserted: data?.length ?? 0,
+            received: rawTrades.length,
+            upserted: upsertedTickets.length,
+            rejected_count: rejected.length,
+            rejected: rejected.slice(0, 100), // cap response size
+            upsert_errors: upsertErrors,
             stales_closed: stalesClosed,
-            trades: data,
-            verification: parsed.data.expected_tickets
-              ? {
-                  expected_count: parsed.data.expected_tickets.length,
-                  db_count: dbTicketCount,
-                  missing_count: missingTickets.length,
-                  missing_tickets: missingTickets,
-                }
-              : null,
+            verification,
           }));
         } catch (e) {
           if (e instanceof Response) return withCors(e);
