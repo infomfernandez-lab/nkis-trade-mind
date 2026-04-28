@@ -225,8 +225,10 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
-        Escáner v18 — {items.length} instrumentos · Top 20 y Score ≥ 90 destacados
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>Escáner v18 — {items.length} instrumentos</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
+        <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
       </div>
 
       {/* Desktop table */}
@@ -258,13 +260,13 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                 {g.items.map((inst, i) => {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
-                  const highlight = rank <= 20 || inst.score >= 90;
+                  const tier: HighlightTier = inst.score >= 90 ? 'gold' : rank <= 20 ? 'top' : 'none';
                   return (
                     <DesktopRow
                       key={`${inst.symbol}-${inst.broker}-${i}`}
                       inst={inst}
                       rank={rank}
-                      highlight={highlight}
+                      hl={tier}
                       isWatched={watchedSymbols.has(key)}
                       isInSeguimiento={seguimientoSymbols.has(key)}
                       isOpen={openSymbols.has(inst.symbol)}
@@ -288,13 +290,13 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               {g.items.map((inst, i) => {
                 const key = `${inst.symbol}::${inst.broker}`;
                 const rank = rankByKey.get(key) ?? 0;
-                const highlight = rank <= 20 || inst.score >= 90;
+                const tier: HighlightTier = inst.score >= 90 ? 'gold' : rank <= 20 ? 'top' : 'none';
                 return (
                   <MobileCard
                     key={`${inst.symbol}-${inst.broker}-${i}`}
                     inst={inst}
                     rank={rank}
-                    highlight={highlight}
+                    hl={tier}
                     isWatched={watchedSymbols.has(key)}
                     isInSeguimiento={seguimientoSymbols.has(key)}
                     isOpen={openSymbols.has(inst.symbol)}
@@ -508,18 +510,33 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
   );
 }
 
-function DesktopRow({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+export type HighlightTier = 'gold' | 'top' | 'none';
+
+function highlightClasses(hl: HighlightTier): string {
+  if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
+  if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
+  return '';
+}
+
+function rankColor(hl: HighlightTier): string {
+  if (hl === 'gold') return 'text-purple-300';
+  if (hl === 'top') return 'text-blue-300';
+  return 'text-muted-foreground';
+}
+
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
-  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+  const highlightCls = highlightClasses(hl);
+  const isHl = hl !== 'none';
 
   return (
     <tr className={`border-t border-border text-sm ${highlightCls}`}>
-      <td className="px-2 py-2 font-data text-xs text-muted-foreground text-center">
-        {highlight ? <span className="font-bold text-yellow-400">#{rank}</span> : `#${rank}`}
+      <td className="px-2 py-2 font-data text-center">
+        <span className={`font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
       </td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex items-center gap-1.5">
@@ -557,19 +574,20 @@ function DesktopRow({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen 
   );
 }
 
-function MobileCard({ inst, rank, highlight, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; highlight: boolean; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   const div = divMeta(inst.divergencia);
   const atr = atrMeta(inst.atr_estado);
 
-  const highlightCls = highlight ? 'bg-yellow-500/[0.06] border-l-[3px] border-l-yellow-400' : '';
+  const highlightCls = highlightClasses(hl);
+  const isHl = hl !== 'none';
 
   return (
     <div className={`p-3 ${highlightCls}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
-        <span className={`font-data text-xs ${highlight ? 'text-yellow-400 font-bold' : 'text-muted-foreground'}`}>#{rank}</span>
+        <span className={`font-data font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
         <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
         <ScoreBadge score={inst.score} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
