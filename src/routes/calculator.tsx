@@ -1039,16 +1039,47 @@ function InstrumentAutocomplete({
   const [selectedDesc, setSelectedDesc] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Unified pool: AUTOCOMPLETE catalog + every instrument from the table
+  // (INSTRUMENTS) so the search field can predict any symbol shown in the
+  // instruments table, not just curated futures families.
+  const pool = useMemo<AutocompleteEntry[]>(() => {
+    const seen = new Set<string>();
+    const out: AutocompleteEntry[] = [];
+    for (const e of AUTOCOMPLETE) {
+      const key = `${e.broker}|${e.symbol}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(e);
+    }
+    for (const i of INSTRUMENTS) {
+      const key = `${i.broker}|${i.symbol}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const cur = (i.currency ?? 'USD') as 'USD' | 'EUR' | 'GBX';
+      const safeCur: 'USD' | 'EUR' | 'GBX' = cur === 'USD' || cur === 'EUR' || cur === 'GBX' ? cur : 'USD';
+      out.push({
+        symbol: i.symbol,
+        family: i.symbol.split('_')[0],
+        description: i.description,
+        pointValue: i.pointValue,
+        currency: safeCur,
+        broker: i.broker,
+        group: i.group,
+      });
+    }
+    return out;
+  }, []);
+
   const q = value.trim().toLowerCase();
   const results = useMemo(() => {
     if (!q) return [];
-    return AUTOCOMPLETE.filter(
+    return pool.filter(
       e =>
         e.symbol.toLowerCase().includes(q) ||
         e.family.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q),
-    ).slice(0, 60);
-  }, [q]);
+    ).slice(0, 80);
+  }, [q, pool]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, AutocompleteEntry[]>();
