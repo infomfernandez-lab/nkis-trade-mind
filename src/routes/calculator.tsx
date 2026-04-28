@@ -500,7 +500,7 @@ function CalculatorPage() {
     if (r.precio_entrada != null) setEntry(String(r.precio_entrada));
     if (r.atr != null) setAtr(String(r.atr));
     if (r.valor_punto != null) setPointValue(String(r.valor_punto));
-    setVix(r.vix != null ? String(r.vix) : '');
+    // VIX se carga automáticamente desde el último scanner — ignoramos el del historial
     setCurrentPrice('');
     setTp('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
