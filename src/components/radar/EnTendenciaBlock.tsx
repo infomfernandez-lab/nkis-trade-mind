@@ -553,6 +553,26 @@ export function SymbolMeta({ symbol, compact = false }: { symbol: string; compac
   );
 }
 
+export function formatPrice(p: number | null | undefined): string | null {
+  if (p == null || !isFinite(p)) return null;
+  const a = Math.abs(p);
+  const decimals = a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : 5;
+  return p.toFixed(decimals);
+}
+
+export function PriceTag({ price, compact = false }: { price: number | null | undefined; compact?: boolean }) {
+  const f = formatPrice(price);
+  if (!f) return null;
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded font-data font-semibold border border-border bg-secondary/60 text-foreground ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+      title="Precio actual"
+    >
+      {f}
+    </span>
+  );
+}
+
 function highlightClasses(hl: HighlightTier): string {
   if (hl === 'gold') return 'bg-purple-500/[0.10] border-l-[4px] border-l-purple-400';
   if (hl === 'top') return 'bg-blue-500/[0.08] border-l-[4px] border-l-blue-400';
@@ -579,11 +599,12 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       </td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {inst.symbol}
+            <PriceTag price={inst.current_price} />
             <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
               inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-            }`}>{inst.broker === 'darwinex' ? 'DW' : 'FX'}</span>
+            }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
           </div>
           <SymbolMeta symbol={inst.symbol} />
         </div>
