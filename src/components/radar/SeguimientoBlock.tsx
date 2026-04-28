@@ -61,11 +61,23 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
   const scannerMap = useLatestScannerByKey();
   const del = useDeleteWatchlistItem();
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const list = useMemo(
+  const fullList = useMemo(
     () => buildItems(brokerFilter, scannerMap, items ?? []),
     [brokerFilter, scannerMap, items],
   );
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const it of fullList) {
+      const t = classifyInstrument(it.symbol).type;
+      c[t] = (c[t] ?? 0) + 1;
+    }
+    return c;
+  }, [fullList]);
+  const list = typeFilter.size === 0
+    ? fullList
+    : fullList.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
 
   const handleRemove = (item: SeguimientoItem) => {
     del.mutate(item.watchlistId, {
@@ -74,7 +86,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
     });
   };
 
-  if (list.length === 0) {
+  if (fullList.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Eye className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
@@ -85,6 +97,10 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+        <span>{list.length} de {fullList.length}</span>
+        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+      </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
