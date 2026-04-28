@@ -192,7 +192,7 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      await exportTradePdf({ trade, journal: data, scannerInfo, vixValue });
+      await exportTradePdf({ trade, journal: data, scannerInfo, vixValue, chartUrls });
       toast.success('PDF exportado');
     } catch (err: any) {
       toast.error(`Error al exportar: ${err.message}`);
