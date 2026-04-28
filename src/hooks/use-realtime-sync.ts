@@ -24,6 +24,7 @@ export function useRealtimeSync() {
         qc.invalidateQueries({ queryKey: ['scanner-sessions'] });
         qc.invalidateQueries({ queryKey: ['scanner-sessions-meta'] });
         qc.invalidateQueries({ queryKey: ['scanner-session'] });
+        qc.invalidateQueries({ queryKey: ['scanner-sessions-latest-vix'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'momentum_sessions' }, () => {
         qc.invalidateQueries({ queryKey: ['momentum-sessions'] });
