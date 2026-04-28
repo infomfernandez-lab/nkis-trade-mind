@@ -30,6 +30,9 @@ interface Raw {
   structure?: string;
   breakout?: string;
   volume?: number;
+  current_price?: number;
+  precio_actual?: number;
+  price?: number;
 }
 
 /**
@@ -82,6 +85,7 @@ export function useLatestScannerByKey(): Map<string, UnifiedInstrument> {
           structure: r.structure ?? null,
           breakout: r.breakout ?? null,
           volume: r.volume ?? null,
+          current_price: r.current_price ?? r.precio_actual ?? r.price ?? null,
           broker,
         };
         map.set(`${inst.symbol}::${broker}`, inst);
