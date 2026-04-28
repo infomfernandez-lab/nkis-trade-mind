@@ -23,13 +23,27 @@ function tradeStatus(t: Trade): string {
 
 export function OpenPositionsTable({ brokerFilter }: Props) {
   const { openTrades, isLoading } = useAllTrades();
-  const filtered = filterByBroker(openTrades, brokerFilter);
+  const filteredAll = filterByBroker(openTrades, brokerFilter);
+  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+
+  const counts = useMemo(() => {
+    const c: Partial<Record<InstrumentType, number>> = {};
+    for (const t of filteredAll) {
+      const tp = classifyInstrument(t.symbol).type;
+      c[tp] = (c[tp] ?? 0) + 1;
+    }
+    return c;
+  }, [filteredAll]);
+
+  const filtered = typeFilter.size === 0
+    ? filteredAll
+    : filteredAll.filter(t => typeFilter.has(classifyInstrument(t.symbol).type));
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-6">Cargando posiciones...</div>;
   }
 
-  if (filtered.length === 0) {
+  if (filteredAll.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center">
         <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
@@ -43,6 +57,10 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-[11px] text-muted-foreground">{filtered.length} de {filteredAll.length} posiciones</span>
+        <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+      </div>
       {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} />}
       {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} />}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
