@@ -9,6 +9,7 @@ import type { UnifiedInstrument } from './EnTendenciaBlock';
 import { SymbolMeta, PriceCell, SymbolName } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { RadarCaptureButton } from './RadarCaptureButton';
 
 interface Props {
   brokerFilter: BrokerFilter;
