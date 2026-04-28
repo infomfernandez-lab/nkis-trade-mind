@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, Calendar, TrendingUp, BarChart3, Download, Loader2, CalendarDays, Save } from 'lucide-react';
+import { FileText, Calendar, TrendingUp, BarChart3, Download, Loader2, CalendarDays, Save, Sparkles } from 'lucide-react';
 import { useClosedTrades, useOpenTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import { useLatestVix } from '@/hooks/use-latest-vix';
@@ -478,6 +478,7 @@ function DailyPanel({ closedTrades, openTrades, brokerFilter }: {
 
   // Manual fields
   const [marketContext, setMarketContext] = useState('');
+  const [generatingContext, setGeneratingContext] = useState(false);
   const [systemFollowed, setSystemFollowed] = useState<string>('');
   const [errors, setErrors] = useState<string[]>([]);
   const [lesson, setLesson] = useState('');
@@ -643,11 +644,47 @@ function DailyPanel({ closedTrades, openTrades, brokerFilter }: {
       {/* Manual section */}
       <div className="space-y-4 pt-2 border-t border-border">
         <div>
-          <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Contexto de Mercado del Día</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">Contexto de Mercado del Día</h3>
+            <button
+              onClick={async () => {
+                setGeneratingContext(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('generate-market-context', {
+                    body: {
+                      date: reportDateStr,
+                      vix,
+                      trades: closedToday.map(t => ({
+                        symbol: t.symbol,
+                        direction: t.direction,
+                        pnl: t.netPnl,
+                        broker: t.broker,
+                      })),
+                    },
+                  });
+                  if (error) throw error;
+                  if (data?.error) throw new Error(data.error);
+                  if (data?.text) {
+                    setMarketContext(data.text);
+                    toast.success('Contexto generado');
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message ?? 'No se pudo generar el contexto');
+                } finally {
+                  setGeneratingContext(false);
+                }
+              }}
+              disabled={generatingContext}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              {generatingContext ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {generatingContext ? 'Generando…' : 'Generar contexto con IA'}
+            </button>
+          </div>
           <textarea
             value={marketContext}
             onChange={e => setMarketContext(e.target.value)}
-            className="w-full h-20 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full h-24 bg-input border border-border rounded-md p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="¿Qué tono tuvo el mercado hoy? Noticias, volatilidad, etc."
           />
         </div>
