@@ -119,7 +119,12 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
           {list.map((item, idx) => (
             <tr key={item.id} className="border-t border-border text-sm">
               <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>
-              <td className="px-3 py-2 font-bold text-foreground">{item.symbol}</td>
+              <td className="px-3 py-2 font-bold text-foreground">
+                <div className="flex flex-col gap-0.5">
+                  <span>{item.symbol}</span>
+                  <SymbolMeta symbol={item.symbol} />
+                </div>
+              </td>
               <td className="px-2 py-2">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
