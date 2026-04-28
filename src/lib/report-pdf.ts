@@ -15,8 +15,8 @@ const ROW_ALT: [number, number, number] = [248, 249, 252];
 
 function brokerLabel(b: string): string {
   const k = (b || '').toLowerCase();
-  if (k === 'darwinex' || k === 'nkis') return 'NKIS';
-  if (k === 'fxpro' || k === 'octx') return 'OCTX';
+  if (k === 'darwinex' || k === 'nkis') return 'NK';
+  if (k === 'fxpro' || k === 'octx') return 'OX';
   return (b || '').toUpperCase();
 }
 
@@ -500,7 +500,7 @@ export function exportDailyReport(args: DailyArgs) {
     { label: 'Posiciones abiertas', value: String(openNow.length) },
     { label: 'P&L Flotante', value: formatEur(floating), color: floating >= 0 ? GREEN : RED },
     { label: 'VIX del día', value: vix != null ? vix.toFixed(2) : '—' },
-    { label: 'Cuenta', value: brokerFilter === 'all' ? 'NKIS + OCTX' : brokerLabel(brokerFilter) },
+    { label: 'Cuenta', value: brokerFilter === 'all' ? 'NK + OX' : brokerLabel(brokerFilter) },
     { label: 'Señales ÉLITE NKIS', value: String(eliteNkis.length) },
     { label: 'Señales ÉLITE OCTX', value: String(eliteOctx.length) },
   ]);
@@ -604,7 +604,7 @@ export function exportDailyReport(args: DailyArgs) {
   drawTextBox('Plan para Mañana', planTomorrow);
 
   drawFooter(d);
-  const brokerTag = brokerFilter === 'all' ? 'NKIS-OCTX' : brokerLabel(brokerFilter);
+  const brokerTag = brokerFilter === 'all' ? 'NK-OX' : brokerLabel(brokerFilter);
   const dateStr = date.toISOString().slice(0, 10);
   const pnlSign = totalPnl >= 0 ? '+' : '-';
   const pnlPart = `${pnlSign}${Math.round(Math.abs(totalPnl))}€`;
@@ -847,14 +847,14 @@ export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBal
     ],
     [
       [
-        { text: 'NKIS' },
+        { text: 'NK' },
         { text: String(nkis.length) },
         { text: formatEur(mn.totalPnl), color: mn.totalPnl >= 0 ? GREEN : RED },
         { text: `${mn.winRate.toFixed(1)}%` },
         { text: mn.profitFactor === Infinity ? '∞' : mn.profitFactor.toFixed(2) },
       ],
       [
-        { text: 'OCTX' },
+        { text: 'OX' },
         { text: String(octx.length) },
         { text: formatEur(mo.totalPnl), color: mo.totalPnl >= 0 ? GREEN : RED },
         { text: `${mo.winRate.toFixed(1)}%` },

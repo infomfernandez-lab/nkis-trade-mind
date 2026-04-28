@@ -58,8 +58,8 @@ function timeSinceText(dateStr: string): { text: string; stale: boolean } {
 
 const TAB_OPTIONS: { value: BrokerFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'darwinex', label: 'NKIS' },
-  { value: 'octx', label: 'OCTX' },
+  { value: 'darwinex', label: 'NK' },
+  { value: 'octx', label: 'OX' },
 ];
 
 function InlineNotes({ trade }: { trade: Trade }) {
@@ -203,10 +203,10 @@ function PositionsPage() {
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Brokers activos</div>
           <div className="flex gap-2 mt-1">
             {allOpen.some(t => t.broker === 'darwinex') && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/30">DARWINEX</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/30">NK</span>
             )}
             {allOpen.some(t => t.broker === 'octx') && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">OCTX</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">OX</span>
             )}
             {allOpen.length === 0 && <span className="text-sm text-muted-foreground">—</span>}
           </div>
@@ -266,7 +266,7 @@ function PositionsPage() {
                           ? 'bg-primary/15 text-primary'
                           : 'bg-blue-500/15 text-blue-400'
                       }`}>
-                        {trade.broker === 'darwinex' ? 'NKIS' : 'OCTX'}
+                        {trade.broker === 'darwinex' ? 'NK' : 'OX'}
                       </span>
                     </TableCell>
 
