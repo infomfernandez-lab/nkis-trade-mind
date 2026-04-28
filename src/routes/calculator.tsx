@@ -811,25 +811,12 @@ function CalculatorPage() {
           <Row label="Distancia (ATR × 1.5)">
             <Big>{fmt(trailDist)}</Big>
           </Row>
-
-          <div className="mt-3 rounded-lg border border-success/40 bg-success/10 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-success mb-1 flex items-center gap-1.5">
-              ✅ Puntos para MT5
-            </div>
-            <div
-              className="font-data font-bold text-success leading-none"
-              style={{ fontSize: '2.5rem' }}
-            >
+          <Row label="Puntos para MT5">
+            <Big className="text-success">
               {trailMt5Points != null ? String(trailMt5Points) : '—'}
-            </div>
-            {trailMt5Points == null && (
-              <div className="text-[11px] text-muted-foreground mt-2">
-                Selecciona un instrumento e introduce el ATR para ver los puntos.
-              </div>
-            )}
-          </div>
-
-          <div className="text-xs text-muted-foreground mt-3 leading-relaxed">
+            </Big>
+          </Row>
+          <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
             En MT5: clic derecho sobre la posición → <span className="text-foreground font-medium">Trailing Stop</span> → <span className="text-foreground font-medium">Personalizado</span> → introducir{' '}
             <span className="text-success font-data font-semibold">
               {trailMt5Points != null ? String(trailMt5Points) : '[puntos]'}
