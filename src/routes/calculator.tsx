@@ -498,8 +498,11 @@ function CalculatorPage() {
 
   const trailDist = nAtr * 1.5;
   const trailSl = direction === 'BUY' ? nCurrent - trailDist : nCurrent + trailDist;
-  const trailMt5Points = tickSize && tickSize > 0 && trailDist > 0
-    ? Math.round(trailDist / tickSize)
+  const effectiveTickSize = tickSize && tickSize > 0
+    ? tickSize
+    : (instrument ? (getContractSpec(instrument)?.tickSize ?? null) : null);
+  const trailMt5Points = effectiveTickSize && effectiveTickSize > 0 && trailDist > 0
+    ? Math.round(trailDist / effectiveTickSize)
     : null;
   const floatPnl = direction === 'BUY'
     ? (nCurrent - nEntry) * lots * nPv
