@@ -700,7 +700,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={entry} onChange={e => setEntry(e.target.value)}
               placeholder="0.00"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -709,7 +709,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={atr} onChange={e => setAtr(e.target.value)}
               placeholder="0.00"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -717,7 +717,7 @@ function CalculatorPage() {
             <input
               type="number" step="0.1" min="0.1" max="3" inputMode="decimal"
               value={riskPct} onChange={e => setRiskPct(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
 
@@ -726,7 +726,7 @@ function CalculatorPage() {
               type="number" step="any" inputMode="decimal"
               value={pointValue}
               readOnly
-              className="w-full h-10 rounded-md border border-input bg-muted/40 px-3 text-sm font-data text-muted-foreground cursor-not-allowed"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-muted/40 px-3 text-base sm:text-sm font-data text-muted-foreground cursor-not-allowed"
             />
           </Field>
 
@@ -735,7 +735,7 @@ function CalculatorPage() {
               type="number" step="0.1" inputMode="decimal"
               value={vix} onChange={e => setVix(e.target.value)}
               placeholder="—"
-              className="w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm font-data"
+              className="w-full h-11 sm:h-10 rounded-md border border-input bg-transparent px-3 text-base sm:text-sm font-data"
             />
           </Field>
         </div>
