@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { SymbolMeta, PriceCell, SymbolName, PriceTag } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { RadarCaptureButton } from './RadarCaptureButton';
 
 interface Props {
   brokerFilter: BrokerFilter;
