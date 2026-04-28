@@ -126,7 +126,7 @@ export function StatusBar({ brokerFilter }: Props) {
             <>
               OCTX{' '}
               {octx ? (
-                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{timeShort(octx.created_at)}</span>
+                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(octx.session_date ?? octx.created_at)}</span>
               ) : <span className="text-destructive font-data">—</span>}
             </>
           )}
