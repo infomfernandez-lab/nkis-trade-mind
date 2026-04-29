@@ -94,6 +94,8 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   };
 
   if (fullList.length === 0) {
+    // If qualification panel above is rendering items, stay silent.
+    if (qualMap.size > 0) return null;
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Eye className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
