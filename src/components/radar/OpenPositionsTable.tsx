@@ -114,8 +114,8 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
 
       {/* Desktop */}
       <table className="w-full hidden md:table text-sm">
-        <thead>
-          <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/20">
+        <thead className="sticky top-[44px] z-20">
+          <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary">
             <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
             <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
             <SortHeader label="Apertura" sortKey="entryDate" state={sort} onToggle={onToggleSort} className="w-[110px]" />
