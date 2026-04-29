@@ -207,7 +207,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="sticky top-12 z-30 px-3 py-1.5 bg-secondary border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+      <div className="sticky top-0 z-30 px-3 py-1.5 bg-secondary border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <TableSearchLimit
             search={controls.search}
@@ -223,7 +223,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
       </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
-        <thead className="sticky top-[86px] z-20">
+        <thead className="sticky top-[34px] z-20">
           <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
             <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
             <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
