@@ -10,6 +10,7 @@ import { filterByBroker } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { CollapsibleBlock } from '@/components/radar/CollapsibleBlock';
 import { AnchorNav } from '@/components/radar/AnchorNav';
+import { QualifiedStagePanel } from '@/components/radar/QualifiedStagePanel';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -65,6 +66,7 @@ function RadarPage() {
         countLabel={`${seguimientoCount}`}
         defaultOpen
       >
+        <QualifiedStagePanel stage="calificado" brokerFilter={broker} />
         <SeguimientoBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
@@ -76,6 +78,7 @@ function RadarPage() {
         tone={proximoCount > 0 ? 'alert' : undefined}
         defaultOpen
       >
+        <QualifiedStagePanel stage="senal_activa" brokerFilter={broker} />
         <ProximoEntradaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
@@ -86,6 +89,7 @@ function RadarPage() {
         countLabel={`${filteredOpen.length}`}
         defaultOpen
       >
+        <QualifiedStagePanel stage="en_cartera" brokerFilter={broker} />
         <OpenPositionsTable brokerFilter={broker} />
       </CollapsibleBlock>
     </div>
