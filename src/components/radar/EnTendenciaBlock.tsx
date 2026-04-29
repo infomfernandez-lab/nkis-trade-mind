@@ -650,7 +650,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, 
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
       <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
-      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} /></td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} expanded={expanded} onToggleExpand={onToggleExpand} /></td>
     </tr>
   );
 }
