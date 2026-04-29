@@ -517,30 +517,11 @@ function useSendToProximo(inst: UnifiedInstrument) {
   };
 }
 
-function ActionCell({ inst, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
-  const onSendToProximo = useSendToProximo(inst);
-  const onAddSeguimiento = useAddToSeguimiento();
+function ActionCell({ inst, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   return (
     <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
-      {isOpen ? (
+      {isOpen && (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
-      ) : isWatched ? (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />En entrada próxima</span>
-      ) : (
-        <button onClick={onSendToProximo} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors">
-          → Entrada próxima
-        </button>
-      )}
-      {!isInSeguimiento ? (
-        <button
-          onClick={() => onAddSeguimiento(inst)}
-          title="Añadir a Seguimiento"
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
-        >
-          <Eye className="w-3 h-3" /> Seguir
-        </button>
-      ) : (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-yellow-400"><Eye className="w-3 h-3" />En seguimiento</span>
       )}
       <QualificationChecklist
         symbol={inst.symbol}
