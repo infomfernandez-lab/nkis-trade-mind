@@ -192,6 +192,18 @@ const TIER_LABEL: Record<Tier, string> = {
   observar: '◌ OBSERVAR — Score 40-59',
 };
 
+type SortKey =
+  | 'symbol'
+  | 'price'
+  | 'direction'
+  | 'score'
+  | 'qualScore'
+  | 'adx'
+  | 'pend50'
+  | 'estructura'
+  | 'stoch'
+  | 'atr';
+
 export function EnTendenciaBlock({ brokerFilter }: Props) {
   const allItems = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
@@ -211,6 +223,8 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
 
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
+
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of allItems) {
@@ -219,9 +233,28 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
     }
     return c;
   }, [allItems]);
-  const items = typeFilter.size === 0
+
+  const typeFiltered = typeFilter.size === 0
     ? allItems
     : allItems.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  const items = useFiltered<UnifiedInstrument, SortKey>(
+    typeFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: it => it.symbol,
+      price: it => it.current_price,
+      direction: it => it.direction,
+      score: it => it.score,
+      qualScore: it => qualMap.get(`${it.symbol}::${it.broker}`)?.score ?? (it.score >= 75 ? 2 : 0),
+      adx: it => it.adx_value,
+      pend50: it => it.pend50_pct,
+      estructura: it => it.estructura,
+      stoch: it => it.stoch_k,
+      atr: it => it.atr,
+    },
+    it => [it.symbol, it.broker],
+  );
 
   if (allItems.length === 0) {
     return (
@@ -235,22 +268,35 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const rankByKey = new Map<string, number>();
   items.forEach((it, idx) => rankByKey.set(`${it.symbol}::${it.broker}`, idx + 1));
 
-  // Group by tier preserving sort
-  const grouped: { tier: Tier; items: UnifiedInstrument[] }[] = [];
-  for (const it of items) {
-    const t = tierOf(it.score);
-    const last = grouped[grouped.length - 1];
-    if (last && last.tier === t) last.items.push(it);
-    else grouped.push({ tier: t, items: [it] });
+  // Group by tier preserving sort — only when no explicit sort is active
+  const showTiers = controls.sort.key === null;
+  const grouped: { tier: Tier | null; items: UnifiedInstrument[] }[] = [];
+  if (showTiers) {
+    for (const it of items) {
+      const t = tierOf(it.score);
+      const last = grouped[grouped.length - 1];
+      if (last && last.tier === t) last.items.push(it);
+      else grouped.push({ tier: t, items: [it] });
+    }
+  } else {
+    grouped.push({ tier: null, items });
   }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>Escáner v18 — {items.length} de {allItems.length}</span>
+        <span>Escáner v18</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <TableSearchLimit
+            search={controls.search}
+            onSearchChange={controls.setSearch}
+            limit={controls.limit}
+            onLimitChange={controls.setLimit}
+            total={typeFiltered.length}
+            shown={items.length}
+          />
           <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
         </div>
       </div>
@@ -261,27 +307,29 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
           <thead>
             <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-2 py-2 w-[50px]">#</th>
-              <th className="text-left px-3 py-2">Símbolo</th>
-              <th className="text-right px-2 py-2 w-[90px]">Precio</th>
-              <th className="text-left px-2 py-2 w-[70px]">Dir</th>
-              <th className="text-center px-2 py-2 w-[80px]">Score</th>
-              <th className="text-center px-2 py-2 w-[90px]">Embudo</th>
-              <th className="text-left px-2 py-2 w-[100px]">ADX</th>
-              <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
-              <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
-              <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
-              <th className="text-left px-2 py-2 w-[100px]">ATR</th>
+              <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
+              <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+              <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
+              <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[80px]" />
+              <SortHeader label="Embudo" sortKey="qualScore" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[90px]" />
+              <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+              <SortHeader label="Pend50" sortKey="pend50" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[80px]" />
+              <SortHeader label="Estruct" sortKey="estructura" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
+              <SortHeader label="Stoch(14)" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
+              <SortHeader label="ATR" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
               <th className="text-right px-2 py-2 w-[260px]">Acción</th>
             </tr>
           </thead>
           <tbody>
             {grouped.map((g, gi) => (
-              <Fragment key={`${g.tier}-${gi}`}>
-                <tr className="bg-secondary/20">
-                  <td colSpan={12} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
-                    {TIER_LABEL[g.tier]}
-                  </td>
-                </tr>
+              <Fragment key={`${g.tier ?? 'flat'}-${gi}`}>
+                {g.tier && (
+                  <tr className="bg-secondary/20">
+                    <td colSpan={12} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                      {TIER_LABEL[g.tier]}
+                    </td>
+                  </tr>
+                )}
                 {g.items.map((inst, i) => {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
@@ -325,10 +373,12 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
       {/* Mobile cards */}
       <div className="md:hidden">
         {grouped.map((g, gi) => (
-          <div key={`m-${g.tier}-${gi}`}>
-            <div className="px-3 py-1 bg-secondary/30 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
-              {TIER_LABEL[g.tier]}
-            </div>
+          <div key={`m-${g.tier ?? 'flat'}-${gi}`}>
+            {g.tier && (
+              <div className="px-3 py-1 bg-secondary/30 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                {TIER_LABEL[g.tier]}
+              </div>
+            )}
             <div className="divide-y divide-border">
               {g.items.map((inst, i) => {
                 const key = `${inst.symbol}::${inst.broker}`;
