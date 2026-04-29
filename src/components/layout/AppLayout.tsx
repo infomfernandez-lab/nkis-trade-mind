@@ -92,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <BrokerContext.Provider value={{ broker, setBroker }}>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-[100dvh] w-full max-w-[100vw] overflow-hidden bg-background">
         <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-sidebar shrink-0">
           <div className="p-5 border-b border-border">
             <h1 className="font-display text-lg font-bold tracking-tight text-foreground">
