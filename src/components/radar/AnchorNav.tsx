@@ -68,7 +68,7 @@ export function AnchorNav({ items }: Props) {
               onClick={() => handleClick(it.id)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors border ${
                 active
-                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40'
+                  ? 'bg-primary/20 text-primary border-primary/40'
                   : 'bg-secondary text-muted-foreground border-transparent hover:text-foreground'
               }`}
             >
