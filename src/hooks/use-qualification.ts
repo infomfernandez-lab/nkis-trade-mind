@@ -146,7 +146,7 @@ export function useUpsertQualification() {
       const tsKeys = ['c1_at','c2_at','c3_at','c4_at','c5_at','c6_at','c7_at'] as const;
       keys.forEach((k, i) => {
         const prev = existing?.[k] ?? false;
-        const next = (merged as Record<string, boolean>)[k];
+        const next = merged[k];
         if (prev !== next) tsPatch[tsKeys[i]] = next ? now : null;
       });
 
