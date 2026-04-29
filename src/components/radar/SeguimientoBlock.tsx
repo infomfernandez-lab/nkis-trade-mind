@@ -152,7 +152,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
             <th className="text-right px-2 py-2 w-[120px]">Acción</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&>tr:first-child>td]:pt-5">
           {list.map((item, idx) => (
             <tr key={item.id} className="border-t border-border text-sm">
               <td className="px-3 py-2 font-data text-muted-foreground">{idx + 1}</td>

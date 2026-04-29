@@ -321,7 +321,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-right px-2 py-2 w-[260px]">Acción</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:first-child>td]:pt-5">
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier ?? 'flat'}-${gi}`}>
                 {g.tier && (

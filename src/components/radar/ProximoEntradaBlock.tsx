@@ -233,7 +233,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
             <th className="text-right px-2 py-2 w-[180px]">Acciones</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&>tr:first-child>td]:pt-5">
           {near.map(item => (
             <NearRow
               key={item.id}
