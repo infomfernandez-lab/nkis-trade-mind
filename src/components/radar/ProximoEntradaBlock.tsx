@@ -118,10 +118,10 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const { user } = useAuth();
   const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
   const allNear: NearItem[] = useMemo(() => {
     const built = buildNearItems(brokerFilter, scannerMap, items ?? []);
-    // Hide instruments already shown in the qualification funnel
     return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
   }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
@@ -132,9 +132,24 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
     }
     return c;
   }, [allNear]);
-  const near = typeFilter.size === 0
+  const typeFiltered = typeFilter.size === 0
     ? allNear
     : allNear.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  const near = useFiltered<NearItem, SortKey>(
+    typeFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: it => it.symbol,
+      price: it => it.current_price,
+      broker: it => it.broker,
+      direction: it => it.direction,
+      score: it => it.scannerScore,
+      stoch: it => it.stoch,
+      atr: it => it.atr,
+    },
+    it => [it.symbol, it.broker],
+  );
 
   const handleRemove = (item: NearItem) => {
     if (!item.watchlistId) {
