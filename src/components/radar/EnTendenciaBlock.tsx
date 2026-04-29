@@ -11,6 +11,8 @@ import { useAddToSeguimiento } from './SeguimientoBlock';
 import { Eye } from 'lucide-react';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
+import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
+import { QualificationChecklist, QualificationProgressBadge } from './QualificationChecklist';
 
 interface Raw {
   rank?: number;
