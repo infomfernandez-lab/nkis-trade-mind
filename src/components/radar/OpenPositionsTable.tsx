@@ -28,6 +28,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
   const { openTrades, isLoading } = useAllTrades();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
@@ -38,9 +39,24 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
     return c;
   }, [filteredAll]);
 
-  const filtered = typeFilter.size === 0
+  const typeFiltered = typeFilter.size === 0
     ? filteredAll
     : filteredAll.filter(t => typeFilter.has(classifyInstrument(t.symbol).type));
+
+  const filtered = useFiltered<Trade, SortKey>(
+    typeFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: t => t.symbol,
+      direction: t => t.direction,
+      entryDate: t => new Date(t.entryDate).getTime(),
+      entryPrice: t => t.entryPrice,
+      sl: t => t.slPrice,
+      tp: t => t.tpPrice,
+      pnl: t => t.netPnl,
+    },
+    t => [t.symbol, t.direction],
+  );
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-6">Cargando posiciones...</div>;
@@ -61,11 +77,18 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="text-[11px] text-muted-foreground">{filtered.length} de {filteredAll.length} posiciones</span>
+        <TableSearchLimit
+          search={controls.search}
+          onSearchChange={controls.setSearch}
+          limit={controls.limit}
+          onLimitChange={controls.setLimit}
+          total={typeFiltered.length}
+          shown={filtered.length}
+        />
         <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
       </div>
-      {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} />}
-      {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} />}
+      {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
+      {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
         Las posiciones abiertas solo las cierra el SL. El scanner no tiene autoridad sobre trades ya abiertos.
       </p>
