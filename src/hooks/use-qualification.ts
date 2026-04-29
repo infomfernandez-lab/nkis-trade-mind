@@ -72,10 +72,10 @@ export const STAGE_META: Record<QualificationStage, { label: string; emoji: stri
   },
   calificado: {
     label: 'Calificado', emoji: '🔍', tone: 'yellow',
-    badge: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40',
-    header: 'bg-yellow-500/15 text-yellow-200 border-yellow-500/40',
-    border: 'border-yellow-500/40',
-    accent: 'border-l-yellow-400',
+    badge: 'bg-primary/15 text-primary border-primary/40',
+    header: 'bg-primary/15 text-primary border-primary/40',
+    border: 'border-primary/40',
+    accent: 'border-l-primary',
   },
   senal_activa: {
     label: 'Señal activa', emoji: '⚡', tone: 'orange',
