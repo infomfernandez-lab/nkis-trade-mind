@@ -90,7 +90,7 @@ export function QualifiedStagePanel({ stage, brokerFilter }: Props) {
         <span className="ml-auto font-data">{rows.length}</span>
       </div>
       <div className="divide-y divide-border">
-        {rows.map(({ inst }, idx) => {
+        {rows.map(({ inst, score }, idx) => {
           const isBuy = isAlcistaDir(inst.direction);
           return (
             <div
