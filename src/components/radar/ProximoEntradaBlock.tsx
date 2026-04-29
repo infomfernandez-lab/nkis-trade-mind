@@ -113,12 +113,14 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const add = useAddToWatchlist();
   const { user } = useAuth();
+  const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const allNear: NearItem[] = useMemo(
-    () => buildNearItems(brokerFilter, scannerMap, items ?? []),
-    [brokerFilter, scannerMap, items],
-  );
+  const allNear: NearItem[] = useMemo(() => {
+    const built = buildNearItems(brokerFilter, scannerMap, items ?? []);
+    // Hide instruments already shown in the qualification funnel
+    return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
+  }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of allNear) {
