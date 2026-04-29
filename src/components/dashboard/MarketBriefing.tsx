@@ -202,10 +202,14 @@ export function MarketBriefing({ openTrades }: Props) {
 
           {/* Régimen + Guardar */}
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground mr-1">
+                Régimen{!regimen && <span className="text-destructive"> *</span>}:
+              </span>
               {REGIMENES.map(r => (
                 <button
                   key={r}
+                  type="button"
                   onClick={() => setRegimen(r)}
                   className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
                     regimen === r
@@ -217,7 +221,13 @@ export function MarketBriefing({ openTrades }: Props) {
                 </button>
               ))}
             </div>
-            <Button onClick={handleSave} disabled={saving} variant="secondary" className="gap-2 self-start">
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              variant="secondary"
+              className="gap-2 self-start"
+            >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Guardando...' : 'Guardar briefing'}
             </Button>
