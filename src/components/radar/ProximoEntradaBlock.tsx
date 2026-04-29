@@ -207,7 +207,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+      <div className="sticky top-0 z-30 px-3 py-1.5 bg-secondary border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <TableSearchLimit
             search={controls.search}
@@ -216,14 +216,15 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
             onLimitChange={controls.setLimit}
             total={typeFiltered.length}
             shown={near.length}
+            suggestions={typeFiltered.map(it => it.symbol)}
           />
           <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
         </div>
       </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
-        <thead>
-          <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <thead className="sticky top-[34px] z-20">
+          <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
             <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
             <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
             <SortHeader label="Cuenta" sortKey="broker" state={controls.sort} onToggle={controls.toggle} className="w-[90px]" />
