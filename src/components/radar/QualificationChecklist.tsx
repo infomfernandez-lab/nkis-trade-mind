@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import {
   CRITERIA_POINTS,
   STAGE_META,
@@ -10,6 +10,7 @@ import {
   type QualificationRow,
 } from '@/hooks/use-qualification';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface Props {
   symbol: string;
@@ -36,21 +37,13 @@ function isBuy(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
-/** Inline progress badge shown in the scanner row. */
+/** Inline progress badge shown in the scanner row, colored by stage. */
 export function QualificationProgressBadge({ score }: { score: number }) {
   const stage = stageFromScore(score);
   const meta = STAGE_META[stage];
-  const tone =
-    meta.tone === 'green'
-      ? 'bg-success/20 text-success border-success/40'
-      : meta.tone === 'orange'
-        ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
-        : meta.tone === 'yellow'
-          ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
-          : 'bg-muted/40 text-muted-foreground border-border';
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${tone}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${meta.badge}`}
       title={`${meta.emoji} ${meta.label}`}
     >
       <span>{meta.emoji}</span>
@@ -73,7 +66,6 @@ export function QualificationChecklist({
   const c1Auto = scannerScore >= 75;
   const c6Auto = calcUsed;
 
-  // Effective state: auto criteria override stored value
   const state = {
     c1_elite: c1Auto || (existing?.c1_elite ?? false),
     c2_direction: existing?.c2_direction ?? false,
@@ -105,7 +97,6 @@ export function QualificationChecklist({
       toast.info('Este criterio se marca automáticamente');
       return;
     }
-    // Sequential rule: previous criteria must all be true
     for (let i = 0; i < idx; i++) {
       if (!flags[i]) {
         toast.error(`Marca primero el criterio ${i + 1}`);
@@ -115,7 +106,6 @@ export function QualificationChecklist({
     const key = keys[idx];
     const newValue = !flags[idx];
 
-    // If unchecking, also uncheck all subsequent (manual) criteria
     const patch: Record<string, boolean> = { [key]: newValue };
     if (!newValue) {
       for (let i = idx + 1; i < keys.length; i++) {
@@ -149,88 +139,104 @@ export function QualificationChecklist({
   }, [c1Auto, c6Auto, existing?.id, existing?.c1_elite, existing?.c6_sizing]);
 
   return (
-    <div className="inline-block">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border transition-colors ${meta.badge} hover:brightness-110`}
+        >
+          Evaluar {score}/20
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={12}
+        className="w-[440px] max-w-[92vw] p-3 bg-popover border-border z-[60]"
       >
-        Evaluar {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-      </button>
-
-      {open && (
-        <div className="absolute z-30 mt-1 w-[420px] max-w-[92vw] right-0 rounded-lg border border-border bg-popover shadow-lg p-3 text-left">
-          <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border">
-            <div className="text-xs font-bold text-foreground">
-              {meta.emoji} {meta.label}
-            </div>
-            <div className="font-data text-xs font-bold">
-              {score}/20 pts
-            </div>
+        <div className={`flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border`}>
+          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold border ${meta.badge}`}>
+            <span>{meta.emoji}</span>
+            <span>{meta.label}</span>
           </div>
-
-          <div className="space-y-1.5">
-            {CRITERIA_LABELS.map((label, idx) => {
-              const checked = flags[idx];
-              const isAuto = AUTO_INDICES.has(idx);
-              const prevDone = idx === 0 || flags.slice(0, idx).every(Boolean);
-              const locked = !prevDone && !checked && !isAuto;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleToggle(idx)}
-                  disabled={locked || isAuto}
-                  className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left text-[11px] transition-colors ${
-                    checked
-                      ? 'bg-success/10 border border-success/30'
-                      : locked
-                        ? 'opacity-40 cursor-not-allowed'
-                        : 'hover:bg-secondary/50 border border-transparent'
-                  }`}
-                >
-                  <span
-                    className={`shrink-0 w-4 h-4 rounded grid place-content-center border ${
-                      checked
-                        ? 'bg-success/30 border-success/60 text-success'
-                        : 'border-border'
-                    }`}
-                  >
-                    {checked ? <Check className="w-3 h-3" /> : locked ? <Lock className="w-2.5 h-2.5" /> : null}
-                  </span>
-                  <span className="flex-1 leading-snug">
-                    <span className="font-medium text-foreground">
-                      {idx + 1}. {label}
-                    </span>
-                    <span className="ml-1 text-muted-foreground font-data">
-                      ({CRITERIA_POINTS[idx]} pts)
-                    </span>
-                    {isAuto && (
-                      <span className="ml-1 text-[9px] text-muted-foreground italic">automático</span>
-                    )}
-                    {idx === 1 && (
-                      <span className="ml-1 text-[9px] font-bold text-primary">
-                        ({isBuy(direction) ? 'BUY' : 'SELL'})
-                      </span>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>
-              {flags.filter(Boolean).length}/7 criterios
-            </span>
-            <button
-              onClick={() => setOpen(false)}
-              className="px-2 py-0.5 rounded hover:bg-secondary text-foreground"
-            >
-              Cerrar
-            </button>
+          <div className="font-data text-xs font-bold text-foreground">
+            {score}/20 pts
           </div>
         </div>
-      )}
-    </div>
+
+        <div className="space-y-1.5">
+          {CRITERIA_LABELS.map((label, idx) => {
+            const checked = flags[idx];
+            const isAuto = AUTO_INDICES.has(idx);
+            const prevDone = idx === 0 || flags.slice(0, idx).every(Boolean);
+            const locked = !prevDone && !checked && !isAuto;
+
+            // Text color tiers per spec:
+            // - locked → gris claro (muted)
+            // - completed → verde
+            // - available → normal foreground
+            const textTone = checked
+              ? 'text-success'
+              : locked
+                ? 'text-muted-foreground/60'
+                : 'text-foreground';
+
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleToggle(idx)}
+                disabled={locked || isAuto}
+                className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left text-[11px] border transition-colors ${
+                  checked
+                    ? 'bg-success/10 border-success/30'
+                    : locked
+                      ? 'bg-transparent border-transparent cursor-not-allowed'
+                      : 'bg-transparent border-border/50 hover:bg-secondary/40'
+                }`}
+              >
+                <span
+                  className={`shrink-0 w-4 h-4 mt-0.5 rounded grid place-content-center border ${
+                    checked
+                      ? 'bg-success/30 border-success/60 text-success'
+                      : locked
+                        ? 'border-muted-foreground/30 text-muted-foreground/40'
+                        : 'border-border'
+                  }`}
+                >
+                  {checked ? <Check className="w-3 h-3" /> : locked ? <Lock className="w-2.5 h-2.5" /> : null}
+                </span>
+                <span className={`flex-1 leading-snug ${textTone}`}>
+                  <span className="font-medium">
+                    {idx + 1}. {label}
+                  </span>
+                  <span className="ml-1 text-muted-foreground font-data">
+                    ({CRITERIA_POINTS[idx]} pts)
+                  </span>
+                  {isAuto && (
+                    <span className="ml-1 text-[9px] text-muted-foreground italic">automático</span>
+                  )}
+                  {idx === 1 && (
+                    <span className="ml-1 text-[9px] font-bold text-primary">
+                      ({isBuy(direction) ? 'BUY' : 'SELL'})
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>{flags.filter(Boolean).length}/7 criterios</span>
+          <button
+            onClick={() => setOpen(false)}
+            className="px-2 py-0.5 rounded hover:bg-secondary text-foreground"
+          >
+            Cerrar
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
