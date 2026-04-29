@@ -1,14 +1,10 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TrendingUp, TrendingDown, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
-import { useAuth } from '@/hooks/use-auth';
+import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import type { BrokerFilter } from '@/lib/trade-utils';
-import { toast } from 'sonner';
-import { useAddToSeguimiento } from './SeguimientoBlock';
-import { Eye } from 'lucide-react';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
@@ -492,55 +488,12 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
   return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 
-function useSendToProximo(inst: UnifiedInstrument) {
-  const add = useAddToWatchlist();
-  const { user } = useAuth();
-  return () => {
-    if (!user) return;
-    add.mutate({
-      symbol: inst.symbol,
-      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
-      watch_reason: `Marcado manualmente — Score ${inst.score}/100`,
-      stochastic_level: inst.stoch_k ?? null,
-      scanner_score: inst.score,
-      adx_value: inst.adx_value,
-      adx_state: inst.adx_state,
-      distance_to_ma50: inst.distance_to_ma50,
-      status: 'PROXIMO',
-      added_from_scanner: false,
-      trade_id: null,
-      broker: inst.broker,
-    }, {
-      onSuccess: () => toast.success(`${inst.symbol} → Entrada próxima`),
-      onError: () => toast.error('Error al añadir'),
-    });
-  };
-}
 
-function ActionCell({ inst, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
-  const onSendToProximo = useSendToProximo(inst);
-  const onAddSeguimiento = useAddToSeguimiento();
+function ActionCell({ inst, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   return (
     <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
-      {isOpen ? (
+      {isOpen && (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
-      ) : isWatched ? (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-success"><Check className="w-3 h-3" />En entrada próxima</span>
-      ) : (
-        <button onClick={onSendToProximo} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors">
-          → Entrada próxima
-        </button>
-      )}
-      {!isInSeguimiento ? (
-        <button
-          onClick={() => onAddSeguimiento(inst)}
-          title="Añadir a Seguimiento"
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
-        >
-          <Eye className="w-3 h-3" /> Seguir
-        </button>
-      ) : (
-        <span className="inline-flex items-center gap-0.5 text-[11px] text-yellow-400"><Eye className="w-3 h-3" />En seguimiento</span>
       )}
       <QualificationChecklist
         symbol={inst.symbol}

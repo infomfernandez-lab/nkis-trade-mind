@@ -65,7 +65,7 @@ function RadarPage() {
         id="seguimiento"
         title="🔍 CALIFICADO"
         countLabel={`${seguimientoCount}`}
-        stage="calificado"
+        stage="escaneado"
         defaultOpen
       >
         <QualifiedStagePanel stage="calificado" brokerFilter={broker} />
@@ -77,8 +77,7 @@ function RadarPage() {
         id="proximo"
         title="⚡ SEÑAL ACTIVA"
         countLabel={proximoCount > 0 ? `${proximoCount} ⚡` : '0'}
-        stage="senal_activa"
-        tone={proximoCount > 0 ? 'alert' : undefined}
+        stage="escaneado"
         defaultOpen
       >
         <QualifiedStagePanel stage="senal_activa" brokerFilter={broker} />
@@ -90,7 +89,7 @@ function RadarPage() {
         id="posiciones"
         title="📈 EN CARTERA"
         countLabel={`${filteredOpen.length}`}
-        stage="en_cartera"
+        stage="escaneado"
         defaultOpen
       >
         <QualifiedStagePanel stage="en_cartera" brokerFilter={broker} />
