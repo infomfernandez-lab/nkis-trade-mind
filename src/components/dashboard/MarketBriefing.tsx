@@ -86,6 +86,7 @@ export function MarketBriefing({ openTrades }: Props) {
   };
 
   const handleSave = async () => {
+    console.log('[MarketBriefing] Save clicked', { user: !!user, briefingLen: briefing.length, regimen });
     if (!user) {
       toast.error('Debes iniciar sesión');
       return;
@@ -95,7 +96,7 @@ export function MarketBriefing({ openTrades }: Props) {
       return;
     }
     if (!regimen) {
-      toast.error('Selecciona un régimen de mercado');
+      toast.error('Selecciona un régimen de mercado (Tendencia, Rango, …)');
       return;
     }
     setSaving(true);
@@ -105,7 +106,7 @@ export function MarketBriefing({ openTrades }: Props) {
       const snapshot = openTrades.map(t => ({
         symbol: t.symbol,
         direction: t.direction,
-        floatingPnl: t.netPnl ?? 0,
+        floatingPnl: Number(t.netPnl ?? 0),
       }));
 
       // 1. Save briefing
@@ -117,36 +118,43 @@ export function MarketBriefing({ openTrades }: Props) {
         regimen,
         posiciones_snapshot: snapshot,
       });
-      if (insErr) throw insErr;
+      if (insErr) {
+        console.error('[MarketBriefing] Insert error:', insErr);
+        throw insErr;
+      }
 
       // 2. Upsert into daily_reports market_context for today
-      const { data: existing } = await supabase
+      const { data: existing, error: selErr } = await supabase
         .from('daily_reports')
         .select('id')
         .eq('user_id', user.id)
         .eq('report_date', today)
         .eq('broker_filter', 'all')
         .maybeSingle();
+      if (selErr) console.warn('[MarketBriefing] daily_reports select warn:', selErr);
 
       if (existing?.id) {
-        await supabase
+        const { error: updErr } = await supabase
           .from('daily_reports')
           .update({ market_context: briefing })
           .eq('id', existing.id);
+        if (updErr) throw updErr;
       } else {
-        await supabase.from('daily_reports').insert({
+        const { error: insRepErr } = await supabase.from('daily_reports').insert({
           user_id: user.id,
           report_date: today,
           broker_filter: 'all',
           market_context: briefing,
         });
+        if (insRepErr) throw insRepErr;
       }
 
       toast.success('Briefing guardado y vinculado al informe diario');
       await loadHistory();
-    } catch (e) {
-      console.error(e);
-      toast.error(e instanceof Error ? e.message : 'Error guardando briefing');
+    } catch (e: any) {
+      console.error('[MarketBriefing] Save failed:', e);
+      const msg = e?.message || e?.error_description || e?.hint || 'Error guardando briefing';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
