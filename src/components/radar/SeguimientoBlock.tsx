@@ -70,11 +70,10 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
   const fullList = useMemo(() => {
     const built = buildItems(brokerFilter, scannerMap, items ?? []);
-    // Hide instruments already present in the qualification funnel
-    // (any stage) — they are shown in QualifiedStagePanel above.
     return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
   }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
@@ -85,9 +84,24 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
     }
     return c;
   }, [fullList]);
-  const list = typeFilter.size === 0
+  const typeFiltered = typeFilter.size === 0
     ? fullList
     : fullList.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  const list = useFiltered<SeguimientoItem, SortKey>(
+    typeFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: it => it.symbol,
+      price: it => it.current_price,
+      broker: it => it.broker,
+      direction: it => it.direction,
+      score: it => it.score,
+      stoch: it => it.stoch,
+      adx: it => it.adx,
+    },
+    it => [it.symbol, it.broker],
+  );
 
   const handleRemove = (item: SeguimientoItem) => {
     del.mutate(item.watchlistId, {
