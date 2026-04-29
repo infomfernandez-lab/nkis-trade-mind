@@ -209,6 +209,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of allItems) {
