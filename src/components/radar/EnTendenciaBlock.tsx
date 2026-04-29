@@ -600,7 +600,7 @@ function rankColor(hl: HighlightTier): string {
   return 'text-muted-foreground';
 }
 
-function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, expanded, onToggleExpand }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow; expanded: boolean; onToggleExpand: () => void }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
