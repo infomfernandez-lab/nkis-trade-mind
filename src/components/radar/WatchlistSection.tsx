@@ -85,7 +85,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
   return (
     <div className="space-y-3">
       {nearCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 text-sm text-yellow-300">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary/40 bg-primary/10 text-sm text-primary">
           <Zap className="w-4 h-4 shrink-0 animate-pulse" />
           <span><span className="font-semibold">{nearCount} instrumento{nearCount > 1 ? 's' : ''}</span> con señal próxima — revisa antes de dormir</span>
         </div>
@@ -115,7 +115,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
 
               const adxState = item.adx_state?.toUpperCase() ?? '';
               const adxColor = adxState === 'ACELERANDO' ? 'text-success'
-                : adxState === 'SUBIENDO' ? 'text-yellow-400'
+                : adxState === 'SUBIENDO' ? 'text-primary'
                 : adxState === 'ESTABLE' ? 'text-muted-foreground'
                 : adxState === 'AGOTANDO' ? 'text-destructive'
                 : 'text-muted-foreground';
@@ -134,10 +134,10 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
                 statusClasses = 'bg-success/20 text-success border-success/40';
               } else if (item.inEntryZone) {
                 statusLabel = '⭐ En zona entrada';
-                statusClasses = 'bg-yellow-500/25 text-yellow-300 border-yellow-500/50';
+                statusClasses = 'bg-primary/25 text-primary border-primary/50';
               } else if (item.signalNear || item.pullback) {
                 statusLabel = '⚡ Señal próxima';
-                statusClasses = 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30 animate-pulse';
+                statusClasses = 'bg-primary/15 text-primary border-primary/30 animate-pulse';
               } else {
                 statusLabel = 'Esperando señal';
                 statusClasses = 'bg-muted text-muted-foreground border-border';
@@ -146,11 +146,11 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
               return (
                 <TableRow
                   key={item.id}
-                  className={item.pullback ? 'bg-yellow-500/[0.04] hover:bg-yellow-500/[0.07]' : ''}
+                  className={item.pullback ? 'bg-primary/[0.04] hover:bg-primary/[0.07]' : ''}
                 >
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      {item.pullback && <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />}
+                      {item.pullback && <Star className="w-3.5 h-3.5 text-primary fill-primary shrink-0" />}
                       {isAlcista ? (
                         <TrendingUp className="w-3.5 h-3.5 text-success" />
                       ) : (
@@ -171,7 +171,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
                   <TableCell className="text-right">
                     {score != null ? (
                       <span className={`font-data font-bold text-sm inline-flex items-center gap-1 ${
-                        isElite ? 'text-yellow-400' : isSolid ? 'text-success' : 'text-muted-foreground'
+                        isElite ? 'text-primary' : isSolid ? 'text-success' : 'text-muted-foreground'
                       }`}>
                         {isElite && '★'}
                         {isSolid && '●'}
@@ -241,8 +241,8 @@ function StochCell({ estado, value, pullback }: { estado: StochEstado; value: nu
   if (pullback) {
     return (
       <div className="flex items-center gap-1.5">
-        <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />
-        <span className="text-[11px] text-yellow-300 font-semibold">⭐ PULLBACK ACTIVO</span>
+        <Star className="w-3.5 h-3.5 text-primary fill-primary shrink-0" />
+        <span className="text-[11px] text-primary font-semibold">⭐ PULLBACK ACTIVO</span>
       </div>
     );
   }

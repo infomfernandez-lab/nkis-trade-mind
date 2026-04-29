@@ -381,7 +381,7 @@ export function getTradeColorStrip(trade: Trade): string {
   if (trade.status === 'open') return 'bg-primary';
   const followedSystem = trade.systemCompliance === '100%' && trade.manualIntervention === 'None, EA managing';
   if (trade.isWin && followedSystem) return 'bg-success';
-  if (trade.isWin && !followedSystem) return 'bg-yellow-500';
+  if (trade.isWin && !followedSystem) return 'bg-primary';
   if (!trade.isWin && followedSystem) return 'bg-orange-500';
   return 'bg-destructive';
 }

@@ -98,7 +98,7 @@ function Manual() {
       <ManualSection icon={BarChart3} title="Tabla de Referencia VIX">
         <div className="space-y-2">
           <VixRow range="< 25" status="Normal" color="text-success" action="Opera normalmente. Tamaño de posición completo." />
-          <VixRow range="25 — 35" status="Elevado" color="text-yellow-500" action="Cautela. Solo instrumentos mejor clasificados." />
+          <VixRow range="25 — 35" status="Elevado" color="text-primary" action="Cautela. Solo instrumentos mejor clasificados." />
           <VixRow range="35 — 45" status="Alto" color="text-orange-500" action="Reduce tamaño un 50%. Selectividad extra." />
           <VixRow range="> 45" status="Extremo" color="text-destructive" action="NO OPERAR. Espera a que las condiciones se normalicen." />
         </div>

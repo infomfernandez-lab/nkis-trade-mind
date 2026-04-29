@@ -75,12 +75,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {item.to === '/radar' && (radarBadges.pullback > 0 || radarBadges.near > 0) && (
           <span className="flex items-center gap-1 shrink-0">
             {radarBadges.pullback > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/40">
                 ⭐{radarBadges.pullback}
               </span>
             )}
             {radarBadges.near > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-400/15 text-yellow-300 border border-yellow-400/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/30">
                 ⚡{radarBadges.near}
               </span>
             )}

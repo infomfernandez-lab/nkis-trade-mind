@@ -350,7 +350,7 @@ function adxAbbr(state: string | null): string {
 function adxColor(value: number | null): string {
   if (value == null) return 'text-muted-foreground';
   if (value > 30) return 'text-success';
-  if (value < 20) return 'text-yellow-400';
+  if (value < 20) return 'text-primary';
   return 'text-foreground';
 }
 
@@ -358,13 +358,13 @@ function pend50Color(p: number | null): string {
   if (p == null) return 'text-muted-foreground';
   const a = Math.abs(p);
   if (a > 0.3) return 'text-success';
-  if (a >= 0.05) return 'text-yellow-400';
+  if (a >= 0.05) return 'text-primary';
   return 'text-destructive';
 }
 
 function estructuraMeta(e: EstructuraTipo): { icon: string; label: string; color: string; bg: string } {
   if (e === 'CONFIRMADA') return { icon: '✓', label: 'CONFIRMADA', color: 'text-success', bg: 'bg-success/10 border-success/30' };
-  if (e === 'PARCIAL') return { icon: '~', label: 'PARCIAL', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30' };
+  if (e === 'PARCIAL') return { icon: '~', label: 'PARCIAL', color: 'text-primary', bg: 'bg-primary/10 border-primary/30' };
   if (e === 'ROTA') return { icon: '✗', label: 'ROTA', color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' };
   return { icon: '—', label: '—', color: 'text-muted-foreground', bg: '' };
 }
@@ -378,7 +378,7 @@ function divMeta(d: DivergenciaTipo): { label: string; color: string } {
 function atrMeta(a: AtrEstadoTipo): { label: string; color: string } {
   if (a === 'BAJA') return { label: 'BAJA', color: 'text-success' };
   if (a === 'COHERENTE') return { label: 'COHERENTE', color: 'text-foreground' };
-  if (a === 'ELEVADA') return { label: 'ELEVADA', color: 'text-yellow-400' };
+  if (a === 'ELEVADA') return { label: 'ELEVADA', color: 'text-primary' };
   if (a === 'ANORMAL') return { label: 'ANORMAL', color: 'text-destructive' };
   return { label: '—', color: 'text-muted-foreground' };
 }
@@ -392,7 +392,7 @@ function scoreIcon(score: number): string {
 function ScoreBadge({ score }: { score: number }) {
   if (score >= 75) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-yellow-400 text-black border border-yellow-500">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary text-black border border-primary">
         ★ {score}
       </span>
     );
@@ -405,7 +405,7 @@ function ScoreBadge({ score }: { score: number }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-yellow-700/30 text-yellow-300 border border-yellow-700/50">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary/30 text-primary border border-primary/50">
       ◌ {score}
     </span>
   );
@@ -423,7 +423,7 @@ function StochCell({ inst }: { inst: UnifiedInstrument }) {
   const sub = inst.stoch_subiendo;
   // Apoya tendencia: alcista subiendo / bajista bajando
   const apoya = sub == null ? null : (alcista ? sub : !sub);
-  const color = apoya == null ? 'text-foreground' : apoya ? 'text-success' : 'text-yellow-400';
+  const color = apoya == null ? 'text-foreground' : apoya ? 'text-success' : 'text-primary';
   const arrow = sub == null ? '' : sub ? '↑' : '↓';
   return (
     <span className={`font-data text-xs font-semibold ${color}`}>
@@ -484,7 +484,7 @@ export function normalizeStochEstado(raw: string | undefined, value: number | un
 export function stochEstadoMeta(estado: StochEstado): { dot: string; label: string; color: string } {
   if (estado === 'ZONA_ENTRADA') return { dot: '🟢', label: 'ZONA ENTRADA', color: 'text-success' };
   if (estado === 'SOBRECOMPRADO') return { dot: '🔴', label: 'SOBRECOMPRADO', color: 'text-destructive' };
-  if (estado === 'ZONA_MEDIA') return { dot: '🟡', label: 'ZONA MEDIA', color: 'text-yellow-400' };
+  if (estado === 'ZONA_MEDIA') return { dot: '🟡', label: 'ZONA MEDIA', color: 'text-primary' };
   return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 

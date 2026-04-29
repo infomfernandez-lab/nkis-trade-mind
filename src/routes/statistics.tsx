@@ -472,7 +472,7 @@ const colorMap: Record<CardColor, string> = {
   success: 'text-success',
   destructive: 'text-destructive',
   muted: 'text-foreground',
-  warning: 'text-yellow-400',
+  warning: 'text-primary',
 };
 
 function StatCard({ label, value, sub, color, tip }: { label: string; value: string; sub?: string; color: CardColor; tip: string }) {
