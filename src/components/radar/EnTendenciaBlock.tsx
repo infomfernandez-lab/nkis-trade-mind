@@ -517,11 +517,11 @@ function useSendToProximo(inst: UnifiedInstrument) {
   };
 }
 
-function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function ActionCell({ inst, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const onSendToProximo = useSendToProximo(inst);
   const onAddSeguimiento = useAddToSeguimiento();
   return (
-    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+    <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
       {isOpen ? (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       ) : isWatched ? (
@@ -542,6 +542,13 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
       ) : (
         <span className="inline-flex items-center gap-0.5 text-[11px] text-yellow-400"><Eye className="w-3 h-3" />En seguimiento</span>
       )}
+      <QualificationChecklist
+        symbol={inst.symbol}
+        broker={inst.broker}
+        direction={inst.direction}
+        scannerScore={inst.score}
+        existing={qual}
+      />
     </div>
   );
 }
