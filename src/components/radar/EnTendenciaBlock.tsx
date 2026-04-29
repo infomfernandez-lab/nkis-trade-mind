@@ -657,6 +657,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, 
 
 function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const [open, setOpen] = useState(false);
+  const [qualOpen, setQualOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
@@ -689,8 +690,19 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
-            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} />
+            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} expanded={qualOpen} onToggleExpand={() => setQualOpen(v => !v)} />
           </div>
+          {qualOpen && (
+            <div className="col-span-2">
+              <QualificationChecklistPanel
+                symbol={inst.symbol}
+                broker={inst.broker}
+                direction={inst.direction}
+                scannerScore={inst.score}
+                existing={qual}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
