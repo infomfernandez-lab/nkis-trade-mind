@@ -660,7 +660,10 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, 
   const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
-    <tr className={`border-t border-border text-sm ${highlightCls}`}>
+    <tr
+      className={`border-t border-border text-sm cursor-pointer hover:bg-accent/20 transition-colors ${highlightCls} ${expanded ? 'bg-accent/10' : ''}`}
+      onClick={onToggleExpand}
+    >
       <td className="px-2 py-2 font-data text-center">
         <span className={`font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
       </td>
