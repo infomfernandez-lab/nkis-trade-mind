@@ -328,6 +328,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                     isWatched={watchedSymbols.has(key)}
                     isInSeguimiento={seguimientoSymbols.has(key)}
                     isOpen={openSymbols.has(inst.symbol)}
+                    qual={qualMap.get(key)}
                   />
                 );
               })}
