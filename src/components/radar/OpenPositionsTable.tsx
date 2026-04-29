@@ -5,6 +5,9 @@ import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@
 import { SymbolMeta } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
+import { useTableControls, useFiltered, SortHeader, TableSearchLimit } from './TableControls';
+
+type SortKey = 'symbol' | 'direction' | 'entryDate' | 'entryPrice' | 'sl' | 'tp' | 'pnl';
 
 interface Props {
   brokerFilter: BrokerFilter;
