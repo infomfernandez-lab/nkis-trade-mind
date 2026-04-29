@@ -76,7 +76,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="sticky top-0 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
         <TableSearchLimit
           search={controls.search}
           onSearchChange={controls.setSearch}
@@ -84,6 +84,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
           onLimitChange={controls.setLimit}
           total={typeFiltered.length}
           shown={filtered.length}
+          suggestions={typeFiltered.map(t => t.symbol)}
         />
         <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
       </div>
@@ -113,8 +114,8 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
 
       {/* Desktop */}
       <table className="w-full hidden md:table text-sm">
-        <thead>
-          <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/20">
+        <thead className="sticky top-[44px] z-20">
+          <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary">
             <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
             <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
             <SortHeader label="Apertura" sortKey="entryDate" state={sort} onToggle={onToggleSort} className="w-[110px]" />
