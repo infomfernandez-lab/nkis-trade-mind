@@ -208,17 +208,26 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>{near.length} de {allNear.length}</span>
-        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <TableSearchLimit
+            search={controls.search}
+            onSearchChange={controls.setSearch}
+            limit={controls.limit}
+            onLimitChange={controls.setLimit}
+            total={typeFiltered.length}
+            shown={near.length}
+          />
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
       </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
           <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <th className="text-left px-3 py-2">Símbolo</th>
-            <th className="text-right px-2 py-2 w-[90px]">Precio</th>
-            <th className="text-left px-2 py-2 w-[90px]">Cuenta</th>
-            <th className="text-left px-2 py-2 w-[200px]">Señal</th>
+            <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
+            <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+            <SortHeader label="Cuenta" sortKey="broker" state={controls.sort} onToggle={controls.toggle} className="w-[90px]" />
+            <SortHeader label="Señal" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[200px]" />
             <th className="text-left px-2 py-2">Qué hacer</th>
             <th className="text-right px-2 py-2 w-[180px]">Acciones</th>
           </tr>
