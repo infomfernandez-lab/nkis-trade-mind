@@ -70,7 +70,7 @@ export function QualificationChecklistTrigger({
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
       className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border transition-colors ${meta.badge} hover:brightness-110`}
     >
       Evaluar {score}/20

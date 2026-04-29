@@ -11,6 +11,9 @@ import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 import { RadarCaptureButton } from './RadarCaptureButton';
 import { useQualificationMap } from '@/hooks/use-qualification';
+import { useTableControls, useFiltered, SortHeader, TableSearchLimit } from './TableControls';
+
+type SortKey = 'symbol' | 'price' | 'broker' | 'direction' | 'score' | 'stoch' | 'adx';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -67,11 +70,10 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
   const fullList = useMemo(() => {
     const built = buildItems(brokerFilter, scannerMap, items ?? []);
-    // Hide instruments already present in the qualification funnel
-    // (any stage) — they are shown in QualifiedStagePanel above.
     return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
   }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
@@ -82,9 +84,24 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
     }
     return c;
   }, [fullList]);
-  const list = typeFilter.size === 0
+  const typeFiltered = typeFilter.size === 0
     ? fullList
     : fullList.filter(it => typeFilter.has(classifyInstrument(it.symbol).type));
+
+  const list = useFiltered<SeguimientoItem, SortKey>(
+    typeFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: it => it.symbol,
+      price: it => it.current_price,
+      broker: it => it.broker,
+      direction: it => it.direction,
+      score: it => it.score,
+      stoch: it => it.stoch,
+      adx: it => it.adx,
+    },
+    it => [it.symbol, it.broker],
+  );
 
   const handleRemove = (item: SeguimientoItem) => {
     del.mutate(item.watchlistId, {
@@ -107,21 +124,30 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>{list.length} de {fullList.length}</span>
-        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <TableSearchLimit
+            search={controls.search}
+            onSearchChange={controls.setSearch}
+            limit={controls.limit}
+            onLimitChange={controls.setLimit}
+            total={typeFiltered.length}
+            shown={list.length}
+          />
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
       </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
           <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="text-left px-3 py-2 w-[50px]">#</th>
-            <th className="text-left px-3 py-2">Símbolo</th>
-            <th className="text-right px-2 py-2 w-[90px]">Precio</th>
-            <th className="text-left px-2 py-2 w-[80px]">Cuenta</th>
-            <th className="text-left px-2 py-2 w-[80px]">Dir</th>
-            <th className="text-center px-2 py-2 w-[70px]">Score</th>
-            <th className="text-center px-2 py-2 w-[70px]">Stoch</th>
-            <th className="text-center px-2 py-2 w-[70px]">ADX</th>
+            <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
+            <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+            <SortHeader label="Cuenta" sortKey="broker" state={controls.sort} onToggle={controls.toggle} className="w-[80px]" />
+            <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[80px]" />
+            <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
+            <SortHeader label="Stoch" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
+            <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
             <th className="text-right px-2 py-2 w-[120px]">Acción</th>
           </tr>
         </thead>
