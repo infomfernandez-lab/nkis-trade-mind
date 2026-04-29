@@ -492,30 +492,6 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
   return { dot: '—', label: '—', color: 'text-muted-foreground' };
 }
 
-function useSendToProximo(inst: UnifiedInstrument) {
-  const add = useAddToWatchlist();
-  const { user } = useAuth();
-  return () => {
-    if (!user) return;
-    add.mutate({
-      symbol: inst.symbol,
-      direction: isAlcistaDir(inst.direction) ? 'alcista' : 'bajista',
-      watch_reason: `Marcado manualmente — Score ${inst.score}/100`,
-      stochastic_level: inst.stoch_k ?? null,
-      scanner_score: inst.score,
-      adx_value: inst.adx_value,
-      adx_state: inst.adx_state,
-      distance_to_ma50: inst.distance_to_ma50,
-      status: 'PROXIMO',
-      added_from_scanner: false,
-      trade_id: null,
-      broker: inst.broker,
-    }, {
-      onSuccess: () => toast.success(`${inst.symbol} → Entrada próxima`),
-      onError: () => toast.error('Error al añadir'),
-    });
-  };
-}
 
 function ActionCell({ inst, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   return (
