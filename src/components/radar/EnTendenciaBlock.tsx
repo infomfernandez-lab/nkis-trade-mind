@@ -1,14 +1,12 @@
 import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TrendingUp, TrendingDown, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAddToWatchlist, useWatchlist } from '@/hooks/use-watchlist';
+import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { useWatchlist, useAddToWatchlist } from '@/hooks/use-watchlist';
 import { useAuth } from '@/hooks/use-auth';
 import { useAllTrades } from '@/hooks/use-trades';
 import type { BrokerFilter } from '@/lib/trade-utils';
 import { toast } from 'sonner';
-import { useAddToSeguimiento } from './SeguimientoBlock';
-import { Eye } from 'lucide-react';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
