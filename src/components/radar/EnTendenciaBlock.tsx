@@ -9,6 +9,7 @@ import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
 import { QualificationChecklistTrigger, QualificationChecklistPanel, QualificationProgressBadge } from './QualificationChecklist';
+import { useTableControls, useFiltered, SortHeader, TableSearchLimit } from './TableControls';
 
 interface Raw {
   rank?: number;
