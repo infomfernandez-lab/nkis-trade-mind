@@ -284,7 +284,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="sticky top-0 z-30 px-3 py-1.5 bg-secondary border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
+      <div className="sticky top-12 z-30 px-3 py-1.5 bg-secondary border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
         <span>Escáner v18</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-purple-400" /> Score ≥ 90</span>
         <span className="inline-flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-blue-400" /> Top 20</span>
@@ -305,7 +305,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
       {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
-          <thead className="sticky top-[34px] z-20">
+          <thead className="sticky top-[86px] z-20">
             <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-2 py-2 w-[50px]">#</th>
               <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
