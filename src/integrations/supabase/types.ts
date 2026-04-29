@@ -224,6 +224,87 @@ export type Database = {
         }
         Relationships: []
       }
+      qualification_checklist: {
+        Row: {
+          broker: string
+          c1_at: string | null
+          c1_elite: boolean
+          c2_at: string | null
+          c2_direction: boolean
+          c3_at: string | null
+          c3_signal_candle: boolean
+          c4_at: string | null
+          c4_prev_candle: boolean
+          c5_adx: boolean
+          c5_at: string | null
+          c6_at: string | null
+          c6_sizing: boolean
+          c7_at: string | null
+          c7_sl_mt5: boolean
+          checklist_date: string
+          created_at: string
+          direction: string
+          id: string
+          score: number
+          stage: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broker?: string
+          c1_at?: string | null
+          c1_elite?: boolean
+          c2_at?: string | null
+          c2_direction?: boolean
+          c3_at?: string | null
+          c3_signal_candle?: boolean
+          c4_at?: string | null
+          c4_prev_candle?: boolean
+          c5_adx?: boolean
+          c5_at?: string | null
+          c6_at?: string | null
+          c6_sizing?: boolean
+          c7_at?: string | null
+          c7_sl_mt5?: boolean
+          checklist_date?: string
+          created_at?: string
+          direction: string
+          id?: string
+          score?: number
+          stage?: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broker?: string
+          c1_at?: string | null
+          c1_elite?: boolean
+          c2_at?: string | null
+          c2_direction?: boolean
+          c3_at?: string | null
+          c3_signal_candle?: boolean
+          c4_at?: string | null
+          c4_prev_candle?: boolean
+          c5_adx?: boolean
+          c5_at?: string | null
+          c6_at?: string | null
+          c6_sizing?: boolean
+          c7_at?: string | null
+          c7_sl_mt5?: boolean
+          checklist_date?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          score?: number
+          stage?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scanner_sessions: {
         Row: {
           broker: string

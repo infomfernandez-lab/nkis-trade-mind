@@ -11,6 +11,8 @@ import { useAddToSeguimiento } from './SeguimientoBlock';
 import { Eye } from 'lucide-react';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
+import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
+import { QualificationChecklist, QualificationProgressBadge } from './QualificationChecklist';
 
 interface Raw {
   rank?: number;
@@ -197,6 +199,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const allItems = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
+  const qualMap = useQualificationMap();
   const watchedSymbols = new Set(
     (watchlist ?? [])
       .filter(w => (w.status ?? '').toUpperCase() !== 'SEGUIMIENTO')
@@ -264,19 +267,20 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-right px-2 py-2 w-[90px]">Precio</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
+              <th className="text-center px-2 py-2 w-[90px]">Embudo</th>
               <th className="text-left px-2 py-2 w-[100px]">ADX</th>
               <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
               <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
               <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
-              <th className="text-right px-2 py-2 w-[200px]">Acción</th>
+              <th className="text-right px-2 py-2 w-[260px]">Acción</th>
             </tr>
           </thead>
           <tbody>
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={12} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
@@ -293,6 +297,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                       isWatched={watchedSymbols.has(key)}
                       isInSeguimiento={seguimientoSymbols.has(key)}
                       isOpen={openSymbols.has(inst.symbol)}
+                      qual={qualMap.get(key)}
                     />
                   );
                 })}
@@ -323,6 +328,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                     isWatched={watchedSymbols.has(key)}
                     isInSeguimiento={seguimientoSymbols.has(key)}
                     isOpen={openSymbols.has(inst.symbol)}
+                    qual={qualMap.get(key)}
                   />
                 );
               })}
@@ -511,11 +517,11 @@ function useSendToProximo(inst: UnifiedInstrument) {
   };
 }
 
-function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function ActionCell({ inst, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const onSendToProximo = useSendToProximo(inst);
   const onAddSeguimiento = useAddToSeguimiento();
   return (
-    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+    <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
       {isOpen ? (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       ) : isWatched ? (
@@ -536,6 +542,13 @@ function ActionCell({ inst, isWatched, isInSeguimiento, isOpen }: { inst: Unifie
       ) : (
         <span className="inline-flex items-center gap-0.5 text-[11px] text-yellow-400"><Eye className="w-3 h-3" />En seguimiento</span>
       )}
+      <QualificationChecklist
+        symbol={inst.symbol}
+        broker={inst.broker}
+        direction={inst.direction}
+        scannerScore={inst.score}
+        existing={qual}
+      />
     </div>
   );
 }
@@ -614,12 +627,13 @@ function rankColor(hl: HighlightTier): string {
   return 'text-muted-foreground';
 }
 
-function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
+  const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
     <tr className={`border-t border-border text-sm ${highlightCls}`}>
@@ -649,6 +663,9 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       <td className="px-2 py-2 text-center">
         <ScoreBadge score={inst.score} />
       </td>
+      <td className="px-2 py-2 text-center">
+        <QualificationProgressBadge score={qualScore} />
+      </td>
       <td className="px-2 py-2"><AdxCell inst={inst} /></td>
       <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
       <td className="px-2 py-2">
@@ -660,18 +677,19 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
       <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
-      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} /></td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} /></td>
     </tr>
   );
 }
 
-function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
+  const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
     <div className={`p-3 ${highlightCls}`}>
@@ -680,6 +698,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><TypeIcon symbol={inst.symbol} />{inst.symbol}</span>
         <PriceTag price={inst.current_price} compact />
         <ScoreBadge score={inst.score} />
+        <QualificationProgressBadge score={qualScore} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
         }`}>
@@ -697,7 +716,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
-            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} />
+            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} />
           </div>
         </div>
       )}

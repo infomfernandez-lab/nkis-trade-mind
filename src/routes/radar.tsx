@@ -41,37 +41,37 @@ function RadarPage() {
 
       <AnchorNav
         items={[
-          { id: 'escaner', label: `① Escáner (${tendenciaCount})` },
-          { id: 'seguimiento', label: `② Seguimiento (${seguimientoCount})` },
-          { id: 'proximo', label: `③ Entrada próxima (${proximoCount})` },
-          { id: 'posiciones', label: `④ Posiciones (${filteredOpen.length})` },
+          { id: 'escaner', label: `📡 Escáner (${tendenciaCount})` },
+          { id: 'seguimiento', label: `🔍 Calificado (${seguimientoCount})` },
+          { id: 'proximo', label: `⚡ Señal activa (${proximoCount})` },
+          { id: 'posiciones', label: `📈 En cartera (${filteredOpen.length})` },
         ]}
       />
 
       {/* ① Escáner */}
       <CollapsibleBlock
         id="escaner"
-        title="① ESCÁNER"
+        title="📡 ESCANEADO"
         countLabel={`${tendenciaCount} instrumentos`}
         defaultOpen
       >
         <EnTendenciaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ② Seguimiento */}
+      {/* ② Calificado (antes Seguimiento) */}
       <CollapsibleBlock
         id="seguimiento"
-        title="② SEGUIMIENTO"
+        title="🔍 CALIFICADO"
         countLabel={`${seguimientoCount}`}
         defaultOpen
       >
         <SeguimientoBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ③ Próximo a entrada */}
+      {/* ③ Señal activa (antes Entrada próxima) */}
       <CollapsibleBlock
         id="proximo"
-        title="③ ENTRADA PRÓXIMA"
+        title="⚡ SEÑAL ACTIVA"
         countLabel={proximoCount > 0 ? `${proximoCount} ⚡` : '0'}
         tone={proximoCount > 0 ? 'alert' : undefined}
         defaultOpen
@@ -79,10 +79,10 @@ function RadarPage() {
         <ProximoEntradaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ④ Posiciones abiertas */}
+      {/* ④ En cartera (antes Posiciones abiertas) */}
       <CollapsibleBlock
         id="posiciones"
-        title="④ POSICIONES ABIERTAS"
+        title="📈 EN CARTERA"
         countLabel={`${filteredOpen.length}`}
         defaultOpen
       >
