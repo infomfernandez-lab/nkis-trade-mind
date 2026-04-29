@@ -9,6 +9,7 @@ import { SymbolMeta, PriceCell, SymbolName, PriceTag } from './EnTendenciaBlock'
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 import { RadarCaptureButton } from './RadarCaptureButton';
+import { useQualificationMap } from '@/hooks/use-qualification';
 
 interface Props {
   brokerFilter: BrokerFilter;
