@@ -50,11 +50,47 @@ export function stageFromScore(score: number): QualificationStage {
   return 'escaneado';
 }
 
-export const STAGE_META: Record<QualificationStage, { label: string; emoji: string; tone: string }> = {
-  escaneado: { label: 'Escaneado', emoji: '📡', tone: 'gray' },
-  calificado: { label: 'Calificado', emoji: '🔍', tone: 'yellow' },
-  senal_activa: { label: 'Señal activa', emoji: '⚡', tone: 'orange' },
-  en_cartera: { label: 'En cartera', emoji: '📈', tone: 'green' },
+export interface StageStyle {
+  tone: 'gray' | 'yellow' | 'orange' | 'green';
+  /** Soft background + dark text for headers and badges */
+  badge: string;
+  /** Background tint for the section header */
+  header: string;
+  /** Border color for outlined panels */
+  border: string;
+  /** Section accent (left border / divider) */
+  accent: string;
+}
+
+export const STAGE_META: Record<QualificationStage, { label: string; emoji: string } & StageStyle> = {
+  escaneado: {
+    label: 'Escaneado', emoji: '📡', tone: 'gray',
+    badge: 'bg-muted/40 text-muted-foreground border-border',
+    header: 'bg-muted/40 text-muted-foreground border-border',
+    border: 'border-border',
+    accent: 'border-l-muted-foreground/40',
+  },
+  calificado: {
+    label: 'Calificado', emoji: '🔍', tone: 'yellow',
+    badge: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40',
+    header: 'bg-yellow-500/15 text-yellow-200 border-yellow-500/40',
+    border: 'border-yellow-500/40',
+    accent: 'border-l-yellow-400',
+  },
+  senal_activa: {
+    label: 'Señal activa', emoji: '⚡', tone: 'orange',
+    badge: 'bg-orange-500/15 text-orange-300 border-orange-500/40',
+    header: 'bg-orange-500/15 text-orange-200 border-orange-500/40',
+    border: 'border-orange-500/40',
+    accent: 'border-l-orange-400',
+  },
+  en_cartera: {
+    label: 'En cartera', emoji: '📈', tone: 'green',
+    badge: 'bg-success/15 text-success border-success/40',
+    header: 'bg-success/15 text-success border-success/40',
+    border: 'border-success/40',
+    accent: 'border-l-success',
+  },
 };
 
 function todayISO(): string {

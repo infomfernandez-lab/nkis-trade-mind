@@ -9,6 +9,7 @@ import { SymbolMeta, PriceCell, SymbolName, PriceTag } from './EnTendenciaBlock'
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 import { RadarCaptureButton } from './RadarCaptureButton';
+import { useQualificationMap } from '@/hooks/use-qualification';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -112,12 +113,14 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   const del = useDeleteWatchlistItem();
   const add = useAddToWatchlist();
   const { user } = useAuth();
+  const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const allNear: NearItem[] = useMemo(
-    () => buildNearItems(brokerFilter, scannerMap, items ?? []),
-    [brokerFilter, scannerMap, items],
-  );
+  const allNear: NearItem[] = useMemo(() => {
+    const built = buildNearItems(brokerFilter, scannerMap, items ?? []);
+    // Hide instruments already shown in the qualification funnel
+    return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
+  }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of allNear) {
@@ -175,6 +178,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   };
 
   if (allNear.length === 0) {
+    if (qualMap.size > 0) return null;
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Zap className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />

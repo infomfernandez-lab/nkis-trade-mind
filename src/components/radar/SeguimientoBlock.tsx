@@ -10,6 +10,7 @@ import { SymbolMeta, PriceCell, SymbolName } from './EnTendenciaBlock';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 import { RadarCaptureButton } from './RadarCaptureButton';
+import { useQualificationMap } from '@/hooks/use-qualification';
 
 interface Props {
   brokerFilter: BrokerFilter;
@@ -64,12 +65,15 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
   const scannerMap = useLatestScannerByKey();
   const del = useDeleteWatchlistItem();
+  const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const fullList = useMemo(
-    () => buildItems(brokerFilter, scannerMap, items ?? []),
-    [brokerFilter, scannerMap, items],
-  );
+  const fullList = useMemo(() => {
+    const built = buildItems(brokerFilter, scannerMap, items ?? []);
+    // Hide instruments already present in the qualification funnel
+    // (any stage) — they are shown in QualifiedStagePanel above.
+    return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
+  }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of fullList) {
@@ -90,6 +94,8 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   };
 
   if (fullList.length === 0) {
+    // If qualification panel above is rendering items, stay silent.
+    if (qualMap.size > 0) return null;
     return (
       <div className="rounded-lg border border-border bg-card p-6 text-center">
         <Eye className="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" />
