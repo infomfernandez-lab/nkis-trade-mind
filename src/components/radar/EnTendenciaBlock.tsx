@@ -280,7 +280,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
             {grouped.map((g, gi) => (
               <Fragment key={`${g.tier}-${gi}`}>
                 <tr className="bg-secondary/20">
-                  <td colSpan={11} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                  <td colSpan={12} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                     {TIER_LABEL[g.tier]}
                   </td>
                 </tr>
@@ -297,6 +297,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                       isWatched={watchedSymbols.has(key)}
                       isInSeguimiento={seguimientoSymbols.has(key)}
                       isOpen={openSymbols.has(inst.symbol)}
+                      qual={qualMap.get(key)}
                     />
                   );
                 })}
