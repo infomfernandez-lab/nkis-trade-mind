@@ -65,12 +65,15 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   const { data: items } = useWatchlist();
   const scannerMap = useLatestScannerByKey();
   const del = useDeleteWatchlistItem();
+  const qualMap = useQualificationMap();
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
 
-  const fullList = useMemo(
-    () => buildItems(brokerFilter, scannerMap, items ?? []),
-    [brokerFilter, scannerMap, items],
-  );
+  const fullList = useMemo(() => {
+    const built = buildItems(brokerFilter, scannerMap, items ?? []);
+    // Hide instruments already present in the qualification funnel
+    // (any stage) — they are shown in QualifiedStagePanel above.
+    return built.filter(it => !qualMap.has(`${it.symbol}::${it.broker}`));
+  }, [brokerFilter, scannerMap, items, qualMap]);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of fullList) {
