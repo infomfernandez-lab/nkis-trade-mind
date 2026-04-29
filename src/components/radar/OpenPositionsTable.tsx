@@ -76,7 +76,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-12 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
+      <div className="sticky top-0 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
         <TableSearchLimit
           search={controls.search}
           onSearchChange={controls.setSearch}
@@ -114,7 +114,7 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
 
       {/* Desktop */}
       <table className="w-full hidden md:table text-sm">
-        <thead className="sticky top-[96px] z-20">
+        <thead className="sticky top-[44px] z-20">
           <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary">
             <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
             <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
