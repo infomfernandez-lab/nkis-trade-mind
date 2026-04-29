@@ -124,21 +124,30 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
-        <span>{list.length} de {fullList.length}</span>
-        <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <TableSearchLimit
+            search={controls.search}
+            onSearchChange={controls.setSearch}
+            limit={controls.limit}
+            onLimitChange={controls.setLimit}
+            total={typeFiltered.length}
+            shown={list.length}
+          />
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
       </div>
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
           <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="text-left px-3 py-2 w-[50px]">#</th>
-            <th className="text-left px-3 py-2">Símbolo</th>
-            <th className="text-right px-2 py-2 w-[90px]">Precio</th>
-            <th className="text-left px-2 py-2 w-[80px]">Cuenta</th>
-            <th className="text-left px-2 py-2 w-[80px]">Dir</th>
-            <th className="text-center px-2 py-2 w-[70px]">Score</th>
-            <th className="text-center px-2 py-2 w-[70px]">Stoch</th>
-            <th className="text-center px-2 py-2 w-[70px]">ADX</th>
+            <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
+            <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+            <SortHeader label="Cuenta" sortKey="broker" state={controls.sort} onToggle={controls.toggle} className="w-[80px]" />
+            <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[80px]" />
+            <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
+            <SortHeader label="Stoch" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
+            <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
             <th className="text-right px-2 py-2 w-[120px]">Acción</th>
           </tr>
         </thead>
