@@ -284,17 +284,34 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
                   const tier: HighlightTier = rank <= 20 ? 'top' : inst.score >= 90 ? 'gold' : 'none';
+                  const isExpanded = expandedKey === key;
                   return (
-                    <DesktopRow
-                      key={`${inst.symbol}-${inst.broker}-${i}`}
-                      inst={inst}
-                      rank={rank}
-                      hl={tier}
-                      isWatched={watchedSymbols.has(key)}
-                      isInSeguimiento={seguimientoSymbols.has(key)}
-                      isOpen={openSymbols.has(inst.symbol)}
-                      qual={qualMap.get(key)}
-                    />
+                    <Fragment key={`${inst.symbol}-${inst.broker}-${i}`}>
+                      <DesktopRow
+                        inst={inst}
+                        rank={rank}
+                        hl={tier}
+                        isWatched={watchedSymbols.has(key)}
+                        isInSeguimiento={seguimientoSymbols.has(key)}
+                        isOpen={openSymbols.has(inst.symbol)}
+                        qual={qualMap.get(key)}
+                        expanded={isExpanded}
+                        onToggleExpand={() => setExpandedKey(isExpanded ? null : key)}
+                      />
+                      {isExpanded && (
+                        <tr className="bg-secondary/10">
+                          <td colSpan={12} className="p-0">
+                            <QualificationChecklistPanel
+                              symbol={inst.symbol}
+                              broker={inst.broker}
+                              direction={inst.direction}
+                              scannerScore={inst.score}
+                              existing={qualMap.get(key)}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </Fragment>
