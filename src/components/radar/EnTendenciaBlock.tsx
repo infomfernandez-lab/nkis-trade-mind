@@ -120,7 +120,7 @@ function normalizeAtrEstado(raw?: string): AtrEstadoTipo {
   return null;
 }
 
-function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] {
+export function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstrument[] {
   const { data } = useQuery({
     queryKey: ['scanner-sessions-all'],
     queryFn: async () => {
