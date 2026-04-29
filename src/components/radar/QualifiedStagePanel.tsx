@@ -112,7 +112,7 @@ export function QualifiedStagePanel({ stage, brokerFilter }: Props) {
               <span className="font-data text-xs text-muted-foreground" title="Score del escáner">
                 Sc {inst.score}
               </span>
-              <QualificationProgressBadge score={inst.score >= 0 ? (qmap.get(`${inst.symbol}::${inst.broker}`)?.score ?? 0) : 0} />
+              <QualificationProgressBadge score={score} />
               <div className="ml-auto flex items-center gap-2">
                 <QualificationChecklist
                   symbol={inst.symbol}
