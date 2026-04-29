@@ -96,7 +96,7 @@ export function OpenPositionsTable({ brokerFilter }: Props) {
   );
 }
 
-function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'octx'; trades: Trade[] }) {
+function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'darwinex' | 'octx'; trades: Trade[]; sort: import('./TableControls').SortState<SortKey>; onToggleSort: (k: SortKey) => void }) {
   const total = trades.reduce((s, t) => s + t.netPnl, 0);
   const headerColor = broker === 'darwinex'
     ? 'bg-blue-950 text-blue-300 border-blue-800'
@@ -115,13 +115,13 @@ function BrokerSubsection({ broker, trades }: { broker: 'darwinex' | 'octx'; tra
       <table className="w-full hidden md:table text-sm">
         <thead>
           <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary/20">
-            <th className="text-left px-3 py-2">Símbolo</th>
-            <th className="text-left px-2 py-2 w-[70px]">Dir</th>
-            <th className="text-left px-2 py-2 w-[110px]">Apertura</th>
-            <th className="text-right px-2 py-2 w-[100px]">Entrada</th>
-            <th className="text-right px-2 py-2 w-[100px]">SL</th>
-            <th className="text-right px-2 py-2 w-[100px]">TP</th>
-            <th className="text-right px-2 py-2 w-[100px]">P&L</th>
+            <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
+            <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
+            <SortHeader label="Apertura" sortKey="entryDate" state={sort} onToggle={onToggleSort} className="w-[110px]" />
+            <SortHeader label="Entrada" sortKey="entryPrice" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
+            <SortHeader label="SL" sortKey="sl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
+            <SortHeader label="TP" sortKey="tp" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
+            <SortHeader label="P&L" sortKey="pnl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
             <th className="text-left px-2 py-2 w-[180px]">Estado</th>
           </tr>
         </thead>
