@@ -507,18 +507,20 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
 }
 
 
-function ActionCell({ inst, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
+function ActionCell({ inst, isOpen, qual, expanded, onToggleExpand }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow; expanded: boolean; onToggleExpand: () => void }) {
   return (
     <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
       {isOpen && (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       )}
-      <QualificationChecklist
+      <QualificationChecklistTrigger
         symbol={inst.symbol}
         broker={inst.broker}
         direction={inst.direction}
         scannerScore={inst.score}
         existing={qual}
+        expanded={expanded}
+        onToggle={onToggleExpand}
       />
     </div>
   );
