@@ -145,6 +145,7 @@ export function TableSearchLimit({
       <div className="relative" ref={wrapRef}>
         <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
         <input
+          ref={inputRef}
           value={search}
           onChange={e => { onSearchChange(e.target.value); setOpen(true); setActive(0); }}
           onFocus={() => setOpen(true)}
@@ -167,8 +168,11 @@ export function TableSearchLimit({
             <X className="w-3 h-3" />
           </button>
         )}
-        {open && matches.length > 0 && (
-          <div className="absolute z-50 mt-1 left-0 w-48 max-h-64 overflow-auto rounded-md border border-border bg-popover shadow-lg p-1 text-popover-foreground">
+        {open && matches.length > 0 && pos && (
+          <div
+            className="fixed z-[200] w-48 max-h-64 overflow-auto rounded-md border border-border bg-popover shadow-lg p-1 text-popover-foreground"
+            style={{ top: pos.top, left: pos.left }}
+          >
             {matches.map((s, i) => (
               <button
                 key={s}
@@ -194,6 +198,8 @@ export function TableSearchLimit({
 function LimitDropdown({ limit, onChange, options }: { limit: number; onChange: (n: number) => void; options: number[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -201,6 +207,20 @@ function LimitDropdown({ limit, onChange, options }: { limit: number; onChange: 
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open]);
   const label = limit === 0 ? 'Todos' : `Top ${limit}`;
   return (
     <div className="relative" ref={ref}>
