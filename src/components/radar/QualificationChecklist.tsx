@@ -133,17 +133,20 @@ export function QualificationChecklist({
   };
 
   // Persist auto changes (élite / calculadora) when they differ from stored
-  const needsAutoSync =
-    (existing?.c1_elite ?? false) !== c1Auto || (existing?.c6_sizing ?? false) !== c6Auto;
-  if (needsAutoSync && !upsert.isPending) {
-    upsert.mutate({
-      symbol,
-      broker,
-      direction,
-      patch: { c1_elite: c1Auto, c6_sizing: c6Auto },
-      existing,
-    });
-  }
+  useEffect(() => {
+    const needsAutoSync =
+      (existing?.c1_elite ?? false) !== c1Auto || (existing?.c6_sizing ?? false) !== c6Auto;
+    if (needsAutoSync && !upsert.isPending) {
+      upsert.mutate({
+        symbol,
+        broker,
+        direction,
+        patch: { c1_elite: c1Auto, c6_sizing: c6Auto },
+        existing,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c1Auto, c6Auto, existing?.id, existing?.c1_elite, existing?.c6_sizing]);
 
   return (
     <div className="inline-block">
