@@ -22,9 +22,9 @@ export const Route = createFileRoute('/watchlist')({
 const STATUSES = ['Vigilando', 'Señal Próxima', 'Señal Dada', 'Descartado'] as const;
 const STATUS_COLORS: Record<string, string> = {
   'Vigilando': 'bg-primary/10 text-primary',
-  'Señal Próxima': 'bg-yellow-500/10 text-yellow-400',
+  'Señal Próxima': 'bg-primary/10 text-primary',
   'Señal Dada': 'bg-success/10 text-success',
-  'Señal Dada — En posición': 'bg-yellow-500/20 text-yellow-400',
+  'Señal Dada — En posición': 'bg-primary/20 text-primary',
   'Descartado': 'bg-muted text-muted-foreground',
 };
 
@@ -163,7 +163,7 @@ function WatchlistCard({ item }: { item: WatchlistItem }) {
                 ) : item.status}
               </span>
               {isInPosition && (
-                <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-bold border border-yellow-500/40">
+                <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary font-bold border border-primary/40">
                   EN POSICIÓN
                 </span>
               )}

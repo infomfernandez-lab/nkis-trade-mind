@@ -262,7 +262,7 @@ function ActionButtons({ symbol, onRemove, onDiscard, hasWatchlistRow }: { symbo
       <button
         onClick={onDiscard}
         title="Ocultar de la lista (queda registrado como descartado)"
-        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
       >
         <EyeOff className="w-3 h-3" /> Descartar
       </button>
@@ -281,7 +281,7 @@ function ActionButtons({ symbol, onRemove, onDiscard, hasWatchlistRow }: { symbo
 
 function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
-    <tr className={`border-t border-border ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
+    <tr className={`border-t border-border ${item.pullback ? 'bg-primary/[0.05] border-l-[3px] border-l-primary' : ''}`}>
       <td className="px-3 py-2 font-bold text-foreground text-sm">
         <div className="flex flex-col gap-0.5">
           <SymbolName symbol={item.symbol} />
@@ -309,7 +309,7 @@ function NearRow({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () =
 
 function NearMobileCard({ item, onRemove, onDiscard }: { item: NearItem; onRemove: () => void; onDiscard: () => void }) {
   return (
-    <div className={`p-3 ${item.pullback ? 'bg-yellow-500/[0.05] border-l-[3px] border-l-yellow-400' : ''}`}>
+    <div className={`p-3 ${item.pullback ? 'bg-primary/[0.05] border-l-[3px] border-l-primary' : ''}`}>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-bold text-sm text-foreground"><SymbolName symbol={item.symbol} /></span>
         <PriceTag price={item.current_price} compact />

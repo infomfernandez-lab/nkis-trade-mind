@@ -8,7 +8,7 @@ function fmt(v: number): string {
 }
 
 function color(v: number, invert = false): string {
-  if (v === 0) return 'text-yellow-400';
+  if (v === 0) return 'text-primary';
   const positive = invert ? v < 0 : v > 0;
   return positive ? 'text-success' : 'text-destructive';
 }
@@ -16,7 +16,7 @@ function color(v: number, invert = false): string {
 function colorThreshold(v: number, good: number, bad: number): string {
   if (v >= good) return 'text-success';
   if (v <= bad) return 'text-destructive';
-  return 'text-yellow-400';
+  return 'text-primary';
 }
 
 interface MetricProps {
@@ -96,14 +96,14 @@ export function AdvancedMetricsSection({ m }: { m: AdvancedMetrics }) {
         <MetricCard
           label="MFE vs P&L Real"
           value={`€${Math.abs(m.avgMfeWinnersEur).toFixed(0)} → €${Math.abs(m.avgPnlWinnersEur).toFixed(0)}`}
-          colorClass={m.avgPnlWinnersEur >= m.avgMfeWinnersEur * 0.6 ? 'text-success' : 'text-yellow-400'}
+          colorClass={m.avgPnlWinnersEur >= m.avgMfeWinnersEur * 0.6 ? 'text-success' : 'text-primary'}
           tooltip="Maximum Favorable Excursion medio vs P&L real capturado en ganadoras. Muestra cuánto beneficio dejas en la mesa. Buen valor: capturar > 60% del MFE."
           sub="Beneficio potencial vs real"
         />
         <MetricCard
           label="RR Real vs Teórico"
           value={`${m.avgRrReal.toFixed(2)} vs ${m.avgRrTheoretical.toFixed(2)}`}
-          colorClass={m.avgRrReal >= m.avgRrTheoretical * 0.7 ? 'text-success' : 'text-yellow-400'}
+          colorClass={m.avgRrReal >= m.avgRrTheoretical * 0.7 ? 'text-success' : 'text-primary'}
           tooltip="Risk:Reward real ejecutado vs el teórico del setup. Mide calidad de ejecución. Buen valor: RR real cercano al teórico (> 70%)."
           sub="Calidad de ejecución"
         />
@@ -142,7 +142,7 @@ export function AdvancedMetricsSection({ m }: { m: AdvancedMetrics }) {
         <MetricCard
           label="Racha Máxima"
           value={`${m.maxConsecutiveWins}W / ${m.maxConsecutiveLosses}L`}
-          colorClass={m.maxConsecutiveWins > m.maxConsecutiveLosses ? 'text-success' : 'text-yellow-400'}
+          colorClass={m.maxConsecutiveWins > m.maxConsecutiveLosses ? 'text-success' : 'text-primary'}
           tooltip="Racha máxima consecutiva de victorias (W) y derrotas (L) históricas. Útil para prepararse psicológicamente para las peores rachas."
           sub="Victorias / Derrotas consecutivas"
         />

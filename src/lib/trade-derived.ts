@@ -22,7 +22,7 @@ export function detectCloseType(trade: Trade): CloseTypeInfo {
   }
   const exit = trade.exitPrice;
   if (exit == null) {
-    return { type: 'MANUAL', label: 'MANUAL', color: 'text-yellow-400', bg: 'bg-yellow-500/10', icon: '◆' };
+    return { type: 'MANUAL', label: 'MANUAL', color: 'text-primary', bg: 'bg-primary/10', icon: '◆' };
   }
   const close = (target: number) => target > 0 && Math.abs(exit - target) / target <= TOLERANCE;
   if (close(trade.tpPrice)) {
@@ -31,7 +31,7 @@ export function detectCloseType(trade: Trade): CloseTypeInfo {
   if (close(trade.slPrice)) {
     return { type: 'SL', label: 'SL ✗', color: 'text-destructive', bg: 'bg-destructive/10', icon: '✗' };
   }
-  return { type: 'MANUAL', label: 'MANUAL', color: 'text-yellow-400', bg: 'bg-yellow-500/10', icon: '◆' };
+  return { type: 'MANUAL', label: 'MANUAL', color: 'text-primary', bg: 'bg-primary/10', icon: '◆' };
 }
 
 /** RR real = (exit - entry) / (entry - sl) respecting direction. Returns null if not computable. */

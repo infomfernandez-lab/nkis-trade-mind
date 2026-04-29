@@ -83,7 +83,7 @@ export function OpenPositionsSection({ brokerFilter }: Props) {
         <span>Posiciones: <span className="font-data font-semibold text-foreground">{openTrades.length}</span></span>
         <span>P&L total: <span className={`font-data font-semibold ${totalPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(totalPnl)}</span></span>
         {syncInfo && (
-          <span className={`flex items-center gap-1 ${syncInfo.stale ? 'text-yellow-400' : ''}`}>
+          <span className={`flex items-center gap-1 ${syncInfo.stale ? 'text-primary' : ''}`}>
             {syncInfo.stale ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
             Sync: {syncInfo.text}
             {syncInfo.stale && <span className="font-semibold ml-1">— ejecuta SYNC</span>}
@@ -253,7 +253,7 @@ function SLManagement({ trade }: { trade: TradeWithSL }) {
         action={phase === 'inicial' ? (
           <button
             onClick={() => updatePhase('breakeven')}
-            className="px-2.5 py-1 rounded text-[11px] font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/25 transition-colors"
+            className="px-2.5 py-1 rounded text-[11px] font-semibold bg-primary/15 text-primary border border-primary/40 hover:bg-primary/25 transition-colors"
           >
             Marcar activado
           </button>

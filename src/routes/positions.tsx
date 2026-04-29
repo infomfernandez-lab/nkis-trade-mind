@@ -160,7 +160,7 @@ function PositionsPage() {
         {syncInfo && (
           <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border ${
             syncInfo.stale
-              ? 'border-yellow-500/40 bg-yellow-500/10 text-yellow-400'
+              ? 'border-primary/40 bg-primary/10 text-primary'
               : 'border-border bg-card text-muted-foreground'
           }`}>
             {syncInfo.stale ? <AlertTriangle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
@@ -275,7 +275,7 @@ function PositionsPage() {
                       <div className="flex items-center gap-1">
                         <span className="font-bold text-sm text-foreground">{trade.symbol}</span>
                         {isCorrelated && (
-                          <span title="Posición correlacionada"><AlertTriangle className="w-3 h-3 text-yellow-500" /></span>
+                          <span title="Posición correlacionada"><AlertTriangle className="w-3 h-3 text-primary" /></span>
                         )}
                       </div>
                     </TableCell>
@@ -344,7 +344,7 @@ function PositionsPage() {
                     {/* Momentum */}
                     <TableCell className="text-xs">
                       {trade.momentumAligned !== undefined ? (
-                        <span className={trade.momentumAligned ? 'text-success' : 'text-yellow-500'}>
+                        <span className={trade.momentumAligned ? 'text-success' : 'text-primary'}>
                           {trade.momentumAligned ? '✓ Alin.' : '✗ No alin.'}
                         </span>
                       ) : (

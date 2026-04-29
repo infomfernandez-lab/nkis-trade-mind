@@ -64,7 +64,7 @@ function wrBar(wr: number) {
 }
 function trafficLight(wr: number) {
   if (wr < 35) return { icon: '🔴', color: 'text-destructive' };
-  if (wr <= 50) return { icon: '🟡', color: 'text-yellow-400' };
+  if (wr <= 50) return { icon: '🟡', color: 'text-primary' };
   return { icon: '🟢', color: 'text-success' };
 }
 
@@ -336,7 +336,7 @@ function Block2RespectingSystem({ trades }: { trades: Trade[] }) {
 
   const interventionRate = pct(intervened.length, withInterventionLog.length);
   const interventionRateColor =
-    interventionRate > 40 ? 'text-destructive' : interventionRate > 20 ? 'text-yellow-400' : 'text-success';
+    interventionRate > 40 ? 'text-destructive' : interventionRate > 20 ? 'text-primary' : 'text-success';
 
   const avgIntervened = avg(intervened.map(t => t.netPnl));
   const avgNotIntervened = avg(notIntervened.map(t => t.netPnl));
@@ -586,7 +586,7 @@ function Block4TradeManagement({ trades }: { trades: Trade[] }) {
     return tpDist > 0 ? Math.min(100, (actualDist / tpDist) * 100) : 100;
   });
   const avgMfeCaptured = avg(mfeCaptured);
-  const mfeColor = avgMfeCaptured < 40 ? 'text-destructive' : avgMfeCaptured < 70 ? 'text-yellow-400' : 'text-success';
+  const mfeColor = avgMfeCaptured < 40 ? 'text-destructive' : avgMfeCaptured < 70 ? 'text-primary' : 'text-success';
 
   // 4B — MAE Ganadores vs Perdedores (% en términos de precio)
   const wins = trades.filter(t => t.isWin && t.slPrice > 0);
@@ -838,7 +838,7 @@ function Block5Consistency({ trades }: { trades: Trade[] }) {
                 {recent.map(m => {
                   const respectColor = m.respectPct == null ? 'bg-secondary text-muted-foreground'
                     : m.respectPct >= 80 ? 'bg-success/20 text-success'
-                    : m.respectPct >= 50 ? 'bg-yellow-500/20 text-yellow-400'
+                    : m.respectPct >= 50 ? 'bg-primary/20 text-primary'
                     : 'bg-destructive/20 text-destructive';
                   return (
                     <tr key={m.key} className="border-b border-border/40">
