@@ -188,7 +188,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-destructive/40 bg-destructive/[0.03] overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       <div className="px-3 py-1.5 bg-secondary/40 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-3 flex-wrap">
         <span>{near.length} de {allNear.length}</span>
         <div className="ml-auto"><TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} /></div>
@@ -196,7 +196,7 @@ export function ProximoEntradaBlock({ brokerFilter }: Props) {
       {/* Desktop */}
       <table className="w-full hidden md:table">
         <thead>
-          <tr className="bg-destructive/10 text-[10px] uppercase tracking-wider text-destructive/90">
+          <tr className="bg-secondary/50 text-[10px] uppercase tracking-wider text-muted-foreground">
             <th className="text-left px-3 py-2">Símbolo</th>
             <th className="text-right px-2 py-2 w-[90px]">Precio</th>
             <th className="text-left px-2 py-2 w-[90px]">Cuenta</th>
