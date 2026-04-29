@@ -627,12 +627,13 @@ function rankColor(hl: HighlightTier): string {
   return 'text-muted-foreground';
 }
 
-function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
+  const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
     <tr className={`border-t border-border text-sm ${highlightCls}`}>
@@ -662,6 +663,9 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       <td className="px-2 py-2 text-center">
         <ScoreBadge score={inst.score} />
       </td>
+      <td className="px-2 py-2 text-center">
+        <QualificationProgressBadge score={qualScore} />
+      </td>
       <td className="px-2 py-2"><AdxCell inst={inst} /></td>
       <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
       <td className="px-2 py-2">
@@ -673,18 +677,19 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
       <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
-      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} /></td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} /></td>
     </tr>
   );
 }
 
-function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean }) {
+function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const [open, setOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
+  const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
     <div className={`p-3 ${highlightCls}`}>
@@ -693,6 +698,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
         <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><TypeIcon symbol={inst.symbol} />{inst.symbol}</span>
         <PriceTag price={inst.current_price} compact />
         <ScoreBadge score={inst.score} />
+        <QualificationProgressBadge score={qualScore} />
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
         }`}>
@@ -710,7 +716,7 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen }: { in
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
-            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} />
+            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} />
           </div>
         </div>
       )}
