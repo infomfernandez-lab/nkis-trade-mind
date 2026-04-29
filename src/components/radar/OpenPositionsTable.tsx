@@ -126,7 +126,7 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
             <th className="text-left px-2 py-2 w-[180px]">Estado</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&>tr:first-child>td]:pt-5">
           {trades.map(t => (
             <tr key={t.id} className="border-t border-border hover:bg-accent/20 transition-colors">
               <td className="px-3 py-2 font-bold">
