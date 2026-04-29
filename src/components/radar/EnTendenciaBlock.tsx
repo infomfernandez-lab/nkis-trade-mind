@@ -8,7 +8,7 @@ import type { BrokerFilter } from '@/lib/trade-utils';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
-import { QualificationChecklist, QualificationProgressBadge } from './QualificationChecklist';
+import { QualificationChecklistTrigger, QualificationChecklistPanel, QualificationProgressBadge } from './QualificationChecklist';
 
 interface Raw {
   rank?: number;
@@ -209,6 +209,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const openSymbols = new Set(openTrades.map(t => t.symbol));
 
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const counts = useMemo(() => {
     const c: Partial<Record<InstrumentType, number>> = {};
     for (const it of allItems) {
@@ -284,17 +285,34 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                   const key = `${inst.symbol}::${inst.broker}`;
                   const rank = rankByKey.get(key) ?? 0;
                   const tier: HighlightTier = rank <= 20 ? 'top' : inst.score >= 90 ? 'gold' : 'none';
+                  const isExpanded = expandedKey === key;
                   return (
-                    <DesktopRow
-                      key={`${inst.symbol}-${inst.broker}-${i}`}
-                      inst={inst}
-                      rank={rank}
-                      hl={tier}
-                      isWatched={watchedSymbols.has(key)}
-                      isInSeguimiento={seguimientoSymbols.has(key)}
-                      isOpen={openSymbols.has(inst.symbol)}
-                      qual={qualMap.get(key)}
-                    />
+                    <Fragment key={`${inst.symbol}-${inst.broker}-${i}`}>
+                      <DesktopRow
+                        inst={inst}
+                        rank={rank}
+                        hl={tier}
+                        isWatched={watchedSymbols.has(key)}
+                        isInSeguimiento={seguimientoSymbols.has(key)}
+                        isOpen={openSymbols.has(inst.symbol)}
+                        qual={qualMap.get(key)}
+                        expanded={isExpanded}
+                        onToggleExpand={() => setExpandedKey(isExpanded ? null : key)}
+                      />
+                      {isExpanded && (
+                        <tr className="bg-secondary/10">
+                          <td colSpan={12} className="p-0">
+                            <QualificationChecklistPanel
+                              symbol={inst.symbol}
+                              broker={inst.broker}
+                              direction={inst.direction}
+                              scannerScore={inst.score}
+                              existing={qualMap.get(key)}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </Fragment>
@@ -489,18 +507,20 @@ export function stochEstadoMeta(estado: StochEstado): { dot: string; label: stri
 }
 
 
-function ActionCell({ inst, isOpen, qual }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
+function ActionCell({ inst, isOpen, qual, expanded, onToggleExpand }: { inst: UnifiedInstrument; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow; expanded: boolean; onToggleExpand: () => void }) {
   return (
     <div className="relative flex items-center justify-end gap-1.5 flex-wrap">
       {isOpen && (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">EN POS</span>
       )}
-      <QualificationChecklist
+      <QualificationChecklistTrigger
         symbol={inst.symbol}
         broker={inst.broker}
         direction={inst.direction}
         scannerScore={inst.score}
         existing={qual}
+        expanded={expanded}
+        onToggle={onToggleExpand}
       />
     </div>
   );
@@ -580,7 +600,7 @@ function rankColor(hl: HighlightTier): string {
   return 'text-muted-foreground';
 }
 
-function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
+function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, expanded, onToggleExpand }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow; expanded: boolean; onToggleExpand: () => void }) {
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
@@ -630,13 +650,14 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }
       </td>
       <td className="px-2 py-2"><StochCell inst={inst} /></td>
       <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
-      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} /></td>
+      <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} expanded={expanded} onToggleExpand={onToggleExpand} /></td>
     </tr>
   );
 }
 
 function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow }) {
   const [open, setOpen] = useState(false);
+  const [qualOpen, setQualOpen] = useState(false);
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
 
@@ -669,8 +690,19 @@ function MobileCard({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual }
           <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
           <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
           <div className="col-span-2 pt-1.5 flex justify-end">
-            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} />
+            <ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} expanded={qualOpen} onToggleExpand={() => setQualOpen(v => !v)} />
           </div>
+          {qualOpen && (
+            <div className="col-span-2">
+              <QualificationChecklistPanel
+                symbol={inst.symbol}
+                broker={inst.broker}
+                direction={inst.direction}
+                scannerScore={inst.score}
+                existing={qual}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
