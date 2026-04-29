@@ -225,14 +225,18 @@ function LimitDropdown({ limit, onChange, options }: { limit: number; onChange: 
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(o => !o)}
         className="inline-flex items-center gap-1 px-2 h-6 rounded text-[11px] border border-border hover:border-primary/40 hover:text-foreground"
       >
         {label}
       </button>
-      {open && (
-        <div className="absolute z-50 mt-1 right-0 w-28 rounded-md border border-border bg-popover shadow-lg p-1 text-popover-foreground">
+      {open && pos && (
+        <div
+          className="fixed z-[200] w-28 rounded-md border border-border bg-popover shadow-lg p-1 text-popover-foreground"
+          style={{ top: pos.top, right: pos.right }}
+        >
           {options.map(n => (
             <button
               key={n}
