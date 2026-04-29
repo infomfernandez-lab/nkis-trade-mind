@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   CRITERIA_POINTS,
