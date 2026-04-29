@@ -85,6 +85,7 @@ export function TableSearchLimit({
   total,
   shown,
   limitOptions = [10, 25, 50, 100, 0],
+  suggestions = [],
 }: {
   search: string;
   onSearchChange: (v: string) => void;
@@ -93,25 +94,78 @@ export function TableSearchLimit({
   total: number;
   shown: number;
   limitOptions?: number[];
+  /** Lista de sugerencias (símbolos del radar) para el autocompletado. */
+  suggestions?: string[];
 }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  const matches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    const uniq = Array.from(new Set(suggestions));
+    const starts = uniq.filter(s => s.toLowerCase().startsWith(q));
+    const incl = uniq.filter(s => !s.toLowerCase().startsWith(q) && s.toLowerCase().includes(q));
+    return [...starts, ...incl].slice(0, 8);
+  }, [search, suggestions]);
+
+  const choose = (val: string) => {
+    onSearchChange(val);
+    setOpen(false);
+  };
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <div className="relative">
+      <div className="relative" ref={wrapRef}>
         <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
         <input
           value={search}
-          onChange={e => onSearchChange(e.target.value)}
+          onChange={e => { onSearchChange(e.target.value); setOpen(true); setActive(0); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={e => {
+            if (!open || matches.length === 0) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => (a + 1) % matches.length); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(a => (a - 1 + matches.length) % matches.length); }
+            else if (e.key === 'Enter') { e.preventDefault(); choose(matches[active]); }
+            else if (e.key === 'Escape') { setOpen(false); }
+          }}
           placeholder="Buscar…"
-          className="pl-6 pr-6 py-0.5 h-6 w-32 rounded text-[11px] bg-background border border-border focus:outline-none focus:border-primary/50"
+          className="pl-6 pr-6 py-0.5 h-6 w-36 rounded text-[11px] bg-background border border-border focus:outline-none focus:border-primary/50"
         />
         {search && (
           <button
-            onClick={() => onSearchChange('')}
+            onClick={() => { onSearchChange(''); setOpen(false); }}
             className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             aria-label="Limpiar"
           >
             <X className="w-3 h-3" />
           </button>
+        )}
+        {open && matches.length > 0 && (
+          <div className="absolute z-50 mt-1 left-0 w-48 max-h-64 overflow-auto rounded-md border border-border bg-popover shadow-lg p-1 text-popover-foreground">
+            {matches.map((s, i) => (
+              <button
+                key={s}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); choose(s); }}
+                onMouseEnter={() => setActive(i)}
+                className={`w-full text-left px-2 py-1 rounded text-[11px] font-data ${
+                  i === active ? 'bg-accent/60 text-foreground' : 'hover:bg-accent/40'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         )}
       </div>
       <LimitDropdown limit={limit} onChange={onLimitChange} options={limitOptions} />
