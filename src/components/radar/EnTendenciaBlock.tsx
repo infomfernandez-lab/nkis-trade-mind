@@ -199,6 +199,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
   const allItems = useUnifiedInstruments(brokerFilter);
   const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
+  const qualMap = useQualificationMap();
   const watchedSymbols = new Set(
     (watchlist ?? [])
       .filter(w => (w.status ?? '').toUpperCase() !== 'SEGUIMIENTO')
