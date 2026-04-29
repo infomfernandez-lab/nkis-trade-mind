@@ -11,6 +11,9 @@ import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
 import { RadarCaptureButton } from './RadarCaptureButton';
 import { useQualificationMap } from '@/hooks/use-qualification';
+import { useTableControls, useFiltered, SortHeader, TableSearchLimit } from './TableControls';
+
+type SortKey = 'symbol' | 'price' | 'broker' | 'direction' | 'score' | 'stoch' | 'adx';
 
 interface Props {
   brokerFilter: BrokerFilter;
