@@ -8,7 +8,7 @@ import type { BrokerFilter } from '@/lib/trade-utils';
 import { TypeFilter } from './TypeFilter';
 import { classifyInstrument, type InstrumentType, TYPE_ICON, TYPE_LABEL } from '@/lib/instrument-classify';
 import { useQualificationMap, type QualificationRow } from '@/hooks/use-qualification';
-import { QualificationChecklist, QualificationProgressBadge } from './QualificationChecklist';
+import { QualificationChecklistTrigger, QualificationChecklistPanel, QualificationProgressBadge } from './QualificationChecklist';
 
 interface Raw {
   rank?: number;
