@@ -54,27 +54,30 @@ function RadarPage() {
         id="escaner"
         title="📡 ESCANEADO"
         countLabel={`${tendenciaCount} instrumentos`}
+        stage="escaneado"
         defaultOpen
       >
         <EnTendenciaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ② Calificado (antes Seguimiento) */}
+      {/* ② Calificado */}
       <CollapsibleBlock
         id="seguimiento"
         title="🔍 CALIFICADO"
         countLabel={`${seguimientoCount}`}
+        stage="calificado"
         defaultOpen
       >
         <QualifiedStagePanel stage="calificado" brokerFilter={broker} />
         <SeguimientoBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ③ Señal activa (antes Entrada próxima) */}
+      {/* ③ Señal activa */}
       <CollapsibleBlock
         id="proximo"
         title="⚡ SEÑAL ACTIVA"
         countLabel={proximoCount > 0 ? `${proximoCount} ⚡` : '0'}
+        stage="senal_activa"
         tone={proximoCount > 0 ? 'alert' : undefined}
         defaultOpen
       >
@@ -82,11 +85,12 @@ function RadarPage() {
         <ProximoEntradaBlock brokerFilter={broker} />
       </CollapsibleBlock>
 
-      {/* ④ En cartera (antes Posiciones abiertas) */}
+      {/* ④ En cartera */}
       <CollapsibleBlock
         id="posiciones"
         title="📈 EN CARTERA"
         countLabel={`${filteredOpen.length}`}
+        stage="en_cartera"
         defaultOpen
       >
         <QualifiedStagePanel stage="en_cartera" brokerFilter={broker} />
