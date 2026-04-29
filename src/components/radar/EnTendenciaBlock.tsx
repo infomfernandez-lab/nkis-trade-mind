@@ -267,12 +267,13 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <th className="text-right px-2 py-2 w-[90px]">Precio</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
+              <th className="text-center px-2 py-2 w-[90px]">Embudo</th>
               <th className="text-left px-2 py-2 w-[100px]">ADX</th>
               <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
               <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
               <th className="text-left px-2 py-2 w-[110px]">Stoch(14)</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
-              <th className="text-right px-2 py-2 w-[200px]">Acción</th>
+              <th className="text-right px-2 py-2 w-[260px]">Acción</th>
             </tr>
           </thead>
           <tbody>
