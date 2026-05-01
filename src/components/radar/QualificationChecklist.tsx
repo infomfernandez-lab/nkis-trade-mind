@@ -146,7 +146,10 @@ export function QualificationChecklistPanel({
   }, [c1Auto, c6Auto, existing?.id, existing?.c1_elite, existing?.c6_sizing]);
 
   return (
-    <div className="p-3 bg-secondary/20 border-t border-border">
+    <div
+      className="p-3 bg-secondary/20 border-t border-border"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border">
         <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold border ${meta.badge}`}>
           <span>{meta.emoji}</span>
@@ -161,39 +164,31 @@ export function QualificationChecklistPanel({
         {CRITERIA_LABELS.map((label, idx) => {
           const checked = flags[idx];
           const isAuto = AUTO_INDICES.has(idx);
-          const prevDone = idx === 0 || flags.slice(0, idx).every(Boolean);
-          const locked = !prevDone && !checked && !isAuto;
 
-          const textTone = checked
-            ? 'text-success'
-            : locked
-              ? 'text-muted-foreground/60'
-              : 'text-foreground';
+          const textTone = checked ? 'text-success' : 'text-foreground';
 
           return (
             <button
               key={idx}
               type="button"
-              onClick={() => handleToggle(idx)}
-              disabled={locked || isAuto}
+              onClick={(e) => { e.stopPropagation(); handleToggle(idx); }}
+              disabled={isAuto}
               className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left text-[11px] border transition-colors ${
                 checked
                   ? 'bg-success/10 border-success/30'
-                  : locked
-                    ? 'bg-transparent border-transparent cursor-not-allowed'
-                    : 'bg-card border-border/50 hover:bg-secondary/40'
+                  : isAuto
+                    ? 'bg-secondary/30 border-border/40 cursor-not-allowed opacity-80'
+                    : 'bg-card border-border/50 hover:bg-secondary/40 cursor-pointer'
               }`}
             >
               <span
                 className={`shrink-0 w-4 h-4 mt-0.5 rounded grid place-content-center border ${
                   checked
                     ? 'bg-success/30 border-success/60 text-success'
-                    : locked
-                      ? 'border-muted-foreground/30 text-muted-foreground/40'
-                      : 'border-border'
+                    : 'border-border'
                 }`}
               >
-                {checked ? <Check className="w-3 h-3" /> : locked ? <Lock className="w-2.5 h-2.5" /> : null}
+                {checked ? <Check className="w-3 h-3" /> : isAuto ? <Lock className="w-2.5 h-2.5 text-muted-foreground/60" /> : null}
               </span>
               <span className={`flex-1 leading-snug ${textTone}`}>
                 <span className="font-medium">
