@@ -160,20 +160,20 @@ export function QualificationChecklistPanel({
 
   return (
     <div
-      className="p-3 bg-secondary/20 border-t border-border"
+      className="p-2 sm:p-3 bg-secondary/20 border-t border-border w-full max-w-full overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border">
-        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold border ${meta.badge}`}>
+      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border flex-wrap">
+        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-sm sm:text-xs font-bold border ${meta.badge}`}>
           <span>{meta.emoji}</span>
           <span>{meta.label}</span>
         </div>
-        <div className="font-data text-xs font-bold text-foreground">
-          {score}/20 pts · {flags.filter(Boolean).length}/7 criterios
+        <div className="font-data text-sm sm:text-xs font-bold text-foreground">
+          {score}/20 pts · {flags.filter(Boolean).length}/7
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2 sm:space-y-1.5">
         {CRITERIA_LABELS.map((label, idx) => {
           const checked = flags[idx];
           const isAuto = AUTO_INDICES.has(idx);
@@ -186,7 +186,7 @@ export function QualificationChecklistPanel({
               type="button"
               onClick={(e) => { e.stopPropagation(); handleToggle(idx); }}
               aria-disabled={isAuto}
-              className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left text-[11px] border transition-colors ${
+              className={`w-full flex items-start gap-2 px-2 py-2 sm:py-1.5 rounded text-left text-[15px] sm:text-[11px] leading-snug border transition-colors ${
                 checked
                   ? 'bg-success/10 border-success/30'
                   : isAuto
@@ -195,26 +195,26 @@ export function QualificationChecklistPanel({
               }`}
             >
               <span
-                className={`shrink-0 w-4 h-4 mt-0.5 rounded grid place-content-center border ${
+                className={`shrink-0 w-6 h-6 sm:w-4 sm:h-4 mt-0.5 rounded grid place-content-center border ${
                   checked
                     ? 'bg-success/30 border-success/60 text-success'
                     : 'border-border'
                 }`}
               >
-                {checked ? <Check className="w-3 h-3" /> : isAuto ? <Lock className="w-2.5 h-2.5 text-muted-foreground/60" /> : null}
+                {checked ? <Check className="w-4 h-4 sm:w-3 sm:h-3" /> : isAuto ? <Lock className="w-3.5 h-3.5 sm:w-2.5 sm:h-2.5 text-muted-foreground/60" /> : null}
               </span>
-              <span className={`flex-1 leading-snug ${textTone}`}>
+              <span className={`flex-1 min-w-0 leading-snug break-words ${textTone}`}>
                 <span className="font-medium">
                   {idx + 1}. {label}
                 </span>
-                <span className="ml-1 text-muted-foreground font-data">
+                <span className="ml-1 text-muted-foreground font-data text-[13px] sm:text-[11px]">
                   ({CRITERIA_POINTS[idx]} pts)
                 </span>
                 {isAuto && (
-                  <span className="ml-1 text-[9px] text-muted-foreground italic">automático</span>
+                  <span className="ml-1 text-[12px] sm:text-[9px] text-muted-foreground italic">automático</span>
                 )}
                 {idx === 1 && (
-                  <span className="ml-1 text-[9px] font-bold text-primary">
+                  <span className="ml-1 text-[12px] sm:text-[9px] font-bold text-primary">
                     ({isBuy(direction) ? 'BUY' : 'SELL'})
                   </span>
                 )}
