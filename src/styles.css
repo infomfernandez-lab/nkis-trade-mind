@@ -212,21 +212,39 @@ body {
     background: var(--color-muted-foreground);
   }
 
-  /* Mejor legibilidad en móvil */
+  /* Mejor legibilidad en móvil — fuentes considerablemente más grandes */
   @media (max-width: 767px) {
     html {
-      font-size: 16px;
+      font-size: 19px;
     }
     body {
       font-weight: 500;
       -webkit-text-size-adjust: 100%;
     }
+    .text-[10px] {
+      font-size: 0.8125rem !important;
+    }
+    .text-[11px] {
+      font-size: 0.875rem !important;
+    }
     .text-xs {
-      font-size: 0.8125rem;
+      font-size: 0.95rem;
       font-weight: 500;
     }
     .text-sm {
-      font-size: 0.9375rem;
+      font-size: 1.05rem;
+    }
+    .text-base {
+      font-size: 1.15rem;
+    }
+    .text-lg {
+      font-size: 1.3rem;
+    }
+    .text-xl {
+      font-size: 1.5rem;
+    }
+    .text-2xl {
+      font-size: 1.85rem;
     }
     .font-data {
       font-weight: 600;
