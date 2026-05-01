@@ -124,23 +124,9 @@ export function QualificationChecklistPanel({
       toast.info('Este criterio se marca automáticamente');
       return;
     }
-    for (let i = 0; i < idx; i++) {
-      if (!flags[i]) {
-        toast.error(`Marca primero el criterio ${i + 1}`);
-        return;
-      }
-    }
     const key = keys[idx];
     const newValue = !flags[idx];
-
-    const patch: Record<string, boolean> = { [key]: newValue };
-    if (!newValue) {
-      for (let i = idx + 1; i < keys.length; i++) {
-        if (!AUTO_INDICES.has(i)) patch[keys[i]] = false;
-      }
-    }
-
-    upsert.mutate({ symbol, broker, direction, patch, existing });
+    upsert.mutate({ symbol, broker, direction, patch: { [key]: newValue }, existing });
   };
 
   // Persist auto changes (élite / calculadora) when they differ from stored
