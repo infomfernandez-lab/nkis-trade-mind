@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   CRITERIA_POINTS,
@@ -30,6 +30,21 @@ const CRITERIA_LABELS = [
 ];
 
 const AUTO_INDICES = new Set([0, 5]); // C1 (élite) y C6 (calculadora) son automáticos
+const CHECKLIST_KEYS = ['c1_elite', 'c2_direction', 'c3_signal_candle', 'c4_prev_candle', 'c5_adx', 'c6_sizing', 'c7_sl_mt5'] as const;
+type ChecklistKey = (typeof CHECKLIST_KEYS)[number];
+type ChecklistState = Pick<QualificationRow, ChecklistKey>;
+
+function getChecklistState(existing: QualificationRow | undefined, c1Auto: boolean, c6Auto: boolean): ChecklistState {
+  return {
+    c1_elite: c1Auto || (existing?.c1_elite ?? false),
+    c2_direction: existing?.c2_direction ?? false,
+    c3_signal_candle: existing?.c3_signal_candle ?? false,
+    c4_prev_candle: existing?.c4_prev_candle ?? false,
+    c5_adx: existing?.c5_adx ?? false,
+    c6_sizing: c6Auto || (existing?.c6_sizing ?? false),
+    c7_sl_mt5: existing?.c7_sl_mt5 ?? false,
+  };
+}
 
 function isBuy(d: string) {
   const v = (d ?? '').toLowerCase();
@@ -93,15 +108,14 @@ export function QualificationChecklistPanel({
   const c1Auto = scannerScore >= 75;
   const c6Auto = calcUsed;
 
-  const state = {
-    c1_elite: c1Auto || (existing?.c1_elite ?? false),
-    c2_direction: existing?.c2_direction ?? false,
-    c3_signal_candle: existing?.c3_signal_candle ?? false,
-    c4_prev_candle: existing?.c4_prev_candle ?? false,
-    c5_adx: existing?.c5_adx ?? false,
-    c6_sizing: c6Auto || (existing?.c6_sizing ?? false),
-    c7_sl_mt5: existing?.c7_sl_mt5 ?? false,
-  };
+  const [state, setState] = useState<ChecklistState>(() => getChecklistState(existing, c1Auto, c6Auto));
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    const next = getChecklistState(existing, c1Auto, c6Auto);
+    stateRef.current = next;
+    setState(next);
+  }, [existing?.id, existing?.c1_elite, existing?.c2_direction, existing?.c3_signal_candle, existing?.c4_prev_candle, existing?.c5_adx, existing?.c6_sizing, existing?.c7_sl_mt5, c1Auto, c6Auto]);
 
   const flags = [
     state.c1_elite,
@@ -117,33 +131,32 @@ export function QualificationChecklistPanel({
   const stage = stageFromScore(score);
   const meta = STAGE_META[stage];
 
-  const keys = ['c1_elite', 'c2_direction', 'c3_signal_candle', 'c4_prev_candle', 'c5_adx', 'c6_sizing', 'c7_sl_mt5'] as const;
-
   const handleToggle = (idx: number) => {
     if (AUTO_INDICES.has(idx)) {
       toast.info('Este criterio se marca automáticamente');
       return;
     }
-    const key = keys[idx];
-    const newValue = !flags[idx];
-    upsert.mutate({ symbol, broker, direction, patch: { [key]: newValue }, existing });
+    const key = CHECKLIST_KEYS[idx];
+    const nextState: ChecklistState = {
+      ...stateRef.current,
+      c1_elite: c1Auto || stateRef.current.c1_elite,
+      c6_sizing: c6Auto || stateRef.current.c6_sizing,
+      [key]: !stateRef.current[key],
+    };
+    stateRef.current = nextState;
+    setState(nextState);
+    upsert.mutate(
+      { symbol, broker, direction, patch: nextState, existing },
+      {
+        onError: () => {
+          const reverted = getChecklistState(existing, c1Auto, c6Auto);
+          stateRef.current = reverted;
+          setState(reverted);
+          toast.error('No se pudo guardar el marcado');
+        },
+      },
+    );
   };
-
-  // Persist auto changes (élite / calculadora) when they differ from stored
-  useEffect(() => {
-    const needsAutoSync =
-      (existing?.c1_elite ?? false) !== c1Auto || (existing?.c6_sizing ?? false) !== c6Auto;
-    if (needsAutoSync && !upsert.isPending) {
-      upsert.mutate({
-        symbol,
-        broker,
-        direction,
-        patch: { c1_elite: c1Auto, c6_sizing: c6Auto },
-        existing,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c1Auto, c6Auto, existing?.id, existing?.c1_elite, existing?.c6_sizing]);
 
   return (
     <div
@@ -172,12 +185,12 @@ export function QualificationChecklistPanel({
               key={idx}
               type="button"
               onClick={(e) => { e.stopPropagation(); handleToggle(idx); }}
-              disabled={isAuto}
+              aria-disabled={isAuto}
               className={`w-full flex items-start gap-2 px-2 py-1.5 rounded text-left text-[11px] border transition-colors ${
                 checked
                   ? 'bg-success/10 border-success/30'
                   : isAuto
-                    ? 'bg-secondary/30 border-border/40 cursor-not-allowed opacity-80'
+                    ? 'bg-secondary/30 border-border/40 cursor-default opacity-80'
                     : 'bg-card border-border/50 hover:bg-secondary/40 cursor-pointer'
               }`}
             >
