@@ -1,10 +1,22 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
-import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { useMemo, useState, useRef } from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { BrokerFilter } from '@/lib/trade-utils';
-import { useUnifiedInstruments, type UnifiedInstrument } from './EnTendenciaBlock';
+import {
+  useUnifiedInstruments,
+  type UnifiedInstrument,
+  SymbolName,
+  SymbolMeta,
+  PriceCell,
+  PriceTag,
+  ScoreBadge,
+  AdxCell,
+  Pend50Cell,
+  StochCell,
+  AtrValueCell,
+  estructuraMeta,
+} from './EnTendenciaBlock';
 import { classifyFamily, FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
-import { useQualificationMap } from '@/hooks/use-qualification';
-import { QualificationChecklistPanel, QualificationProgressBadge } from './QualificationChecklist';
+import { SortHeader, useTableControls, useFiltered } from './TableControls';
 
 type Tier = 'elite' | 'solido' | 'observar';
 const TIER_META: Record<Tier, { label: string; min: number; max: number; accent: string }> = {
@@ -23,60 +35,86 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
+type SortKey = 'symbol' | 'score' | 'direction' | 'price' | 'adx' | 'pend50' | 'estructura' | 'stoch' | 'atr';
+
 interface Props { brokerFilter: BrokerFilter }
 
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
-  const qualMap = useQualificationMap();
   const [family, setFamily] = useState<Family | null>(null);
   const [subfamily, setSubfamily] = useState<string | null>(null);
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
-  // Anotamos cada item con familia/subfamilia
   const annotated = useMemo(() => {
     return all.map(it => {
       const cls = classifyFamily(it.symbol);
-      return { it, family: cls?.family ?? null, subfamily: cls?.subfamily ?? null };
+      return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
     });
   }, [all]);
 
-  // Filtrado por familia/subfamilia
-  const filtered = useMemo(() => {
+  const familyFiltered = useMemo(() => {
     return annotated.filter(a => {
-      if (family && a.family !== family) return false;
-      if (subfamily && a.subfamily !== subfamily) return false;
+      if (family && a._family !== family) return false;
+      if (subfamily && a._subfamily !== subfamily) return false;
       return true;
     });
   }, [annotated, family, subfamily]);
 
-  // Subfamilias disponibles (solo las que tienen instrumentos en el conjunto filtrado por familia)
+  type Row = (typeof familyFiltered)[number];
+
+  const items = useFiltered<Row, SortKey>(
+    familyFiltered,
+    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    {
+      symbol: it => it.symbol,
+      score: it => it.score,
+      direction: it => it.direction,
+      price: it => it.current_price,
+      adx: it => it.adx_value,
+      pend50: it => it.pend50_pct,
+      estructura: it => it.estructura,
+      stoch: it => it.stoch_k,
+      atr: it => it.atr,
+    },
+    it => [it.symbol, it.broker],
+  );
+
   const availableSubs = useMemo(() => {
     if (!family) return [] as string[];
     const present = new Set(
-      annotated.filter(a => a.family === family && a.subfamily).map(a => a.subfamily as string)
+      annotated.filter(a => a._family === family && a._subfamily).map(a => a._subfamily as string),
     );
     return SUBFAMILIES[family].filter(s => present.has(s));
   }, [annotated, family]);
 
-  // Conteos por familia (sobre todo el dataset, ignorando filtro de familia)
   const familyCounts = useMemo(() => {
     const c: Partial<Record<Family, number>> = {};
-    for (const a of annotated) if (a.family) c[a.family] = (c[a.family] ?? 0) + 1;
+    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
     return c;
   }, [annotated]);
 
-  // Agrupar por tier (mantiene orden por score desc dentro de cada tier)
-  const groups = useMemo(() => {
-    const map: Record<Tier, typeof filtered> = { elite: [], solido: [], observar: [] };
-    for (const a of [...filtered].sort((x, y) => y.it.score - x.it.score)) {
-      map[tierOf(a.it.score)].push(a);
-    }
-    return map;
-  }, [filtered]);
+  // Group by tier when no explicit sort active (default order = by score desc thanks to source)
+  const showTiers = controls.sort.key === null;
+  const sortedByScore = useMemo(() => [...items].sort((a, b) => b.score - a.score), [items]);
+
+  const groups: { tier: Tier; items: Row[] }[] = useMemo(() => {
+    if (!showTiers) return [{ tier: 'elite', items }];
+    const map: Record<Tier, Row[]> = { elite: [], solido: [], observar: [] };
+    for (const it of sortedByScore) map[tierOf(it.score)].push(it);
+    return (['elite', 'solido', 'observar'] as Tier[])
+      .filter(t => map[t].length > 0)
+      .map(t => ({ tier: t, items: map[t] }));
+  }, [showTiers, items, sortedByScore]);
 
   const eliteRef = useRef<HTMLDivElement>(null);
   const solidoRef = useRef<HTMLDivElement>(null);
   const observarRef = useRef<HTMLDivElement>(null);
+
+  const tierCounts = useMemo(() => {
+    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
+    for (const it of familyFiltered) c[tierOf(it.score)]++;
+    return c;
+  }, [familyFiltered]);
 
   const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
     const el = ref.current;
@@ -102,7 +140,6 @@ export function ScannerListView({ brokerFilter }: Props) {
     <div className="space-y-3">
       {/* Filtros */}
       <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-        {/* Fila 1 — Familia */}
         <div className="flex flex-wrap gap-1.5">
           <FilterChip
             active={family === null}
@@ -123,15 +160,9 @@ export function ScannerListView({ brokerFilter }: Props) {
           })}
         </div>
 
-        {/* Fila 2 — Subfamilia */}
         {family && availableSubs.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-border/50">
-            <FilterChip
-              active={subfamily === null}
-              onClick={() => setSubfamily(null)}
-              label="Todas"
-              size="sm"
-            />
+            <FilterChip active={subfamily === null} onClick={() => setSubfamily(null)} label="Todas" size="sm" />
             {availableSubs.map(s => (
               <FilterChip
                 key={s}
@@ -144,56 +175,100 @@ export function ScannerListView({ brokerFilter }: Props) {
           </div>
         )}
 
-        {/* Fila 3 — Anclajes Score */}
         <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-border/50">
           <button
             onClick={() => scrollTo(eliteRef)}
             className="px-2.5 py-1 rounded text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           >
-            ★ Élite ({groups.elite.length})
+            ★ Élite ({tierCounts.elite})
           </button>
           <button
             onClick={() => scrollTo(solidoRef)}
             className="px-2.5 py-1 rounded text-xs font-bold border border-success/40 bg-success/10 text-success hover:bg-success/20 transition-colors"
           >
-            ● Sólido ({groups.solido.length})
+            ● Sólido ({tierCounts.solido})
           </button>
           <button
             onClick={() => scrollTo(observarRef)}
             className="px-2.5 py-1 rounded text-xs font-bold border border-border bg-secondary text-muted-foreground hover:text-foreground transition-colors"
           >
-            ◌ Observar ({groups.observar.length})
+            ◌ Observar ({tierCounts.observar})
           </button>
         </div>
       </div>
 
-      {/* Secciones */}
-      <TierSection
-        innerRef={eliteRef}
-        tier="elite"
-        items={groups.elite}
-        qualMap={qualMap}
-        expandedKey={expandedKey}
-        onToggleExpand={setExpandedKey}
-      />
-      <TierSection
-        innerRef={solidoRef}
-        tier="solido"
-        items={groups.solido}
-        qualMap={qualMap}
-        expandedKey={expandedKey}
-        onToggleExpand={setExpandedKey}
-      />
-      <TierSection
-        innerRef={observarRef}
-        tier="observar"
-        items={groups.observar}
-        qualMap={qualMap}
-        expandedKey={expandedKey}
-        onToggleExpand={setExpandedKey}
-      />
+      {/* Tabla */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        {/* Desktop */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="text-left px-2 py-2 w-[50px]">#</th>
+                <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
+                <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[80px]" />
+                <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
+                <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+                <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+                <SortHeader label="Pend50" sortKey="pend50" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[80px]" />
+                <SortHeader label="Estruct" sortKey="estructura" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
+                <SortHeader label="Stoch" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+                <SortHeader label="ATR" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, gi) => {
+                const meta = TIER_META[g.tier];
+                let n = 0;
+                return (
+                  <FragmentRows key={`g-${gi}-${g.tier}`}>
+                    {showTiers && (
+                      <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
+                          className="bg-secondary/20 scroll-mt-24">
+                        <td colSpan={10} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
+                          {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
+                        </td>
+                      </tr>
+                    )}
+                    {g.items.map((inst) => {
+                      n++;
+                      return <DesktopRow key={`${inst.symbol}::${inst.broker}`} inst={inst} rank={n} />;
+                    })}
+                  </FragmentRows>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile */}
+        <div className="md:hidden">
+          {groups.map((g, gi) => {
+            const meta = TIER_META[g.tier];
+            return (
+              <div key={`m-${gi}-${g.tier}`}>
+                {showTiers && (
+                  <div ref={g.tier === 'elite' ? eliteRef : g.tier === 'solido' ? solidoRef : observarRef}
+                       className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 bg-secondary/30 border-border scroll-mt-24 ${meta.accent}`}>
+                    {meta.label} — {g.items.length}
+                  </div>
+                )}
+                <div className="divide-y divide-border">
+                  {g.items.map((inst, i) => (
+                    <MobileRow key={`${inst.symbol}::${inst.broker}`} inst={inst} rank={i + 1} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
+}
+
+function FragmentRows({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 function FilterChip({ label, active, onClick, size = 'md' }: { label: string; active: boolean; onClick: () => void; size?: 'sm' | 'md' }) {
@@ -212,107 +287,75 @@ function FilterChip({ label, active, onClick, size = 'md' }: { label: string; ac
   );
 }
 
-interface TierProps {
-  innerRef: React.RefObject<HTMLDivElement | null>;
-  tier: Tier;
-  items: { it: UnifiedInstrument; family: Family | null; subfamily: string | null }[];
-  qualMap: ReturnType<typeof useQualificationMap>;
-  expandedKey: string | null;
-  onToggleExpand: (k: string | null) => void;
-}
-
-function TierSection({ innerRef, tier, items, qualMap, expandedKey, onToggleExpand }: TierProps) {
-  const meta = TIER_META[tier];
-  if (items.length === 0) {
-    return <div ref={innerRef} className="scroll-mt-24" />;
-  }
-  return (
-    <div ref={innerRef} className="scroll-mt-24 rounded-lg border border-border bg-card overflow-hidden">
-      <div className={`px-3 py-2 border-b border-border bg-secondary/30 flex items-center gap-2 border-l-4 ${meta.accent}`}>
-        <span className="font-display font-bold text-sm uppercase tracking-wider">{meta.label}</span>
-        <span className="text-xs text-muted-foreground">— {items.length} instrumento{items.length === 1 ? '' : 's'}</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-2">
-        {items.map(({ it, family, subfamily }) => {
-          const key = `${it.symbol}::${it.broker}`;
-          const expanded = expandedKey === key;
-          return (
-            <InstrumentCard
-              key={key}
-              inst={it}
-              family={family}
-              subfamily={subfamily}
-              qualScore={qualMap.get(key)?.score ?? (it.score >= 75 ? 2 : 0)}
-              expanded={expanded}
-              onToggle={() => onToggleExpand(expanded ? null : key)}
-              qualExisting={qualMap.get(key)}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-interface CardProps {
-  inst: UnifiedInstrument;
-  family: Family | null;
-  subfamily: string | null;
-  qualScore: number;
-  expanded: boolean;
-  onToggle: () => void;
-  qualExisting: ReturnType<ReturnType<typeof useQualificationMap>['get']>;
-}
-
-function InstrumentCard({ inst, family, subfamily, qualScore, expanded, onToggle, qualExisting }: CardProps) {
+function DesktopRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
   const alcista = isAlcistaDir(inst.direction);
-  const stoch = inst.stoch_k;
-  const stochArrow = inst.stoch_subiendo == null ? '' : inst.stoch_subiendo ? '↑' : '↓';
+  const est = estructuraMeta(inst.estructura);
   return (
-    <div className={`rounded-md border border-border bg-card hover:border-primary/40 transition-colors ${expanded ? 'border-primary/60' : ''}`}>
-      <button onClick={onToggle} className="w-full text-left p-2.5 flex flex-col gap-1.5">
-        {/* Línea 1: símbolo + broker + dirección + score */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-bold text-sm text-foreground">{inst.symbol}</span>
-          <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-            inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-          }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
-          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-            alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
-          }`}>
-            {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-            {alcista ? 'BUY' : 'SELL'}
+    <tr className="border-t border-border text-sm">
+      <td className="px-2 py-2 font-data text-center text-muted-foreground font-bold text-sm">#{rank}</td>
+      <td className="px-3 py-2 font-bold text-foreground">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <SymbolName symbol={inst.symbol} />
+            <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
+              inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+            }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+          </div>
+          <SymbolMeta symbol={inst.symbol} />
+        </div>
+      </td>
+      <td className="px-2 py-2 text-center"><ScoreBadge score={inst.score} /></td>
+      <td className="px-2 py-2">
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+          alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+        }`}>
+          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? 'BUY' : 'SELL'}
+        </span>
+      </td>
+      <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
+      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
+      <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
+      <td className="px-2 py-2">
+        {inst.estructura ? (
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${est.bg} ${est.color}`}>
+            {est.icon} {est.label}
           </span>
-          <span className="ml-auto font-data text-xs font-bold text-foreground">{inst.score}</span>
-          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
-        </div>
+        ) : <span className="text-xs text-muted-foreground">—</span>}
+      </td>
+      <td className="px-2 py-2"><StochCell inst={inst} /></td>
+      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
+    </tr>
+  );
+}
 
-        {/* Línea 2: familia / subfamilia */}
-        <div className="text-[11px] text-muted-foreground truncate">
-          {family ?? '—'}{subfamily && subfamily !== '—' ? ` › ${subfamily}` : ''}
-        </div>
-
-        {/* Línea 3: stoch / adx / qual badge */}
-        <div className="flex items-center gap-2 text-[11px] flex-wrap">
-          <span className="text-muted-foreground">Stoch <span className="font-data font-semibold text-foreground">{stoch != null ? stoch.toFixed(1) : '—'}{stochArrow}</span></span>
-          <span className="text-muted-foreground">ADX <span className="font-data font-semibold text-foreground">{inst.adx_value ?? '—'}</span></span>
-          <span className="ml-auto"><QualificationProgressBadge score={qualScore} /></span>
-        </div>
-      </button>
-      {expanded && (
-        <div className="border-t border-border bg-secondary/20">
-          <QualificationChecklistPanel
-            symbol={inst.symbol}
-            broker={inst.broker}
-            direction={inst.direction}
-            scannerScore={inst.score}
-            existing={qualExisting}
-          />
-        </div>
-      )}
+function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
+  const alcista = isAlcistaDir(inst.direction);
+  const est = estructuraMeta(inst.estructura);
+  return (
+    <div className="p-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
+        <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>
+        <ScoreBadge score={inst.score} />
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+          alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+        }`}>
+          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? 'BUY' : 'SELL'}
+        </span>
+        <PriceTag price={inst.current_price} compact />
+      </div>
+      <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+        <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
+      </div>
     </div>
   );
 }
 
-// Suprime warning import no usado (useEffect podría usarse a futuro)
-void useEffect;
+

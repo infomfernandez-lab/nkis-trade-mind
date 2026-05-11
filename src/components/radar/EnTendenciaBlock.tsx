@@ -432,7 +432,7 @@ function pend50Color(p: number | null): string {
   return 'text-destructive';
 }
 
-function estructuraMeta(e: EstructuraTipo): { icon: string; label: string; color: string; bg: string } {
+export function estructuraMeta(e: EstructuraTipo): { icon: string; label: string; color: string; bg: string } {
   if (e === 'CONFIRMADA') return { icon: '✓', label: 'CONFIRMADA', color: 'text-success', bg: 'bg-success/10 border-success/30' };
   if (e === 'PARCIAL') return { icon: '~', label: 'PARCIAL', color: 'text-primary', bg: 'bg-primary/10 border-primary/30' };
   if (e === 'ROTA') return { icon: '✗', label: 'ROTA', color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' };
@@ -459,7 +459,7 @@ function scoreIcon(score: number): string {
   return '◌';
 }
 
-function ScoreBadge({ score }: { score: number }) {
+export function ScoreBadge({ score }: { score: number }) {
   if (score >= 75) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-primary text-black border border-primary">
@@ -486,7 +486,7 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
-function StochCell({ inst }: { inst: UnifiedInstrument }) {
+export function StochCell({ inst }: { inst: UnifiedInstrument }) {
   const k = inst.stoch_k;
   if (k == null) return <span className="text-xs text-muted-foreground">—</span>;
   const alcista = isAlcistaDir(inst.direction);
@@ -502,14 +502,14 @@ function StochCell({ inst }: { inst: UnifiedInstrument }) {
   );
 }
 
-function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
+export function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
   if (inst.atr == null) return <span className="text-xs text-muted-foreground">—</span>;
   const v = inst.atr;
   const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 5;
   return <span className="font-data text-xs font-semibold text-foreground">{v.toFixed(decimals)}</span>;
 }
 
-function AdxCell({ inst }: { inst: UnifiedInstrument }) {
+export function AdxCell({ inst }: { inst: UnifiedInstrument }) {
   if (inst.adx_value == null) return <span className="text-xs text-muted-foreground">—</span>;
   const v = inst.adx_value;
   const low = v < 15;
@@ -526,7 +526,7 @@ function AdxCell({ inst }: { inst: UnifiedInstrument }) {
   );
 }
 
-function Pend50Cell({ inst }: { inst: UnifiedInstrument }) {
+export function Pend50Cell({ inst }: { inst: UnifiedInstrument }) {
   // Prefer v18 pend50_pct; fallback to legacy distance to give some context
   const p = inst.pend50_pct;
   if (p == null) {
