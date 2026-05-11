@@ -78,7 +78,7 @@ export function ScannerListView({ brokerFilter }: Props) {
   const solidoRef = useRef<HTMLDivElement>(null);
   const observarRef = useRef<HTMLDivElement>(null);
 
-  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
     const el = ref.current;
     if (!el) return;
     const main = el.closest('main');
@@ -213,7 +213,7 @@ function FilterChip({ label, active, onClick, size = 'md' }: { label: string; ac
 }
 
 interface TierProps {
-  innerRef: React.RefObject<HTMLDivElement>;
+  innerRef: React.RefObject<HTMLDivElement | null>;
   tier: Tier;
   items: { it: UnifiedInstrument; family: Family | null; subfamily: string | null }[];
   qualMap: ReturnType<typeof useQualificationMap>;
