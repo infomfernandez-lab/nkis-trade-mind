@@ -77,18 +77,20 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
-        <TableSearchLimit
-          search={controls.search}
-          onSearchChange={controls.setSearch}
-          limit={controls.limit}
-          onLimitChange={controls.setLimit}
-          total={typeFiltered.length}
-          shown={filtered.length}
-          suggestions={typeFiltered.map(t => t.symbol)}
-        />
-        <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
-      </div>
+      {!compact && (
+        <div className="sticky top-0 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
+          <TableSearchLimit
+            search={controls.search}
+            onSearchChange={controls.setSearch}
+            limit={controls.limit}
+            onLimitChange={controls.setLimit}
+            total={typeFiltered.length}
+            shown={filtered.length}
+            suggestions={typeFiltered.map(t => t.symbol)}
+          />
+          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
+        </div>
+      )}
       {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
       {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
