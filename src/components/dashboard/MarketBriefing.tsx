@@ -172,11 +172,11 @@ export function MarketBriefing({ openTrades }: Props) {
           value={contextNote}
           onChange={(e) => setContextNote(e.target.value)}
           placeholder="Ej: VIX 18.5, oro lateral, crudo bajando, Fed hawkish"
-          className="flex-1"
+          className="flex-1 h-12 sm:h-9 text-base sm:text-sm"
           disabled={loading}
         />
-        <Button onClick={handleGenerate} disabled={loading} className="gap-2 shrink-0">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+        <Button onClick={handleGenerate} disabled={loading} size="lg" className="gap-2 shrink-0 w-full sm:w-auto h-12 sm:h-9 text-base sm:text-sm">
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
           {loading ? 'Generando...' : 'Generar briefing'}
         </Button>
       </div>
@@ -188,22 +188,22 @@ export function MarketBriefing({ openTrades }: Props) {
               value={briefing}
               onChange={(e) => setBriefing(e.target.value)}
               rows={6}
-              className="bg-secondary/40 border-border text-sm leading-relaxed font-data pr-20"
+              className="bg-secondary/40 border-border text-base sm:text-sm leading-relaxed font-data pr-24 min-h-[180px] sm:min-h-0"
             />
             <Button
               size="sm"
               variant="ghost"
               onClick={handleCopy}
-              className="absolute top-1 right-1 h-7 gap-1 text-xs"
+              className="absolute top-2 right-2 h-9 sm:h-7 gap-1 text-sm sm:text-xs"
             >
-              <Copy className="w-3 h-3" /> Copiar
+              <Copy className="w-4 h-4 sm:w-3 sm:h-3" /> Copiar
             </Button>
           </div>
 
           {/* Régimen + Guardar */}
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-muted-foreground mr-1">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm sm:text-[11px] font-semibold text-muted-foreground mr-1 w-full sm:w-auto">
                 Régimen{!regimen && <span className="text-destructive"> *</span>}:
               </span>
               {REGIMENES.map(r => (
@@ -211,7 +211,7 @@ export function MarketBriefing({ openTrades }: Props) {
                   key={r}
                   type="button"
                   onClick={() => setRegimen(r)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
+                  className={`px-4 py-2.5 sm:px-2.5 sm:py-1 rounded-md text-sm sm:text-xs font-semibold border transition-colors ${
                     regimen === r
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-secondary/30 text-muted-foreground border-border hover:bg-secondary/60'
@@ -226,9 +226,10 @@ export function MarketBriefing({ openTrades }: Props) {
               onClick={handleSave}
               disabled={saving}
               variant="secondary"
-              className="gap-2 self-start"
+              size="lg"
+              className="gap-2 w-full sm:w-auto sm:self-start h-12 sm:h-9 text-base sm:text-sm"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               {saving ? 'Guardando...' : 'Guardar briefing'}
             </Button>
           </div>
