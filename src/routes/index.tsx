@@ -76,7 +76,13 @@ function Dashboard() {
       <MarketBriefing openTrades={openTrades} />
 
       {/* 2. Rendimiento del sistema */}
-      <SystemPerformance closed={closedTrades} open={openTrades} startingBalance={startingBalance} />
+      <SystemPerformance
+        closed={closedTrades}
+        open={openTrades}
+        startingBalance={startingBalance}
+        initialBalance={initialBalance}
+        currentBalance={currentBalance}
+      />
 
       {/* 3. Escáner */}
       <ScannerSummary />
