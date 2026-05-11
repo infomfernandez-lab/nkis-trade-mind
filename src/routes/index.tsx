@@ -10,6 +10,9 @@ import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
 import { MarketBriefing } from '@/components/dashboard/MarketBriefing';
+import { useWatchlist } from '@/hooks/use-watchlist';
+import { Link as RLink } from '@tanstack/react-router';
+import { TrendingUp as TUp, TrendingDown as TDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/')({
