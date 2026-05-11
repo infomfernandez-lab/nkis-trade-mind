@@ -14,7 +14,6 @@ import {
   StochCell,
   AtrValueCell,
   estructuraMeta,
-  isAlcistaDirExport as _isAlc,
 } from './EnTendenciaBlock';
 import { classifyFamily, FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
 import { SortHeader, useTableControls, useFiltered } from './TableControls';
@@ -359,4 +358,4 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
   );
 }
 
-void _isAlc;
+
