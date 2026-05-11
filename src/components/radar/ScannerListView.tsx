@@ -67,8 +67,6 @@ export function ScannerListView({ brokerFilter }: Props) {
   const [subfamily, setSubfamily] = useState<string | null>(null);
   const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
   const vigSet = useVigilanciaSet();
-  const { openTrades } = useAllTrades();
-  const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
   const { data: watchlist } = useWatchlist();
   const addWatch = useAddToWatchlist();
   const delWatch = useDeleteWatchlistItem();
