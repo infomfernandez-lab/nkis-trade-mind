@@ -192,7 +192,6 @@ export function ScannerListView({ brokerFilter }: Props) {
         onError: (e) => toast.error(`Error: ${(e as Error).message}`),
       });
     }
-    void key;
   };
 
   if (all.length === 0) {
