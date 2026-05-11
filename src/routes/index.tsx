@@ -87,6 +87,9 @@ function Dashboard() {
       {/* 3. Escáner */}
       <ScannerSummary />
 
+      {/* 3.5 En Vigilancia */}
+      <VigilanciaCompact brokerFilter={broker} />
+
       {/* 4. Posiciones abiertas */}
       <section className="space-y-2">
         <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card border-border">
