@@ -116,7 +116,7 @@ export function MarketBriefing({ openTrades }: Props) {
         briefing_date: now.toISOString(),
         contexto_input: contextNote || null,
         briefing_text: briefing,
-        regimen,
+        regimen: regimenToSave,
         posiciones_snapshot: snapshot,
       });
       if (insErr) {
