@@ -25,7 +25,7 @@ function tradeStatus(t: Trade): string {
   return 'Dejar correr';
 }
 
-export function OpenPositionsTable({ brokerFilter }: Props) {
+export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   const { openTrades, isLoading } = useAllTrades();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
   const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
