@@ -11,6 +11,7 @@ type SortKey = 'symbol' | 'direction' | 'entryDate' | 'entryPrice' | 'sl' | 'tp'
 
 interface Props {
   brokerFilter: BrokerFilter;
+  compact?: boolean;
 }
 
 function formatPrice(price: number): string {
