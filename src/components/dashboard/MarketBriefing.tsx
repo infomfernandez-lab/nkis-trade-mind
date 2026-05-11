@@ -95,9 +95,10 @@ export function MarketBriefing({ openTrades }: Props) {
       toast.error('Genera o escribe un briefing primero');
       return;
     }
+    const regimenToSave: Regimen = regimen ?? 'Tendencia';
     if (!regimen) {
-      toast.error('Selecciona un régimen de mercado (Tendencia, Rango, …)');
-      return;
+      setRegimen(regimenToSave);
+      toast.message('Régimen no seleccionado: se guarda como "Tendencia" por defecto');
     }
     setSaving(true);
     try {
@@ -115,7 +116,7 @@ export function MarketBriefing({ openTrades }: Props) {
         briefing_date: now.toISOString(),
         contexto_input: contextNote || null,
         briefing_text: briefing,
-        regimen,
+        regimen: regimenToSave,
         posiciones_snapshot: snapshot,
       });
       if (insErr) {
