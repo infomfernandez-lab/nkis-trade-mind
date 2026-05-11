@@ -47,6 +47,20 @@ function Dashboard() {
   const closedTrades = filterByBroker(allClosed, broker);
   const openTrades = filterByBroker(allOpen, broker);
   const startingBalance = Number(settings?.balance ?? 10000);
+
+  // Initial reference balances per account
+  const INITIAL_NKIS = 953000;
+  const INITIAL_OCTX = 100000;
+  const balanceNkis = Number((settings as any)?.balance_nkis ?? 0);
+  const balanceOctx = Number((settings as any)?.balance_octx ?? 0);
+  const initialBalance =
+    broker === 'darwinex' ? INITIAL_NKIS :
+    broker === 'octx' ? INITIAL_OCTX :
+    INITIAL_NKIS + INITIAL_OCTX;
+  const currentBalance =
+    broker === 'darwinex' ? balanceNkis :
+    broker === 'octx' ? balanceOctx :
+    balanceNkis + balanceOctx;
   const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
 
   return (
@@ -62,7 +76,13 @@ function Dashboard() {
       <MarketBriefing openTrades={openTrades} />
 
       {/* 2. Rendimiento del sistema */}
-      <SystemPerformance closed={closedTrades} open={openTrades} startingBalance={startingBalance} />
+      <SystemPerformance
+        closed={closedTrades}
+        open={openTrades}
+        startingBalance={startingBalance}
+        initialBalance={initialBalance}
+        currentBalance={currentBalance}
+      />
 
       {/* 3. Escáner */}
       <ScannerSummary />
@@ -96,15 +116,23 @@ function Dashboard() {
 }
 
 /* ─────────── Rendimiento del sistema ─────────── */
-function SystemPerformance({ closed, open, startingBalance }: { closed: Trade[]; open: Trade[]; startingBalance: number }) {
+function SystemPerformance({ closed, open, startingBalance, initialBalance, currentBalance }: { closed: Trade[]; open: Trade[]; startingBalance: number; initialBalance: number; currentBalance: number }) {
   const stats = computeStatsFromTrades(closed, open);
   const kpis = computeDashboardKpis(closed, startingBalance);
   const totalPnlPct = startingBalance > 0 ? (stats.totalPnl / startingBalance) * 100 : 0;
 
+  // Drawdown sobre el balance real de la cuenta
+  // peak = max(balance inicial, balance actual). Sin histórico de picos, usamos el inicial como suelo.
+  const peak = Math.max(initialBalance, currentBalance);
+  const ddRaw = peak > 0 && currentBalance > 0
+    ? Math.max(0, ((peak - currentBalance) / peak) * 100)
+    : 0;
+  const drawdownPct = Math.min(100, ddRaw);
+
   const winRateOk = stats.winRate >= 40;
   const pfTone = kpis.profitFactor === Infinity || kpis.profitFactor >= 1.5
     ? 'good' : kpis.profitFactor < 1 ? 'bad' : 'neutral';
-  const ddBad = kpis.currentDrawdownPct > 3;
+  const ddBad = drawdownPct > 3;
 
   return (
     <section className="space-y-2">
@@ -130,8 +158,10 @@ function SystemPerformance({ closed, open, startingBalance }: { closed: Trade[];
         />
         <MetricCard
           label="Drawdown Máx"
-          value={`${kpis.currentDrawdownPct.toFixed(2)}%`}
-          sub={ddBad ? '> 3% atención' : '≤ 3% ✓'}
+          value={`${drawdownPct.toFixed(2)}%`}
+          sub={currentBalance > 0
+            ? `${formatCurrency(currentBalance)} / pico ${formatCurrency(peak)}`
+            : 'Sin balance sincronizado'}
           tone={ddBad ? 'bad' : 'good'}
         />
         <MetricCard
