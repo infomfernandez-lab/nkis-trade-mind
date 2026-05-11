@@ -47,6 +47,20 @@ function Dashboard() {
   const closedTrades = filterByBroker(allClosed, broker);
   const openTrades = filterByBroker(allOpen, broker);
   const startingBalance = Number(settings?.balance ?? 10000);
+
+  // Initial reference balances per account
+  const INITIAL_NKIS = 953000;
+  const INITIAL_OCTX = 100000;
+  const balanceNkis = Number((settings as any)?.balance_nkis ?? 0);
+  const balanceOctx = Number((settings as any)?.balance_octx ?? 0);
+  const initialBalance =
+    broker === 'darwinex' ? INITIAL_NKIS :
+    broker === 'octx' ? INITIAL_OCTX :
+    INITIAL_NKIS + INITIAL_OCTX;
+  const currentBalance =
+    broker === 'darwinex' ? balanceNkis :
+    broker === 'octx' ? balanceOctx :
+    balanceNkis + balanceOctx;
   const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
 
   return (
