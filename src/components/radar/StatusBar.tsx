@@ -82,7 +82,7 @@ export function StatusBar({ brokerFilter }: Props) {
   const showOctx = brokerFilter !== 'darwinex';
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/85 backdrop-blur-md border-b border-border">
+    <div className="-mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/85 border-b border-border">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
         {/* VIX */}
         <div className="flex items-center gap-1.5">
