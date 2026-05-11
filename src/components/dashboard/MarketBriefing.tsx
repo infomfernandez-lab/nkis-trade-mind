@@ -172,11 +172,11 @@ export function MarketBriefing({ openTrades }: Props) {
           value={contextNote}
           onChange={(e) => setContextNote(e.target.value)}
           placeholder="Ej: VIX 18.5, oro lateral, crudo bajando, Fed hawkish"
-          className="flex-1"
+          className="flex-1 h-12 sm:h-9 text-base sm:text-sm"
           disabled={loading}
         />
-        <Button onClick={handleGenerate} disabled={loading} className="gap-2 shrink-0">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+        <Button onClick={handleGenerate} disabled={loading} size="lg" className="gap-2 shrink-0 w-full sm:w-auto h-12 sm:h-9 text-base sm:text-sm">
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
           {loading ? 'Generando...' : 'Generar briefing'}
         </Button>
       </div>
