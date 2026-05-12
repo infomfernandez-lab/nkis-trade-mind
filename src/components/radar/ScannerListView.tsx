@@ -273,8 +273,8 @@ export function ScannerListView({ brokerFilter }: Props) {
             <thead>
               <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="text-left px-2 py-2 w-[60px]">#</th>
-                <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
                 <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[80px]" />
+                <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
                 <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
                 <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
                 <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
