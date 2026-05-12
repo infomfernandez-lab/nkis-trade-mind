@@ -398,6 +398,7 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
   return (
     <tr className={`border-t border-border text-sm ${watched ? 'bg-primary/5' : ''}`}>
       <td className="px-2 py-2 font-data text-center text-muted-foreground font-bold text-sm">#{rank}</td>
+      <td className="px-2 py-2 text-center"><ScoreBadge score={inst.score} /></td>
       <td className="px-3 py-2 font-bold text-foreground">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -409,7 +410,6 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
           <SymbolMeta symbol={inst.symbol} />
         </div>
       </td>
-      <td className="px-2 py-2 text-center"><ScoreBadge score={inst.score} /></td>
       <td className="px-2 py-2">
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
