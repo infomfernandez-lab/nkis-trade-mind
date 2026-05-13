@@ -278,7 +278,7 @@ function StatisticsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Estadísticas</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
         </div>
@@ -289,7 +289,7 @@ function StatisticsPage() {
   if (closedTrades.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Estadísticas</h1>
         <div className="rounded-lg border border-border bg-card p-12 text-center">
           <p className="text-sm text-muted-foreground">No hay trades cerrados para analizar.</p>
         </div>
@@ -303,7 +303,7 @@ function StatisticsPage() {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-8">
-        <h1 className="font-display text-2xl font-bold tracking-tight">Estadísticas</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight">Estadísticas</h1>
 
         {/* BLOQUE 0 — Resumen General */}
         <Section title="Resumen General">
@@ -407,9 +407,9 @@ function StatisticsPage() {
         {/* Heatmap P&L Mensual */}
         {years.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-            <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Heatmap P&L Mensual</h2>
+            <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>Heatmap P&L Mensual</h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs font-data">
+              <table className="w-full text-sm font-data">
                 <thead>
                   <tr>
                     <th className="py-1 px-2 text-left text-muted-foreground">Año</th>
@@ -436,7 +436,7 @@ function StatisticsPage() {
 
         {/* Histogram */}
         <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-          <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>Distribución de Resultados</h2>
+          <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>Distribución de Resultados</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.histogramData}>
@@ -472,7 +472,7 @@ function StatisticsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="font-display text-sm font-semibold mb-3" style={{ color: GOLD }}>{title}</h2>
+      <h2 className="font-display text-base font-semibold mb-3" style={{ color: GOLD }}>{title}</h2>
       {children}
     </div>
   );
