@@ -59,7 +59,7 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
         Estadísticas por Familia
       </h2>
 

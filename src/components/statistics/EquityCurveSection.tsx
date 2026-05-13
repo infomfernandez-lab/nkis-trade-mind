@@ -72,7 +72,7 @@ export function EquityCurveSection({ closedTrades }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
         Curva de Equity
       </h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
@@ -109,8 +109,8 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'ok
   const cls = tone === 'bad' ? 'text-destructive' : tone === 'ok' ? 'text-success' : 'text-foreground';
   return (
     <div className="rounded-md border border-border bg-background/40 p-2.5">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`text-base font-data font-bold ${cls}`}>{value}</div>
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-lg font-data font-bold ${cls}`}>{value}</div>
     </div>
   );
 }

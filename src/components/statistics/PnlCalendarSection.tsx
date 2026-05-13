@@ -96,7 +96,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h2 className="font-display text-sm font-semibold" style={{ color: GOLD }}>
+        <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
           Calendario de PnL
         </h2>
         <div className="flex items-center gap-1.5">
@@ -178,7 +178,7 @@ function SumCell({ label, value, tone }: { label: string; value: string; tone: '
   const cls = tone === 'ok' ? 'text-success' : 'text-destructive';
   return (
     <div className="rounded-md border border-border bg-background/40 p-2">
-      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase text-muted-foreground">{label}</div>
       <div className={`font-data font-bold ${cls}`}>{value}</div>
     </div>
   );
