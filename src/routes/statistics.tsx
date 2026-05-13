@@ -453,6 +453,15 @@ function StatisticsPage() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Curva de Equity */}
+        <EquityCurveSection closedTrades={allClosed} />
+
+        {/* Calendario de PnL */}
+        <PnlCalendarSection closedTrades={allClosed} />
+
+        {/* Estadísticas por Familia */}
+        <FamilyStatsSection closedTrades={closedTrades} />
       </div>
     </TooltipProvider>
   );
