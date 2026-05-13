@@ -114,7 +114,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <div className="text-sm font-semibold">{MONTHS[month]} {year}</div>
+        <div className="text-base font-semibold">{MONTHS[month]} {year}</div>
         <button
           onClick={() => setCursor(new Date(year, month + 1, 1))}
           className="p-1.5 rounded-md border border-border hover:bg-muted"
@@ -124,7 +124,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-muted-foreground mb-1">
+      <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-1">
         {WEEK.map(d => <div key={d} className="text-center font-semibold">{d}</div>)}
       </div>
 
@@ -134,7 +134,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
           const data = byDay.get(`${year}-${month}-${d}`);
           if (!data) {
             return (
-              <div key={i} className="aspect-square rounded-md bg-muted/30 flex items-start justify-end p-1 text-[10px] text-muted-foreground/60">
+              <div key={i} className="aspect-square rounded-md bg-muted/30 flex items-start justify-end p-1 text-xs text-muted-foreground/60">
                 {d}
               </div>
             );
