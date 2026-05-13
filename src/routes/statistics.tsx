@@ -504,6 +504,3 @@ function StatCard({ label, value, sub, color, tip }: { label: string; value: str
     </div>
   );
 }
-    </div>
-  );
-}
