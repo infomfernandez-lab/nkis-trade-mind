@@ -11,6 +11,9 @@ import { computeRR, hasJournal } from '@/lib/trade-derived';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EquityCurveSection } from '@/components/statistics/EquityCurveSection';
+import { PnlCalendarSection } from '@/components/statistics/PnlCalendarSection';
+import { FamilyStatsSection } from '@/components/statistics/FamilyStatsSection';
 
 export const Route = createFileRoute('/statistics')({
   component: StatisticsPage,
@@ -450,6 +453,15 @@ function StatisticsPage() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Curva de Equity */}
+        <EquityCurveSection closedTrades={allClosed} />
+
+        {/* Calendario de PnL */}
+        <PnlCalendarSection closedTrades={allClosed} />
+
+        {/* Estadísticas por Familia */}
+        <FamilyStatsSection closedTrades={closedTrades} />
       </div>
     </TooltipProvider>
   );
