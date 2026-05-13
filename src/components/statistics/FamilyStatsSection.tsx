@@ -59,7 +59,7 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-sm font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
         Estadísticas por Familia
       </h2>
 
@@ -89,7 +89,7 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-muted-foreground border-b border-border">
                   <th className="text-left py-2 px-2 font-semibold">Familia</th>

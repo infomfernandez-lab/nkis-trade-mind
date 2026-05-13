@@ -96,7 +96,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <h2 className="font-display text-sm font-semibold" style={{ color: GOLD }}>
+        <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
           Calendario de PnL
         </h2>
         <div className="flex items-center gap-1.5">
@@ -114,7 +114,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <div className="text-sm font-semibold">{MONTHS[month]} {year}</div>
+        <div className="text-base font-semibold">{MONTHS[month]} {year}</div>
         <button
           onClick={() => setCursor(new Date(year, month + 1, 1))}
           className="p-1.5 rounded-md border border-border hover:bg-muted"
@@ -124,7 +124,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-muted-foreground mb-1">
+      <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-1">
         {WEEK.map(d => <div key={d} className="text-center font-semibold">{d}</div>)}
       </div>
 
@@ -134,7 +134,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
           const data = byDay.get(`${year}-${month}-${d}`);
           if (!data) {
             return (
-              <div key={i} className="aspect-square rounded-md bg-muted/30 flex items-start justify-end p-1 text-[10px] text-muted-foreground/60">
+              <div key={i} className="aspect-square rounded-md bg-muted/30 flex items-start justify-end p-1 text-xs text-muted-foreground/60">
                 {d}
               </div>
             );
@@ -178,7 +178,7 @@ function SumCell({ label, value, tone }: { label: string; value: string; tone: '
   const cls = tone === 'ok' ? 'text-success' : 'text-destructive';
   return (
     <div className="rounded-md border border-border bg-background/40 p-2">
-      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase text-muted-foreground">{label}</div>
       <div className={`font-data font-bold ${cls}`}>{value}</div>
     </div>
   );
