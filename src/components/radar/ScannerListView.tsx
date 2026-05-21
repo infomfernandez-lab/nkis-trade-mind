@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef } from 'react';
 import { TrendingUp, TrendingDown, Eye, EyeOff } from 'lucide-react';
+import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
 import {
   useUnifiedInstruments,
@@ -64,6 +65,7 @@ interface Props { brokerFilter: BrokerFilter }
 
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
+  const collapsed = useRadarCollapsed();
   const [family, setFamily] = useState<Family | null>(null);
   const [subfamily, setSubfamily] = useState<string | null>(null);
   const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
@@ -206,7 +208,7 @@ export function ScannerListView({ brokerFilter }: Props) {
   return (
     <div className="space-y-3">
       {/* Filtros — sticky para mantener acceso al hacer scroll */}
-      <div className="sticky top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border">
+      <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-96 opacity-100'}`}>
         <div className="rounded-lg border border-border bg-card p-2 space-y-2">
           <div className="flex flex-wrap gap-1.5">
             <FilterChip
