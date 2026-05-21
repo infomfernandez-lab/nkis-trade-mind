@@ -9,10 +9,10 @@ import { computeDashboardKpis } from '@/lib/analytics';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
+import { VigilanciaView } from '@/components/radar/ScannerListView';
+import { PnlCalendarSection } from '@/components/statistics/PnlCalendarSection';
 import { MarketBriefing } from '@/components/dashboard/MarketBriefing';
-import { useWatchlist } from '@/hooks/use-watchlist';
 import { supabase } from '@/integrations/supabase/client';
-import type { BrokerFilter } from '@/lib/trade-utils';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
