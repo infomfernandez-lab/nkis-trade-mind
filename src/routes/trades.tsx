@@ -128,10 +128,10 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
   const journalDone = hasJournal(trade);
   const scanner = lookupScannerRank(trade, scannerSessions);
 
-  // Subtle background tint by win/loss for closed trades
+  // Full-row green/red background based on win/loss
   const rowBg = trade.netPnl >= 0
-    ? 'bg-success/[0.04] hover:bg-success/[0.08]'
-    : 'bg-destructive/[0.04] hover:bg-destructive/[0.08]';
+    ? 'bg-success/20 hover:bg-success/30'
+    : 'bg-destructive/20 hover:bg-destructive/30';
 
   const brokerLabel = trade.broker === 'darwinex' ? 'NK' : trade.broker === 'octx' ? 'OX' : trade.broker;
 
@@ -143,17 +143,20 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
       >
         {/* Mobile: stacked / Desktop: single row */}
         <div className="px-3 py-3 lg:px-4 lg:py-3 grid grid-cols-[auto_1fr_auto] gap-3 items-center">
-          {/* Direction badge */}
-          <div className={`px-2 py-0.5 rounded text-xs font-data font-bold ${
-            trade.direction === 'BUY' ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'
-          }`}>
-            {trade.direction}
+          {/* PnL — first column */}
+          <div className={`font-data font-bold text-sm min-w-[80px] ${trade.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+            {formatEur(trade.netPnl)}
           </div>
 
-          {/* Center column */}
+          {/* Center column: symbol + BUY/SELL badge + meta */}
           <div className="min-w-0 flex flex-col lg:flex-row lg:items-center lg:gap-4">
             <div className="flex items-baseline gap-2">
               <span className="font-semibold text-sm truncate">{trade.symbol}</span>
+              <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${
+                trade.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
+              }`}>
+                {trade.direction}
+              </span>
               <span className="text-xs text-muted-foreground font-data">{formatShortDate(trade.entryDate)}</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
@@ -170,11 +173,8 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
             </div>
           </div>
 
-          {/* Right column */}
+          {/* Right column: journal + chevron */}
           <div className="flex items-center gap-3">
-            <div className={`font-data font-bold text-sm ${trade.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {formatEur(trade.netPnl)}
-            </div>
             {journalDone ? (
               <BookCheck className="w-4 h-4 text-primary" aria-label="Bitácora rellenada" />
             ) : (
@@ -184,6 +184,7 @@ function TradeCard({ trade, scannerSessions, expanded, onToggle }: TradeCardProp
           </div>
         </div>
       </button>
+
 
       {expanded && (
         <div className="border-t border-border p-4 lg:p-6 space-y-6 text-sm">
