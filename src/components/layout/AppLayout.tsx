@@ -148,7 +148,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <header className="border-b border-border bg-card shrink-0">
+          <header
+            className={`border-b border-border bg-card shrink-0 transition-[max-height,opacity,padding] duration-300 ease-out overflow-hidden ${
+              hideHeader ? 'max-h-0 opacity-0 lg:max-h-none lg:opacity-100' : 'max-h-24 opacity-100'
+            }`}
+          >
             <div className="flex items-center gap-2 px-4 py-2 lg:px-6">
               <button className="lg:hidden mr-2 p-2 -ml-1 text-muted-foreground" onClick={() => setMobileOpen(true)}>
                 <Menu className="w-7 h-7" />
@@ -171,9 +175,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 text-xl font-mono">
+          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 text-xl font-mono overscroll-contain">
             {children}
           </main>
+
         </div>
       </div>
     </BrokerContext.Provider>
