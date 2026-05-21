@@ -166,7 +166,6 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
         <SumCell label="PnL del mes" value={fmtUsd(summary.total)} tone={summary.total >= 0 ? 'ok' : 'bad'} tip="Suma del P&L neto de todos los trades cerrados durante el mes." />
       </div>
     </div>
-    </TooltipProvider>
   );
 }
 
