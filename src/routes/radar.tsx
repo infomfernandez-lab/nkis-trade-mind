@@ -24,7 +24,7 @@ function RadarPage() {
   const { openTrades } = useAllTrades();
   const filteredOpen = filterByBroker(openTrades, broker);
   const tendenciaCount = useEnTendenciaCount(broker);
-  const vigCount = useVigilanciaCount();
+  const vigCount = useVigilanciaCount(broker);
 
   return (
     <div className="space-y-4">
