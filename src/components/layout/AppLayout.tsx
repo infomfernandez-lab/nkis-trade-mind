@@ -49,9 +49,27 @@ function useRadarBadges() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [broker, setBroker] = useState<BrokerFilter>('all');
+  const [hideHeader, setHideHeader] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const lastScrollY = useRef(0);
   const location = useLocation();
   useRealtimeSync();
   const { closedTrades, openTrades } = useAllTrades();
+
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const y = el.scrollTop;
+      const delta = y - lastScrollY.current;
+      if (y < 40) setHideHeader(false);
+      else if (delta > 6) setHideHeader(true);
+      else if (delta < -6) setHideHeader(false);
+      lastScrollY.current = y;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
   const filteredClosed = filterByBroker(closedTrades, broker);
   const filteredOpen = filterByBroker(openTrades, broker);
   const stats = computeStatsFromTrades(filteredClosed, filteredOpen);
