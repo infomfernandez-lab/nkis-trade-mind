@@ -172,19 +172,30 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
 }
 
 function InfoTip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
-      <Tooltip>
-        <PopoverTrigger asChild>
-          <TooltipTrigger asChild>
-            <button type="button" className="inline-flex" aria-label="Más información">
-              <Info className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
-            </button>
-          </TooltipTrigger>
-        </PopoverTrigger>
-        <TooltipContent side="top" className="max-w-[260px] text-sm hidden md:block">{text}</TooltipContent>
-      </Tooltip>
-      <PopoverContent side="top" className="max-w-[260px] text-sm md:hidden">{text}</PopoverContent>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex"
+          aria-label="Más información"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        >
+          <Info className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        className="max-w-[260px] text-sm p-3"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {text}
+      </PopoverContent>
     </Popover>
   );
 }
