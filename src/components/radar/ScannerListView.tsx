@@ -53,8 +53,9 @@ export function useVigilanciaSet() {
   }, [data]);
 }
 
-export function useVigilanciaCount() {
-  return useVigilanciaSet().size;
+export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
+  const all = useUnifiedInstruments(brokerFilter);
+  return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
 }
 
 type SortKey = 'symbol' | 'score' | 'direction' | 'price' | 'adx' | 'pend50' | 'estructura' | 'stoch' | 'atr';
