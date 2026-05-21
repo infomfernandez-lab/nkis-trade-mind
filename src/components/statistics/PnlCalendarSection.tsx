@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Trade } from '@/lib/trade-utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { InfoTip } from './InfoTip';
 
 
 const GOLD = '#D4A017';
