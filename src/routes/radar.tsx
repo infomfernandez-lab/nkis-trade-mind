@@ -26,15 +26,35 @@ function RadarPage() {
   const filteredOpen = filterByBroker(openTrades, broker);
   const tendenciaCount = useEnTendenciaCount(broker);
   const vigCount = useVigilanciaCount(broker);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (!main) return;
+    let lastY = 0;
+    const onScroll = () => {
+      const y = main.scrollTop;
+      const delta = y - lastY;
+      if (y < 40) setCollapsed(false);
+      else if (delta > 6) setCollapsed(true);
+      else if (delta < -6) setCollapsed(false);
+      lastY = y;
+    };
+    main.addEventListener('scroll', onScroll, { passive: true });
+    return () => main.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <div className="space-y-4">
-      <StatusBar brokerFilter={broker} />
+      <div className={`lg:!max-h-none lg:!opacity-100 overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${collapsed ? 'max-h-0 opacity-0' : 'max-h-64 opacity-100'}`}>
+        <StatusBar brokerFilter={broker} />
 
-      <div className="flex items-center gap-2">
-        <Radar className="w-5 h-5 text-primary" />
-        <h1 className="font-display text-xl font-bold">Centro de mando</h1>
+        <div className="flex items-center gap-2 mt-4">
+          <Radar className="w-5 h-5 text-primary" />
+          <h1 className="font-display text-xl font-bold">Centro de mando</h1>
+        </div>
       </div>
+
 
       <Tabs defaultValue="escaneado" className="w-full">
         <div className="sticky top-0 z-30 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border">
