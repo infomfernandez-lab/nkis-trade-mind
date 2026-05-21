@@ -267,12 +267,39 @@ function monthShort(m: number): string {
 /* ─── Page ─── */
 
 function StatisticsPage() {
-  const { closedTrades: allClosed, isLoading } = useAllTrades();
+  const { closedTrades: allClosedRaw, isLoading } = useAllTrades();
   const { data: settings } = useSettings();
   const { broker } = useBrokerFilter();
 
+  // Exclude legacy fxpro trades from every statistic — pertenecen a una
+  // cuenta retirada y distorsionarían las métricas de NK y OX.
+  const allClosed = useMemo(
+    () => allClosedRaw.filter(t => t.broker !== 'fxpro'),
+    [allClosedRaw],
+  );
+
   const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
-  const startingBalance = broker === 'octx' ? 30 : 1000000;
+
+  // Capital inicial derivado de los balances REALES guardados en user_settings.
+  // starting = balance_actual - sum(pnl de los trades cerrados de esa cuenta).
+  const balanceNk = Number(settings?.balance_nkis ?? 0);
+  const balanceOx = Number(settings?.balance_octx ?? 0);
+  const nkPnl = useMemo(
+    () => allClosed.filter(t => t.broker === 'darwinex' || t.broker === 'nkis')
+      .reduce((s, t) => s + t.netPnl, 0),
+    [allClosed],
+  );
+  const oxPnl = useMemo(
+    () => allClosed.filter(t => t.broker === 'octx').reduce((s, t) => s + t.netPnl, 0),
+    [allClosed],
+  );
+  const startingNk = balanceNk - nkPnl;
+  const startingOx = balanceOx - oxPnl;
+  const startingBalance =
+    broker === 'darwinex' ? startingNk :
+    broker === 'octx' ? startingOx :
+    startingNk + startingOx;
+
   const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
 
   if (isLoading) {
