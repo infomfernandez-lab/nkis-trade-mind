@@ -41,8 +41,8 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx }: Props
       return da - db;
     });
 
-    let nk = INITIAL_NKIS;
-    let ox = INITIAL_OCTX;
+    let nk = initialNk;
+    let ox = initialOx;
     const points: Point[] = [];
 
     // initial point
