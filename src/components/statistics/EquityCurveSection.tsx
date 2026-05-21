@@ -10,11 +10,11 @@ const GOLD = '#D4A017';
 const GRAY = '#94a3b8';
 const RED = '#f87171';
 
-const INITIAL_NKIS = 953000;
-const INITIAL_OCTX = 100000;
 
 interface Props {
   closedTrades: Trade[];
+  initialNk: number;
+  initialOx: number;
 }
 
 interface Point {
@@ -26,19 +26,21 @@ interface Point {
 }
 
 function isOctx(t: Trade) {
-  return t.broker === 'octx' || t.broker === 'fxpro';
+  return t.broker === 'octx';
 }
 
-export function EquityCurveSection({ closedTrades }: Props) {
+export function EquityCurveSection({ closedTrades, initialNk, initialOx }: Props) {
   const { points, currentBalance, peak, currentDdPct, maxDdPct } = useMemo(() => {
-    const sorted = [...closedTrades].sort((a, b) => {
+    // Excluir trades de la cuenta antigua fxpro
+    const filtered = closedTrades.filter(t => t.broker !== 'fxpro');
+    const sorted = [...filtered].sort((a, b) => {
       const da = new Date(a.exitDate ?? a.entryDate).getTime();
       const db = new Date(b.exitDate ?? b.entryDate).getTime();
       return da - db;
     });
 
-    let nk = INITIAL_NKIS;
-    let ox = INITIAL_OCTX;
+    let nk = initialNk;
+    let ox = initialOx;
     const points: Point[] = [];
 
     // initial point
@@ -65,7 +67,7 @@ export function EquityCurveSection({ closedTrades }: Props) {
     const currentDdPct = peak > 0 ? ((peak - currentBalance) / peak) * 100 : 0;
 
     return { points, currentBalance, peak, currentDdPct, maxDdPct };
-  }, [closedTrades]);
+  }, [closedTrades, initialNk, initialOx]);
 
   const fmtUsd = (v: number) =>
     `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;

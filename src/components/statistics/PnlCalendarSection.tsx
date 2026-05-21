@@ -14,7 +14,7 @@ interface Props {
 }
 
 function isOctx(t: Trade) {
-  return t.broker === 'octx' || t.broker === 'fxpro';
+  return t.broker === 'octx';
 }
 
 interface DayData {
@@ -31,9 +31,10 @@ export function PnlCalendarSection({ closedTrades }: Props) {
   });
 
   const filtered = useMemo(() => {
-    if (account === 'all') return closedTrades;
-    if (account === 'ox') return closedTrades.filter(isOctx);
-    return closedTrades.filter(t => !isOctx(t));
+    const base = closedTrades.filter(t => t.broker !== 'fxpro');
+    if (account === 'all') return base;
+    if (account === 'ox') return base.filter(isOctx);
+    return base.filter(t => !isOctx(t));
   }, [closedTrades, account]);
 
   const byDay = useMemo(() => {
