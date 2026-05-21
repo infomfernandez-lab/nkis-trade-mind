@@ -614,6 +614,17 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
           );
         })}
       </div>
+
+      {collapsible && allItems.length > initialLimit && (
+        <div className="border-t border-border p-2 text-center">
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="text-xs font-semibold text-primary hover:underline px-3 py-1"
+          >
+            {expanded ? 'Ver menos' : `Ver todos (${hiddenCount} más)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
