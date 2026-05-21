@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, Cell
 } from 'recharts';
-import { Loader2, Info } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import { filterByBroker, isFullCompliance, type Trade } from '@/lib/trade-utils';
