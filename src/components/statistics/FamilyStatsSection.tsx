@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import type { Trade } from '@/lib/trade-utils';
 import { classifyStatFamily, STAT_FAMILIES, type StatFamily } from './family-classify';
+import { InfoTip } from './InfoTip';
 
 const GOLD = '#D4A017';
 const NAVY = '#1E3A5F';
