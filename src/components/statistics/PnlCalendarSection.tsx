@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Trade } from '@/lib/trade-utils';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 const GOLD = '#D4A017';
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -94,6 +94,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
   );
 
   return (
+    <TooltipProvider>
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
@@ -171,6 +172,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         <SumCell label="PnL del mes" value={fmtUsd(summary.total)} tone={summary.total >= 0 ? 'ok' : 'bad'} />
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
