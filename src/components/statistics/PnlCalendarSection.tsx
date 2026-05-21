@@ -7,14 +7,11 @@ const GOLD = '#D4A017';
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WEEK = ['L','M','X','J','V','S','D'];
 
-type Account = 'all' | 'nk' | 'ox';
+type BrokerFilter = 'all' | 'darwinex' | 'octx';
 
 interface Props {
   closedTrades: Trade[];
-}
-
-function isOctx(t: Trade) {
-  return t.broker === 'octx';
+  broker?: BrokerFilter;
 }
 
 interface DayData {
@@ -23,19 +20,19 @@ interface DayData {
   symbols: string[];
 }
 
-export function PnlCalendarSection({ closedTrades }: Props) {
-  const [account, setAccount] = useState<Account>('all');
+export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
 
-  const filtered = useMemo(() => {
-    const base = closedTrades.filter(t => t.broker !== 'fxpro');
-    if (account === 'all') return base;
-    if (account === 'ox') return base.filter(isOctx);
-    return base.filter(t => !isOctx(t));
-  }, [closedTrades, account]);
+  const filtered = useMemo(
+    () => closedTrades.filter(t => t.broker !== 'fxpro'),
+    [closedTrades],
+  );
+
+  const accountLabel = broker === 'darwinex' ? 'NK' : broker === 'octx' ? 'OX' : 'Todas las cuentas';
+
 
   const byDay = useMemo(() => {
     const map = new Map<string, DayData>();
@@ -85,15 +82,6 @@ export function PnlCalendarSection({ closedTrades }: Props) {
 
   const fmtUsd = (v: number) => `${v >= 0 ? '+' : '-'}$${Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
-  const accBtn = (val: Account, label: string) => (
-    <button
-      onClick={() => setAccount(val)}
-      className={`px-2.5 py-1 text-xs rounded-md border ${account === val ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <TooltipProvider>
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
@@ -101,12 +89,9 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
           Calendario de PnL
         </h2>
-        <div className="flex items-center gap-1.5">
-          {accBtn('all', 'Todos')}
-          {accBtn('nk', 'NK')}
-          {accBtn('ox', 'OX')}
-        </div>
+        <span className="text-xs text-muted-foreground">{accountLabel}</span>
       </div>
+
 
       <div className="flex items-center justify-between mb-3">
         <button

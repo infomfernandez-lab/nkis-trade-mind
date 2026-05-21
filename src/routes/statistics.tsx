@@ -482,10 +482,15 @@ function StatisticsPage() {
         </div>
 
         {/* Curva de Equity */}
-        <EquityCurveSection closedTrades={allClosed} initialNk={startingNk} initialOx={startingOx} />
+        <EquityCurveSection
+          closedTrades={closedTrades}
+          initialNk={broker === 'octx' ? 0 : startingNk}
+          initialOx={broker === 'darwinex' ? 0 : startingOx}
+          broker={broker}
+        />
 
         {/* Calendario de PnL */}
-        <PnlCalendarSection closedTrades={allClosed} />
+        <PnlCalendarSection closedTrades={closedTrades} broker={broker} />
 
         {/* Estadísticas por Familia */}
         <FamilyStatsSection closedTrades={closedTrades} />

@@ -11,10 +11,13 @@ const GRAY = '#94a3b8';
 const RED = '#f87171';
 
 
+type BrokerFilter = 'all' | 'darwinex' | 'octx';
+
 interface Props {
   closedTrades: Trade[];
   initialNk: number;
   initialOx: number;
+  broker?: BrokerFilter;
 }
 
 interface Point {
@@ -29,7 +32,7 @@ function isOctx(t: Trade) {
   return t.broker === 'octx';
 }
 
-export function EquityCurveSection({ closedTrades, initialNk, initialOx }: Props) {
+export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker = 'all' }: Props) {
   const { points, currentBalance, peak, currentDdPct, maxDdPct } = useMemo(() => {
     // Excluir trades de la cuenta antigua fxpro
     const filtered = closedTrades.filter(t => t.broker !== 'fxpro');
@@ -97,8 +100,12 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx }: Props
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={RED} fillOpacity={0.15} />
               <Line type="monotone" dataKey="total" name="Total" stroke={GRAY} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="nk" name="NK" stroke={NAVY} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="ox" name="OX" stroke={GOLD} strokeWidth={2} dot={false} />
+              {broker !== 'octx' && (
+                <Line type="monotone" dataKey="nk" name="NK" stroke={NAVY} strokeWidth={2} dot={false} />
+              )}
+              {broker !== 'darwinex' && (
+                <Line type="monotone" dataKey="ox" name="OX" stroke={GOLD} strokeWidth={2} dot={false} />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
