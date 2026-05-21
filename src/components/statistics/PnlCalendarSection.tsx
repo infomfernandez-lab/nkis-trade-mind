@@ -83,7 +83,6 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
   const fmtUsd = (v: number) => `${v >= 0 ? '+' : '-'}$${Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
   return (
-    <TooltipProvider>
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="font-display text-base font-semibold flex items-center gap-1.5" style={{ color: GOLD }}>
