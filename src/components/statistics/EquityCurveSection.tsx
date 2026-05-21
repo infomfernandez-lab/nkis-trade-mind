@@ -69,7 +69,7 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx }: Props
     const currentDdPct = peak > 0 ? ((peak - currentBalance) / peak) * 100 : 0;
 
     return { points, currentBalance, peak, currentDdPct, maxDdPct };
-  }, [closedTrades]);
+  }, [closedTrades, initialNk, initialOx]);
 
   const fmtUsd = (v: number) =>
     `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
