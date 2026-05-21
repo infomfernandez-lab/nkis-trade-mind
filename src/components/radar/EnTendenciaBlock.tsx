@@ -495,9 +495,29 @@ export function StochCell({ inst }: { inst: UnifiedInstrument }) {
   const apoya = sub == null ? null : (alcista ? sub : !sub);
   const color = apoya == null ? 'text-foreground' : apoya ? 'text-success' : 'text-primary';
   const arrow = sub == null ? '' : sub ? '↑' : '↓';
+  const div = inst.divergencia;
+  const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
   return (
-    <span className={`font-data text-xs font-semibold ${color}`}>
-      {k.toFixed(1)} {arrow}
+    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+      <span className={`font-data text-xs font-semibold ${color}`}>
+        {k.toFixed(1)} {arrow}
+      </span>
+      {showDiv && (
+        <span
+          title={
+            div === 'BAJISTA'
+              ? 'Divergencia bajista — agotamiento en tendencia alcista'
+              : 'Divergencia alcista — oportunidad en tendencia bajista'
+          }
+          className={`px-1 py-0.5 rounded text-[9px] font-bold border leading-none ${
+            div === 'BAJISTA'
+              ? 'bg-destructive/20 text-destructive border-destructive/40'
+              : 'bg-success/20 text-success border-success/40'
+          }`}
+        >
+          {div === 'BAJISTA' ? '↘ DIV' : '↗ DIV'}
+        </span>
+      )}
     </span>
   );
 }
