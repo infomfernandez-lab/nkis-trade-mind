@@ -4,6 +4,7 @@ import {
   CartesianGrid, Area, ComposedChart, Legend,
 } from 'recharts';
 import type { Trade } from '@/lib/trade-utils';
+import { InfoTip } from './InfoTip';
 
 const NAVY = '#1E3A5F';
 const GOLD = '#D4A017';
@@ -77,14 +78,15 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4 flex items-center gap-1.5" style={{ color: GOLD }}>
         Curva de Equity
+        <InfoTip text="Evolución del balance acumulado de cada cuenta a lo largo del tiempo, sumando el P&L neto de cada trade cerrado al capital inicial." />
       </h2>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <Stat label="Balance actual" value={fmtUsd(currentBalance)} />
-        <Stat label="Pico histórico" value={fmtUsd(peak)} />
-        <Stat label="Drawdown actual" value={`${currentDdPct.toFixed(2)}%`} tone={currentDdPct > 0 ? 'bad' : 'ok'} />
-        <Stat label="Drawdown máx." value={`${maxDdPct.toFixed(2)}%`} tone="bad" />
+        <Stat label="Balance actual" value={fmtUsd(currentBalance)} tip="Capital inicial más el P&L neto acumulado de todos los trades cerrados." />
+        <Stat label="Pico histórico" value={fmtUsd(peak)} tip="Mayor balance alcanzado en cualquier punto del histórico." />
+        <Stat label="Drawdown actual" value={`${currentDdPct.toFixed(2)}%`} tone={currentDdPct > 0 ? 'bad' : 'ok'} tip="Caída actual desde el pico histórico: (pico − balance actual) / pico × 100." />
+        <Stat label="Drawdown máx." value={`${maxDdPct.toFixed(2)}%`} tone="bad" tip="Mayor caída porcentual registrada entre un pico y un valle posterior." />
       </div>
       <div className="h-72 -mx-2 overflow-x-auto">
         <div className="min-w-[640px] h-full">
@@ -114,11 +116,14 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker 
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'bad' }) {
+function Stat({ label, value, tone, tip }: { label: string; value: string; tone?: 'ok' | 'bad'; tip: string }) {
   const cls = tone === 'bad' ? 'text-destructive' : tone === 'ok' ? 'text-success' : 'text-foreground';
   return (
     <div className="rounded-md border border-border bg-background/40 p-2.5">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1.5">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+        <InfoTip text={tip} />
+      </div>
       <div className={`text-lg font-data font-bold ${cls}`}>{value}</div>
     </div>
   );

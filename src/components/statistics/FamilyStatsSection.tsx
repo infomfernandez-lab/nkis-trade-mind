@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import type { Trade } from '@/lib/trade-utils';
 import { classifyStatFamily, STAT_FAMILIES, type StatFamily } from './family-classify';
+import { InfoTip } from './InfoTip';
 
 const GOLD = '#D4A017';
 const NAVY = '#1E3A5F';
@@ -59,8 +60,9 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4 flex items-center gap-1.5" style={{ color: GOLD }}>
         Estadísticas por Familia
+        <InfoTip text="Agrupa los trades por familia de instrumento (Forex, Índices, Materias primas, Cripto, etc.) y calcula su rendimiento individual." />
       </h2>
 
       {rows.length === 0 ? (
@@ -93,12 +95,12 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
               <thead>
                 <tr className="text-muted-foreground border-b border-border">
                   <th className="text-left py-2 px-2 font-semibold">Familia</th>
-                  <th className="text-right py-2 px-2 font-semibold">Trades</th>
-                  <th className="text-right py-2 px-2 font-semibold">Win Rate</th>
-                  <th className="text-right py-2 px-2 font-semibold">PF</th>
-                  <th className="text-right py-2 px-2 font-semibold">PnL</th>
-                  <th className="text-right py-2 px-2 font-semibold">Avg Win</th>
-                  <th className="text-right py-2 px-2 font-semibold">Avg Loss</th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">Trades <InfoTip text="Número de trades cerrados en esta familia de instrumento." /></span></th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">Win Rate <InfoTip text="Porcentaje de trades ganadores: ganadores / total × 100." /></span></th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">PF <InfoTip text="Profit Factor: beneficio bruto / pérdida bruta. >1 es rentable, >2 excelente." /></span></th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">PnL <InfoTip text="Suma del P&L neto de todos los trades cerrados de la familia." /></span></th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">Avg Win <InfoTip text="Beneficio medio por trade ganador en esta familia." /></span></th>
+                  <th className="text-right py-2 px-2 font-semibold"><span className="inline-flex items-center gap-1 justify-end w-full">Avg Loss <InfoTip text="Pérdida media por trade perdedor en esta familia (valor absoluto)." /></span></th>
                 </tr>
               </thead>
               <tbody>
