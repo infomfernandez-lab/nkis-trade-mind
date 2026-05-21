@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { useState, createContext, useContext, useMemo } from 'react';
+import { useState, createContext, useContext, useMemo, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
   Settings, Menu, X, LogOut, Radar, BarChart3, Calculator, Sun, Moon,
