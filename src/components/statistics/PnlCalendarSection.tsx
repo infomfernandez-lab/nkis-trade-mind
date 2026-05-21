@@ -172,6 +172,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
         <SumCell label="PnL del mes" value={fmtUsd(summary.total)} tone={summary.total >= 0 ? 'ok' : 'bad'} />
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
