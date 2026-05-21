@@ -470,12 +470,13 @@ function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstru
 
 /* ─────────────── Vigilancia view ─────────────── */
 
-interface VigProps { brokerFilter: BrokerFilter }
+interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number }
 
-export function VigilanciaView({ brokerFilter }: VigProps) {
+export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
+  const [expanded, setExpanded] = useState(false);
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
@@ -485,10 +486,12 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
     return m;
   }, [all]);
 
-  const items = useMemo(
+  const allItems = useMemo(
     () => all.filter(i => (i.score ?? 0) >= 60).sort((a, b) => b.score - a.score),
     [all],
   );
+  const items = collapsible && !expanded ? allItems.slice(0, initialLimit) : allItems;
+  const hiddenCount = allItems.length - items.length;
 
   if (items.length === 0) {
     return (
@@ -611,6 +614,17 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
           );
         })}
       </div>
+
+      {collapsible && allItems.length > initialLimit && (
+        <div className="border-t border-border p-2 text-center">
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="text-xs font-semibold text-primary hover:underline px-3 py-1"
+          >
+            {expanded ? 'Ver menos' : `Ver todos (${hiddenCount} más)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

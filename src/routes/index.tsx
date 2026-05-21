@@ -100,7 +100,7 @@ function Dashboard() {
             Ver Radar <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <VigilanciaView brokerFilter={broker} />
+        <VigilanciaView brokerFilter={broker} collapsible initialLimit={5} />
       </section>
 
       {/* 4. Posiciones abiertas */}
