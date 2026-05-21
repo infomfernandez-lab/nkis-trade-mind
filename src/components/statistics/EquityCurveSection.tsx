@@ -100,8 +100,12 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker 
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Area type="monotone" dataKey="dd" name="Drawdown" stroke="none" fill={RED} fillOpacity={0.15} />
               <Line type="monotone" dataKey="total" name="Total" stroke={GRAY} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="nk" name="NK" stroke={NAVY} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="ox" name="OX" stroke={GOLD} strokeWidth={2} dot={false} />
+              {broker !== 'octx' && (
+                <Line type="monotone" dataKey="nk" name="NK" stroke={NAVY} strokeWidth={2} dot={false} />
+              )}
+              {broker !== 'darwinex' && (
+                <Line type="monotone" dataKey="ox" name="OX" stroke={GOLD} strokeWidth={2} dot={false} />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
