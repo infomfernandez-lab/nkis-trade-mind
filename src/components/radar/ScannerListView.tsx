@@ -65,6 +65,7 @@ interface Props { brokerFilter: BrokerFilter }
 
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
+  const collapsed = useRadarCollapsed();
   const [family, setFamily] = useState<Family | null>(null);
   const [subfamily, setSubfamily] = useState<string | null>(null);
   const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
