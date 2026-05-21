@@ -96,7 +96,9 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker 
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} minTickGap={32} />
               <YAxis tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} domain={['auto', 'auto']} />
               <ReTooltip
-                contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--popover-foreground)' }}
+                labelStyle={{ color: 'var(--popover-foreground)' }}
+                itemStyle={{ color: 'var(--popover-foreground)' }}
                 formatter={(v: number, name: string) => [fmtUsd(v), name]}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />

@@ -471,7 +471,7 @@ function StatisticsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e2330" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: '#475569', fontFamily: 'Inconsolata' }} axisLine={false} tickLine={false} />
-                <ReTooltip contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [`${v} trades`, 'Cantidad']} />
+                <ReTooltip contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--popover-foreground)' }} labelStyle={{ color: 'var(--popover-foreground)' }} itemStyle={{ color: 'var(--popover-foreground)' }} formatter={(v: number) => [`${v} trades`, 'Cantidad']} />
                 <Bar dataKey="count" radius={[3, 3, 0, 0]}>
                   {stats.histogramData.map((entry, i) => (
                     <Cell key={i} fill={entry.negative ? RED : GREEN} />

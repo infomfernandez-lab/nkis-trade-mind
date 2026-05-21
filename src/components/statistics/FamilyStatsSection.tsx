@@ -77,7 +77,9 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
                   <XAxis dataKey="family" tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#475569' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <ReTooltip
-                    contentStyle={{ backgroundColor: '#111318', border: '1px solid #1e2330', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ backgroundColor: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--popover-foreground)' }}
+                    labelStyle={{ color: 'var(--popover-foreground)' }}
+                    itemStyle={{ color: 'var(--popover-foreground)' }}
                     formatter={(v: number) => [fmtUsd(v), 'PnL']}
                   />
                   <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
