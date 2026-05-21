@@ -53,8 +53,9 @@ export function useVigilanciaSet() {
   }, [data]);
 }
 
-export function useVigilanciaCount() {
-  return useVigilanciaSet().size;
+export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
+  const all = useUnifiedInstruments(brokerFilter);
+  return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
 }
 
 type SortKey = 'symbol' | 'score' | 'direction' | 'price' | 'adx' | 'pend50' | 'estructura' | 'stoch' | 'atr';
@@ -471,10 +472,8 @@ interface VigProps { brokerFilter: BrokerFilter }
 
 export function VigilanciaView({ brokerFilter }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
-  const { data: watchlist } = useWatchlist();
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
-  const delWatch = useDeleteWatchlistItem();
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
@@ -484,20 +483,15 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
     return m;
   }, [all]);
 
-  const vigEntries = useMemo(() => {
-    const list = (watchlist ?? []).filter(w => (w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase());
-    return list.map(w => {
-      const broker = (w.broker ?? 'darwinex') as 'darwinex' | 'octx';
-      if (brokerFilter !== 'all' && brokerFilter !== broker) return null;
-      const inst = all.find(i => i.symbol === w.symbol && i.broker === broker);
-      return { entry: w, inst, broker };
-    }).filter((x): x is { entry: NonNullable<typeof watchlist>[number]; inst: UnifiedInstrument | undefined; broker: 'darwinex' | 'octx' } => x !== null);
-  }, [watchlist, all, brokerFilter]);
+  const items = useMemo(
+    () => all.filter(i => (i.score ?? 0) >= 60).sort((a, b) => b.score - a.score),
+    [all],
+  );
 
-  if (vigEntries.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">No hay instrumentos en vigilancia. Añádelos desde el tab Escaneado con el botón 👁.</p>
+        <p className="text-sm text-muted-foreground">El EA no está vigilando ningún instrumento ahora mismo (sin scores ≥ 60 en el último escáner).</p>
       </div>
     );
   }
@@ -510,41 +504,40 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
           <thead>
             <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
               <th className="text-left px-2 py-2 w-[60px]">#</th>
-              <th className="text-left px-3 py-2">Símbolo</th>
               <th className="text-center px-2 py-2 w-[80px]">Score</th>
+              <th className="text-left px-3 py-2">Símbolo</th>
               <th className="text-left px-2 py-2 w-[70px]">Dir</th>
               <th className="text-right px-2 py-2 w-[90px]">Precio</th>
               <th className="text-left px-2 py-2 w-[100px]">ADX</th>
+              <th className="text-right px-2 py-2 w-[80px]">Pend50</th>
+              <th className="text-left px-2 py-2 w-[110px]">Estruct</th>
               <th className="text-left px-2 py-2 w-[100px]">Stoch</th>
               <th className="text-left px-2 py-2 w-[100px]">ATR</th>
               <th className="text-center px-2 py-2 w-[110px]">Estado</th>
-              <th className="text-center px-2 py-2 w-[50px]"></th>
             </tr>
           </thead>
           <tbody>
-            {vigEntries.map(({ entry, inst, broker }) => {
-              const symbol = entry.symbol;
-              const key = `${symbol}::${broker}`;
+            {items.map((inst) => {
+              const key = `${inst.symbol}::${inst.broker}`;
               const rank = globalRanks.get(key) ?? 0;
-              const isOpen = openSymbols.has(symbol);
-              const direction = (inst?.direction ?? entry.direction ?? '');
-              const alcista = isAlcistaDir(direction);
-              const score = inst?.score ?? Number(entry.scanner_score ?? 0);
+              const isOpen = openSymbols.has(inst.symbol);
+              const alcista = isAlcistaDir(inst.direction);
+              const est = estructuraMeta(inst.estructura);
               return (
-                <tr key={entry.id} className={`border-t border-border text-sm ${isOpen ? 'bg-success/5' : ''}`}>
-                  <td className="px-2 py-2 font-data text-center text-muted-foreground font-bold">{rank ? `#${rank}` : '—'}</td>
+                <tr key={key} className={`border-t border-border text-sm ${isOpen ? 'bg-success/5' : ''}`}>
+                  <td className="px-2 py-2 font-data text-center text-muted-foreground font-bold">#{rank}</td>
+                  <td className="px-2 py-2 text-center"><ScoreBadge score={inst.score} /></td>
                   <td className="px-3 py-2 font-bold">
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <SymbolName symbol={symbol} />
+                        <SymbolName symbol={inst.symbol} />
                         <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-                          broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-                        }`}>{broker === 'darwinex' ? 'NK' : 'OX'}</span>
+                          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
                       </div>
-                      <SymbolMeta symbol={symbol} />
+                      <SymbolMeta symbol={inst.symbol} />
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-center"><ScoreBadge score={score} /></td>
                   <td className="px-2 py-2">
                     <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                       alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
@@ -553,25 +546,24 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
                       {alcista ? 'BUY' : 'SELL'}
                     </span>
                   </td>
-                  <td className="px-2 py-2 text-right">{inst ? <PriceCell price={inst.current_price} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-2 py-2">{inst ? <AdxCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-2 py-2">{inst ? <StochCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-2 py-2">{inst ? <AtrValueCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                  <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
+                  <td className="px-2 py-2"><AdxCell inst={inst} /></td>
+                  <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
+                  <td className="px-2 py-2">
+                    {inst.estructura ? (
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${est.bg} ${est.color}`}>
+                        {est.icon} {est.label}
+                      </span>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-2 py-2"><StochCell inst={inst} /></td>
+                  <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
                   <td className="px-2 py-2 text-center">
                     {isOpen ? (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">ABIERTA</span>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary text-muted-foreground border border-border">VIGILANDO</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-secondary text-muted-foreground border border-border">EN ESPERA</span>
                     )}
-                  </td>
-                  <td className="px-2 py-2 text-center">
-                    <button
-                      onClick={() => delWatch.mutate(entry.id, { onSuccess: () => toast.success(`${symbol} retirado`) })}
-                      title="Quitar de Vigilancia"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded border bg-secondary text-muted-foreground border-border hover:text-destructive hover:border-destructive/40 transition-colors"
-                    >
-                      <EyeOff className="w-3.5 h-3.5" />
-                    </button>
                   </td>
                 </tr>
               );
@@ -582,45 +574,37 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
 
       {/* Mobile */}
       <div className="md:hidden divide-y divide-border">
-        {vigEntries.map(({ entry, inst, broker }) => {
-          const symbol = entry.symbol;
-          const key = `${symbol}::${broker}`;
+        {items.map((inst) => {
+          const key = `${inst.symbol}::${inst.broker}`;
           const rank = globalRanks.get(key) ?? 0;
-          const isOpen = openSymbols.has(symbol);
-          const direction = (inst?.direction ?? entry.direction ?? '');
-          const alcista = isAlcistaDir(direction);
-          const score = inst?.score ?? Number(entry.scanner_score ?? 0);
+          const isOpen = openSymbols.has(inst.symbol);
+          const alcista = isAlcistaDir(inst.direction);
+          const est = estructuraMeta(inst.estructura);
           return (
-            <div key={entry.id} className={`p-3 ${isOpen ? 'bg-success/5' : ''}`}>
+            <div key={key} className={`p-3 ${isOpen ? 'bg-success/5' : ''}`}>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-data font-bold text-sm text-muted-foreground">{rank ? `#${rank}` : '—'}</span>
-                <span className="font-bold text-sm inline-flex items-center gap-1.5"><SymbolName symbol={symbol} /></span>
-                <ScoreBadge score={score} />
+                <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
+                <ScoreBadge score={inst.score} />
+                <span className="font-bold text-sm inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>
                 <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                   alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
                 }`}>
                   {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                   {alcista ? 'BUY' : 'SELL'}
                 </span>
-                {isOpen ? (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/20 text-success border border-success/40">ABIERTA</span>
-                ) : null}
-                <button
-                  onClick={() => delWatch.mutate(entry.id, { onSuccess: () => toast.success(`${symbol} retirado`) })}
-                  className="ml-auto inline-flex items-center justify-center w-7 h-7 rounded border bg-secondary text-muted-foreground border-border hover:text-destructive hover:border-destructive/40 transition-colors"
-                >
-                  <EyeOff className="w-3.5 h-3.5" />
-                </button>
+                <span className={`ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                  isOpen ? 'bg-success/20 text-success border-success/40' : 'bg-secondary text-muted-foreground border-border'
+                }`}>{isOpen ? 'ABIERTA' : 'EN ESPERA'}</span>
               </div>
-              {inst && <div className="mt-1"><SymbolMeta symbol={symbol} compact /></div>}
-              {inst && (
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Precio</span><PriceTag price={inst.current_price} compact /></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
-                </div>
-              )}
+              <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                <div className="flex justify-between"><span className="text-muted-foreground">Precio</span><PriceTag price={inst.current_price} compact /></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
+              </div>
             </div>
           );
         })}
@@ -628,3 +612,4 @@ export function VigilanciaView({ brokerFilter }: VigProps) {
     </div>
   );
 }
+
