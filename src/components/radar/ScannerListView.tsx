@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from 'react';
 import { TrendingUp, TrendingDown, Eye, EyeOff } from 'lucide-react';
-import { useRadarCollapsed } from '@/routes/radar';
+import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
 import {
   useUnifiedInstruments,
