@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { Radar } from 'lucide-react';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { ScannerListView, VigilanciaView, useVigilanciaCount } from '@/components/radar/ScannerListView';
