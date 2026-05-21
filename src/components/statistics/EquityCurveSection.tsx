@@ -10,8 +10,6 @@ const GOLD = '#D4A017';
 const GRAY = '#94a3b8';
 const RED = '#f87171';
 
-const INITIAL_NKIS = 953000;
-const INITIAL_OCTX = 100000;
 
 interface Props {
   closedTrades: Trade[];
