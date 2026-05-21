@@ -82,15 +82,6 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
 
   const fmtUsd = (v: number) => `${v >= 0 ? '+' : '-'}$${Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
-  const accBtn = (val: Account, label: string) => (
-    <button
-      onClick={() => setAccount(val)}
-      className={`px-2.5 py-1 text-xs rounded-md border ${account === val ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <TooltipProvider>
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
@@ -98,12 +89,9 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
         <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
           Calendario de PnL
         </h2>
-        <div className="flex items-center gap-1.5">
-          {accBtn('all', 'Todos')}
-          {accBtn('nk', 'NK')}
-          {accBtn('ox', 'OX')}
-        </div>
+        <span className="text-xs text-muted-foreground">{accountLabel}</span>
       </div>
+
 
       <div className="flex items-center justify-between mb-3">
         <button
