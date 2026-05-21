@@ -524,12 +524,7 @@ function StatCard({ label, value, sub, color, tip }: { label: string; value: str
     <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <span className="text-sm text-muted-foreground">{label}</span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="w-3.5 h-3.5 text-muted-foreground/50 cursor-help" />
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-[260px] text-sm">{tip}</TooltipContent>
-        </Tooltip>
+        <InfoTip text={tip} />
       </div>
       <div className={`text-2xl font-data font-bold ${colorMap[color]}`}>{value}</div>
       {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
