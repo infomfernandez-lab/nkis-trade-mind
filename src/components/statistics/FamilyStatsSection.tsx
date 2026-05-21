@@ -60,8 +60,9 @@ export function FamilyStatsSection({ closedTrades }: { closedTrades: Trade[] }) 
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
-      <h2 className="font-display text-base font-semibold mb-4" style={{ color: GOLD }}>
+      <h2 className="font-display text-base font-semibold mb-4 flex items-center gap-1.5" style={{ color: GOLD }}>
         Estadísticas por Familia
+        <InfoTip text="Agrupa los trades por familia de instrumento (Forex, Índices, Materias primas, Cripto, etc.) y calcula su rendimiento individual." />
       </h2>
 
       {rows.length === 0 ? (
