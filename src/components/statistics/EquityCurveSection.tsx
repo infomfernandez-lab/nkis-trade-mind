@@ -4,6 +4,7 @@ import {
   CartesianGrid, Area, ComposedChart, Legend,
 } from 'recharts';
 import type { Trade } from '@/lib/trade-utils';
+import { InfoTip } from './InfoTip';
 
 const NAVY = '#1E3A5F';
 const GOLD = '#D4A017';
