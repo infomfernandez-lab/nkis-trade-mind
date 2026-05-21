@@ -90,7 +90,18 @@ function Dashboard() {
       <ScannerSummary />
 
       {/* 3.5 En Vigilancia */}
-      <VigilanciaCompact brokerFilter={broker} />
+      <section className="space-y-2">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card border-border">
+          <h2 className="font-display font-bold text-sm text-foreground">EN VIGILANCIA</h2>
+          <Link
+            to="/radar"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+          >
+            Ver Radar <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+        <VigilanciaView brokerFilter={broker} />
+      </section>
 
       {/* 4. Posiciones abiertas */}
       <section className="space-y-2">
@@ -107,6 +118,10 @@ function Dashboard() {
         </div>
         <OpenPositionsTable brokerFilter={broker} compact />
       </section>
+
+      {/* Calendario PnL */}
+      <PnlCalendarSection closedTrades={closedTrades} />
+
 
       {/* 5. Últimas cerradas */}
       <RecentClosed closed={closedTrades} />
