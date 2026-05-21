@@ -21,8 +21,6 @@ export const Route = createFileRoute('/radar')({
   }),
 });
 
-const RadarCollapseContext = createContext(false);
-export const useRadarCollapsed = () => useContext(RadarCollapseContext);
 
 function RadarPage() {
   const { broker } = useBrokerFilter();
