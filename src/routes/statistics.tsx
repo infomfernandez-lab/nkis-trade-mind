@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EquityCurveSection } from '@/components/statistics/EquityCurveSection';
 import { PnlCalendarSection } from '@/components/statistics/PnlCalendarSection';
 import { FamilyStatsSection } from '@/components/statistics/FamilyStatsSection';
+import { InfoTip } from '@/components/statistics/InfoTip';
 
 export const Route = createFileRoute('/statistics')({
   component: StatisticsPage,
