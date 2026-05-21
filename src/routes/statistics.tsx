@@ -482,7 +482,7 @@ function StatisticsPage() {
         </div>
 
         {/* Curva de Equity */}
-        <EquityCurveSection closedTrades={allClosed} />
+        <EquityCurveSection closedTrades={allClosed} initialNk={startingNk} initialOx={startingOx} />
 
         {/* Calendario de PnL */}
         <PnlCalendarSection closedTrades={allClosed} />
