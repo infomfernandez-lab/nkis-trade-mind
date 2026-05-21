@@ -116,11 +116,14 @@ export function EquityCurveSection({ closedTrades, initialNk, initialOx, broker 
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: 'ok' | 'bad' }) {
+function Stat({ label, value, tone, tip }: { label: string; value: string; tone?: 'ok' | 'bad'; tip: string }) {
   const cls = tone === 'bad' ? 'text-destructive' : tone === 'ok' ? 'text-success' : 'text-foreground';
   return (
     <div className="rounded-md border border-border bg-background/40 p-2.5">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1.5">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+        <InfoTip text={tip} />
+      </div>
       <div className={`text-lg font-data font-bold ${cls}`}>{value}</div>
     </div>
   );
