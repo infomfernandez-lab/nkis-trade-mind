@@ -94,6 +94,7 @@ export function PnlCalendarSection({ closedTrades }: Props) {
   );
 
   return (
+    <TooltipProvider>
     <div className="rounded-lg border border-border bg-card p-4 lg:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h2 className="font-display text-base font-semibold" style={{ color: GOLD }}>
