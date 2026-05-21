@@ -170,34 +170,6 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
   );
 }
 
-function InfoTip({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex"
-          aria-label="Más información"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-          onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        >
-          <Info className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        className="max-w-[260px] text-sm p-3"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        {text}
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 function SumCell({ label, value, tone, tip }: { label: string; value: string; tone: 'ok' | 'bad'; tip: string }) {
   const cls = tone === 'ok' ? 'text-success' : 'text-destructive';
