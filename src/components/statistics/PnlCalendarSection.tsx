@@ -14,7 +14,7 @@ interface Props {
 }
 
 function isOctx(t: Trade) {
-  return t.broker === 'octx' || t.broker === 'fxpro';
+  return t.broker === 'octx';
 }
 
 interface DayData {
