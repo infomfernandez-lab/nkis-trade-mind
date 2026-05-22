@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2, BookCheck, Circle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronDown, ChevronUp, Loader2, BookCheck, Circle, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { filterByBroker, type Trade } from '@/lib/trade-utils';
@@ -9,6 +9,9 @@ import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { TradeJournal } from '@/components/TradeJournal';
 import { supabase } from '@/integrations/supabase/client';
 import { classifyInstrument } from '@/lib/instrument-classify';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -45,11 +48,117 @@ function useScannerSessions() {
   });
 }
 
+type SortKey = 'num' | 'symbol' | 'name' | 'direction' | 'broker' | 'entryDate' | 'entryPrice' | 'exitPrice' | 'slPrice' | 'tpPrice' | 'lotSize' | 'durationHours' | 'netPnl';
+type SortDir = 'asc' | 'desc';
+type DirFilter = 'all' | 'BUY' | 'SELL';
+type AccFilter = 'all' | 'darwinex' | 'octx';
+type PnlFilter = 'all' | 'win' | 'loss';
+
 function TradeLog() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { broker } = useBrokerFilter();
   const { data: closedTrades, isLoading, error } = useClosedTrades();
   const { data: scannerSessions } = useScannerSessions();
+
+  // Filter / search / sort state
+  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [dirFilter, setDirFilter] = useState<DirFilter>('all');
+  const [accFilter, setAccFilter] = useState<AccFilter>('all');
+  const [pnlFilter, setPnlFilter] = useState<PnlFilter>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('num');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const baseFiltered = useMemo(() => filterByBroker(closedTrades ?? [], broker), [closedTrades, broker]);
+
+  // Number trades by chronological order (oldest = 1)
+  const numbered = useMemo(
+    () => baseFiltered.map((t, i) => ({ trade: t, num: i + 1, name: classifyInstrument(t.symbol).description })),
+    [baseFiltered]
+  );
+
+  // Predictive suggestions (top 8 unique)
+  const suggestions = useMemo(() => {
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    const seen = new Set<string>();
+    const out: { symbol: string; name: string }[] = [];
+    for (const { trade, name } of numbered) {
+      const key = trade.symbol;
+      if (seen.has(key)) continue;
+      if (trade.symbol.toLowerCase().includes(q) || name.toLowerCase().includes(q)) {
+        seen.add(key);
+        out.push({ symbol: trade.symbol, name });
+        if (out.length >= 8) break;
+      }
+    }
+    return out;
+  }, [search, numbered]);
+
+  // Apply filters
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return numbered.filter(({ trade, name }) => {
+      if (q && !(trade.symbol.toLowerCase().includes(q) || name.toLowerCase().includes(q))) return false;
+      if (dirFilter !== 'all' && trade.direction !== dirFilter) return false;
+      if (accFilter !== 'all' && trade.broker !== accFilter) return false;
+      if (pnlFilter === 'win' && trade.netPnl < 0) return false;
+      if (pnlFilter === 'loss' && trade.netPnl >= 0) return false;
+      if (dateFrom && trade.entryDate.slice(0, 10) < dateFrom) return false;
+      if (dateTo && trade.entryDate.slice(0, 10) > dateTo) return false;
+      return true;
+    });
+  }, [numbered, search, dirFilter, accFilter, pnlFilter, dateFrom, dateTo]);
+
+  // Apply sorting
+  const display = useMemo(() => {
+    const arr = [...filtered];
+    const mul = sortDir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      const ta = a.trade, tb = b.trade;
+      let va: any, vb: any;
+      switch (sortKey) {
+        case 'num': va = a.num; vb = b.num; break;
+        case 'name': va = a.name; vb = b.name; break;
+        case 'symbol': va = ta.symbol; vb = tb.symbol; break;
+        case 'direction': va = ta.direction; vb = tb.direction; break;
+        case 'broker': va = ta.broker; vb = tb.broker; break;
+        case 'entryDate': va = ta.entryDate; vb = tb.entryDate; break;
+        case 'entryPrice': va = ta.entryPrice; vb = tb.entryPrice; break;
+        case 'exitPrice': va = ta.exitPrice ?? 0; vb = tb.exitPrice ?? 0; break;
+        case 'slPrice': va = ta.slPrice; vb = tb.slPrice; break;
+        case 'tpPrice': va = ta.tpPrice; vb = tb.tpPrice; break;
+        case 'lotSize': va = ta.lotSize; vb = tb.lotSize; break;
+        case 'durationHours': va = ta.durationHours; vb = tb.durationHours; break;
+        case 'netPnl': va = ta.netPnl; vb = tb.netPnl; break;
+      }
+      if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * mul;
+      return (va < vb ? -1 : va > vb ? 1 : 0) * mul;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'num' || key === 'entryDate' || key === 'netPnl' ? 'desc' : 'asc');
+    }
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setDirFilter('all');
+    setAccFilter('all');
+    setPnlFilter('all');
+    setDateFrom('');
+    setDateTo('');
+  }
+
+  const hasActiveFilters = search || dirFilter !== 'all' || accFilter !== 'all' || pnlFilter !== 'all' || dateFrom || dateTo;
 
   if (isLoading) {
     return (
@@ -67,12 +176,6 @@ function TradeLog() {
       </div>
     );
   }
-
-  const filtered = filterByBroker(closedTrades ?? [], broker);
-  // Reverse so newest is first; numbering is based on chronological order (oldest = 1)
-  const ordered = [...filtered];
-  const numbered = ordered.map((t, i) => ({ trade: t, num: i + 1 }));
-  const display = [...numbered].reverse();
 
   if ((closedTrades ?? []).length === 0) {
     return (
@@ -95,42 +198,137 @@ function TradeLog() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades{brokerLabel}</h1>
-        <p className="text-base text-muted-foreground mt-1">{display.length} trades cerrados — click en una fila para ver el detalle</p>
+        <p className="text-base text-muted-foreground mt-1">
+          {display.length} de {numbered.length} trades — click en una fila para ver el detalle
+        </p>
+      </div>
+
+      {/* Filter bar */}
+      <div className="rounded-lg border border-border bg-card p-3 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Predictive search */}
+          <Popover open={searchOpen && suggestions.length > 0} onOpenChange={setSearchOpen}>
+            <PopoverTrigger asChild>
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por ticker o nombre…"
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
+                  onFocus={() => setSearchOpen(true)}
+                  className="pl-8 pr-8 h-9"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-1" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <div className="max-h-64 overflow-y-auto">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.symbol}
+                    onClick={() => { setSearch(s.symbol); setSearchOpen(false); }}
+                    className="w-full text-left px-2 py-1.5 rounded hover:bg-accent text-sm flex items-center justify-between gap-2"
+                  >
+                    <span className="font-semibold font-data">{s.symbol}</span>
+                    <span className="text-xs text-muted-foreground truncate">{s.name}</span>
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Direction */}
+          <FilterGroup
+            label="Dir"
+            value={dirFilter}
+            options={[{ v: 'all', l: 'Todas' }, { v: 'BUY', l: 'BUY' }, { v: 'SELL', l: 'SELL' }]}
+            onChange={(v) => setDirFilter(v as DirFilter)}
+          />
+
+          {/* Account */}
+          <FilterGroup
+            label="Cuenta"
+            value={accFilter}
+            options={[{ v: 'all', l: 'Todas' }, { v: 'darwinex', l: 'NK' }, { v: 'octx', l: 'OX' }]}
+            onChange={(v) => setAccFilter(v as AccFilter)}
+          />
+
+          {/* P&L */}
+          <FilterGroup
+            label="P&L"
+            value={pnlFilter}
+            options={[{ v: 'all', l: 'Todos' }, { v: 'win', l: 'Ganadores' }, { v: 'loss', l: 'Perdedores' }]}
+            onChange={(v) => setPnlFilter(v as PnlFilter)}
+          />
+
+          {/* Date range */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground font-medium">Desde</span>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 w-[140px] text-sm"
+            />
+            <span className="text-xs text-muted-foreground font-medium">Hasta</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 w-[140px] text-sm"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">
+              <X className="w-3.5 h-3.5 mr-1" /> Limpiar
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <table className="w-full text-base">
           <thead className="bg-muted/40 border-b border-border">
             <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <th className="px-3 py-3">#</th>
-              <th className="px-3 py-3">Ticker</th>
-              <th className="px-3 py-3">Nombre</th>
-              <th className="px-3 py-3">Dir</th>
-              <th className="px-3 py-3">Cuenta</th>
-              <th className="px-3 py-3">Fecha</th>
-              <th className="px-3 py-3 text-right">Entrada</th>
-              <th className="px-3 py-3 text-right">Salida</th>
-              <th className="px-3 py-3 text-right">SL</th>
-              <th className="px-3 py-3 text-right">TP</th>
-              <th className="px-3 py-3 text-right">Lotes</th>
-              <th className="px-3 py-3 text-right">Duración</th>
-              <th className="px-3 py-3 text-right">P&L</th>
+              <SortableTh label="#" sortKey="num" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Ticker" sortKey="symbol" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Nombre" sortKey="name" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Dir" sortKey="direction" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Cuenta" sortKey="broker" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Fecha" sortKey="entryDate" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="Entrada" sortKey="entryPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="Salida" sortKey="exitPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="SL" sortKey="slPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="TP" sortKey="tpPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="Lotes" sortKey="lotSize" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="Duración" sortKey="durationHours" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
+              <SortableTh label="P&L" sortKey="netPnl" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
               <th className="px-3 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {display.map(({ trade, num }) => (
+            {display.map(({ trade, num, name }) => (
               <TradeRow
                 key={trade.id}
                 trade={trade}
                 num={num}
+                fullName={name}
                 scannerSessions={scannerSessions ?? []}
                 expanded={expandedId === trade.id}
                 onToggle={() => setExpandedId(expandedId === trade.id ? null : trade.id)}
               />
             ))}
             {display.length === 0 && (
-              <tr><td colSpan={14} className="p-12 text-center text-muted-foreground text-sm">No hay trades de {broker === 'darwinex' ? 'NK' : 'OX'}.</td></tr>
+              <tr><td colSpan={14} className="p-12 text-center text-muted-foreground text-sm">No hay trades que coincidan con los filtros.</td></tr>
             )}
           </tbody>
         </table>
@@ -139,21 +337,77 @@ function TradeLog() {
   );
 }
 
+function FilterGroup<T extends string>({
+  label, value, options, onChange,
+}: {
+  label: string;
+  value: T;
+  options: { v: T; l: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground font-medium">{label}</span>
+      <div className="inline-flex rounded-md border border-border overflow-hidden">
+        {options.map((o) => (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            className={`px-2.5 py-1 text-xs font-medium transition-colors ${
+              value === o.v ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            {o.l}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SortableTh({
+  label, sortKey, current, dir, onClick, align,
+}: {
+  label: string;
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onClick: (k: SortKey) => void;
+  align?: 'right';
+}) {
+  const active = current === sortKey;
+  return (
+    <th className={`px-3 py-3 ${align === 'right' ? 'text-right' : 'text-left'}`}>
+      <button
+        onClick={() => onClick(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${active ? 'text-foreground' : ''}`}
+      >
+        {label}
+        {active ? (
+          dir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-40" />
+        )}
+      </button>
+    </th>
+  );
+}
+
 interface TradeRowProps {
   trade: Trade;
   num: number;
+  fullName: string;
   scannerSessions: any[];
   expanded: boolean;
   onToggle: () => void;
 }
 
-function TradeRow({ trade, num, scannerSessions, expanded, onToggle }: TradeRowProps) {
+function TradeRow({ trade, num, fullName, scannerSessions, expanded, onToggle }: TradeRowProps) {
   const queryClient = useQueryClient();
   const close = detectCloseType(trade);
   const rr = computeRR(trade);
   const journalDone = hasJournal(trade);
   const scanner = lookupScannerRank(trade, scannerSessions);
-  const fullName = classifyInstrument(trade.symbol).description;
 
   const rowBg = trade.netPnl >= 0
     ? 'bg-success/15 hover:bg-success/25'
