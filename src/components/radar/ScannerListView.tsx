@@ -16,23 +16,19 @@ import {
   AtrValueCell,
   estructuraMeta,
 } from './EnTendenciaBlock';
-import { classifyFamily, FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
-import { SortHeader, useTableControls, useFiltered } from './TableControls';
+import { classifyFamily, type Family } from '@/lib/instrument-family';
+import { classifyInstrument } from '@/lib/instrument-classify';
+import { SortHeader, useSort } from './TableControls';
+import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
 import { useWatchlist, useAddToWatchlist, useDeleteWatchlistItem } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { toast } from 'sonner';
 
-type Tier = 'elite' | 'solido' | 'observar';
-const TIER_META: Record<Tier, { label: string; min: number; max: number; accent: string }> = {
-  elite:    { label: 'ÉLITE',    min: 75, max: 9999, accent: 'border-l-primary text-primary' },
-  solido:   { label: 'SÓLIDO',   min: 60, max: 74,   accent: 'border-l-success text-success' },
-  observar: { label: 'OBSERVAR', min: 0,  max: 59,   accent: 'border-l-muted-foreground text-muted-foreground' },
+const TIER_META: Record<Tier, { label: string; accent: string }> = {
+  elite:    { label: 'ÉLITE',    accent: 'border-l-primary text-primary' },
+  solido:   { label: 'SÓLIDO',   accent: 'border-l-success text-success' },
+  observar: { label: 'OBSERVAR', accent: 'border-l-muted-foreground text-muted-foreground' },
 };
-function tierOf(score: number): Tier {
-  if (score >= 75) return 'elite';
-  if (score >= 60) return 'solido';
-  return 'observar';
-}
 
 function isAlcistaDir(d: string) {
   const v = (d ?? '').toLowerCase();
@@ -66,9 +62,8 @@ interface Props { brokerFilter: BrokerFilter }
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
-  const [family, setFamily] = useState<Family | null>(null);
-  const [subfamily, setSubfamily] = useState<string | null>(null);
-  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
+  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+  const sortApi = useSort<SortKey>({ key: null, dir: 'desc' });
   const vigSet = useVigilanciaSet();
   const { data: watchlist } = useWatchlist();
   const addWatch = useAddToWatchlist();
@@ -90,40 +85,54 @@ export function ScannerListView({ brokerFilter }: Props) {
     return m;
   }, [annotated]);
 
+  type Row = (typeof annotated)[number];
+
   const familyFiltered = useMemo(() => {
     return annotated.filter(a => {
-      if (family && a._family !== family) return false;
-      if (subfamily && a._subfamily !== subfamily) return false;
+      if (filters.family && a._family !== filters.family) return false;
+      if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
       return true;
     });
-  }, [annotated, family, subfamily]);
+  }, [annotated, filters.family, filters.subfamily]);
 
-  type Row = (typeof familyFiltered)[number];
+  const tierCounts = useMemo(() => {
+    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
+    for (const it of familyFiltered) c[tierOfScore(it.score)]++;
+    return c;
+  }, [familyFiltered]);
 
-  const items = useFiltered<Row, SortKey>(
-    familyFiltered,
-    { sort: controls.sort, search: controls.search, limit: controls.limit },
-    {
-      symbol: it => it.symbol,
-      score: it => it.score,
-      direction: it => it.direction,
-      price: it => it.current_price,
-      adx: it => it.adx_value,
-      pend50: it => it.pend50_pct,
-      estructura: it => it.estructura,
-      stoch: it => it.stoch_k,
-      atr: it => it.atr,
-    },
-    it => [it.symbol, it.broker],
-  );
-
-  const availableSubs = useMemo(() => {
-    if (!family) return [] as string[];
-    const present = new Set(
-      annotated.filter(a => a._family === family && a._subfamily).map(a => a._subfamily as string),
-    );
-    return SUBFAMILIES[family].filter(s => present.has(s));
-  }, [annotated, family]);
+  const items = useMemo(() => {
+    let arr = familyFiltered;
+    if (filters.tier) arr = arr.filter(it => tierOfScore(it.score) === filters.tier);
+    if (filters.search.trim()) {
+      arr = arr.filter(it => matchSearch(filters.search, [it.symbol, classifyInstrument(it.symbol).description]));
+    }
+    const sort = sortApi.sort;
+    if (sort.key) {
+      const getters: Record<SortKey, (t: Row) => string | number | null | undefined> = {
+        symbol: it => it.symbol,
+        score: it => it.score,
+        direction: it => it.direction,
+        price: it => it.current_price,
+        adx: it => it.adx_value,
+        pend50: it => it.pend50_pct,
+        estructura: it => it.estructura,
+        stoch: it => it.stoch_k,
+        atr: it => it.atr,
+      };
+      const g = getters[sort.key];
+      const mult = sort.dir === 'asc' ? 1 : -1;
+      arr = [...arr].sort((a, b) => {
+        const va = g(a); const vb = g(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * mult;
+        return String(va).localeCompare(String(vb)) * mult;
+      });
+    }
+    return arr;
+  }, [familyFiltered, filters.tier, filters.search, sortApi.sort]);
 
   const familyCounts = useMemo(() => {
     const c: Partial<Record<Family, number>> = {};
@@ -131,42 +140,33 @@ export function ScannerListView({ brokerFilter }: Props) {
     return c;
   }, [annotated]);
 
-  const showTiers = controls.sort.key === null;
+  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
+
+  const suggestions: Suggestion[] = useMemo(() => {
+    return annotated.map(it => ({
+      value: it.symbol,
+      label: it.symbol,
+      description: classifyInstrument(it.symbol).description,
+    }));
+  }, [annotated]);
+
+  const showTiers = sortApi.sort.key === null && !filters.tier;
   const sortedByScore = useMemo(() => [...items].sort((a, b) => b.score - a.score), [items]);
 
   const groups: { tier: Tier; items: Row[] }[] = useMemo(() => {
-    if (!showTiers) return [{ tier: 'elite', items }];
+    if (!showTiers) return [{ tier: (filters.tier ?? 'elite') as Tier, items }];
     const map: Record<Tier, Row[]> = { elite: [], solido: [], observar: [] };
-    for (const it of sortedByScore) map[tierOf(it.score)].push(it);
+    for (const it of sortedByScore) map[tierOfScore(it.score)].push(it);
     return (['elite', 'solido', 'observar'] as Tier[])
       .filter(t => map[t].length > 0)
       .map(t => ({ tier: t, items: map[t] }));
-  }, [showTiers, items, sortedByScore]);
+  }, [showTiers, items, sortedByScore, filters.tier]);
 
   const eliteRef = useRef<HTMLDivElement>(null);
   const solidoRef = useRef<HTMLDivElement>(null);
   const observarRef = useRef<HTMLDivElement>(null);
 
-  const tierCounts = useMemo(() => {
-    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
-    for (const it of familyFiltered) c[tierOf(it.score)]++;
-    return c;
-  }, [familyFiltered]);
-
-  const scrollTo = (ref: React.RefObject<HTMLDivElement | null>) => {
-    const el = ref.current;
-    if (!el) return;
-    const main = el.closest('main');
-    if (main) {
-      const top = el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop - 160;
-      main.scrollTo({ top, behavior: 'smooth' });
-    } else {
-      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 160, behavior: 'smooth' });
-    }
-  };
-
   const handleToggleWatch = (inst: UnifiedInstrument) => {
-    const key = `${inst.symbol}::${inst.broker}`;
     const existing = (watchlist ?? []).find(
       w => w.symbol === inst.symbol && (w.broker ?? 'darwinex') === inst.broker
         && (w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase()
@@ -208,64 +208,16 @@ export function ScannerListView({ brokerFilter }: Props) {
   return (
     <div className="space-y-3">
       {/* Filtros — sticky para mantener acceso al hacer scroll */}
-      <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-96 opacity-100'}`}>
-        <div className="rounded-lg border border-border bg-card p-2 space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            <FilterChip
-              active={family === null}
-              onClick={() => { setFamily(null); setSubfamily(null); }}
-              label={`Todos (${annotated.length})`}
-            />
-            {FAMILIES.map(f => {
-              const n = familyCounts[f] ?? 0;
-              if (n === 0) return null;
-              return (
-                <FilterChip
-                  key={f}
-                  active={family === f}
-                  onClick={() => { setFamily(family === f ? null : f); setSubfamily(null); }}
-                  label={`${f} (${n})`}
-                />
-              );
-            })}
-          </div>
-
-          {family && availableSubs.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-border/50">
-              <FilterChip active={subfamily === null} onClick={() => setSubfamily(null)} label="Todas" size="sm" />
-              {availableSubs.map(s => (
-                <FilterChip
-                  key={s}
-                  active={subfamily === s}
-                  onClick={() => setSubfamily(subfamily === s ? null : s)}
-                  label={s}
-                  size="sm"
-                />
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-border/50">
-            <button
-              onClick={() => scrollTo(eliteRef)}
-              className="px-2.5 py-1 rounded text-xs font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-            >
-              ★ Élite ({tierCounts.elite})
-            </button>
-            <button
-              onClick={() => scrollTo(solidoRef)}
-              className="px-2.5 py-1 rounded text-xs font-bold border border-success/40 bg-success/10 text-success hover:bg-success/20 transition-colors"
-            >
-              ● Sólido ({tierCounts.solido})
-            </button>
-            <button
-              onClick={() => scrollTo(observarRef)}
-              className="px-2.5 py-1 rounded text-xs font-bold border border-border bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ◌ Observar ({tierCounts.observar})
-            </button>
-          </div>
-        </div>
+      <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
+        <RadarFiltersBar
+          state={filters}
+          onChange={setFilters}
+          totalCount={annotated.length}
+          familyCounts={familyCounts}
+          availableSubs={availableSubs}
+          tierCounts={tierCounts}
+          suggestions={suggestions}
+        />
       </div>
 
       {/* Tabla */}
@@ -276,15 +228,15 @@ export function ScannerListView({ brokerFilter }: Props) {
             <thead>
               <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="text-left px-2 py-2 w-[60px]">#</th>
-                <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[80px]" />
-                <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
-                <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
-                <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
-                <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
-                <SortHeader label="Pend50" sortKey="pend50" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[80px]" />
-                <SortHeader label="Estruct" sortKey="estructura" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
-                <SortHeader label="Stoch" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
-                <SortHeader label="ATR" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+                <SortHeader label="Score" sortKey="score" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[80px]" />
+                <SortHeader label="Símbolo" sortKey="symbol" state={sortApi.sort} onToggle={sortApi.toggle} />
+                <SortHeader label="Dir" sortKey="direction" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
+                <SortHeader label="Precio" sortKey="price" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[90px]" />
+                <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
+                <SortHeader label="Pend50" sortKey="pend50" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[80px]" />
+                <SortHeader label="Estruct" sortKey="estructura" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[110px]" />
+                <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
+                <SortHeader label="ATR" sortKey="atr" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
                 <th className="text-center px-2 py-2 w-[50px]">👁</th>
               </tr>
             </thead>
@@ -363,21 +315,6 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function FilterChip({ label, active, onClick, size = 'md' }: { label: string; active: boolean; onClick: () => void; size?: 'sm' | 'md' }) {
-  const pad = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
-  return (
-    <button
-      onClick={onClick}
-      className={`${pad} rounded font-medium border transition-colors ${
-        active
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-secondary text-muted-foreground border-border hover:text-foreground hover:border-primary/40'
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
   return (
@@ -474,9 +411,18 @@ interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialL
 
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
+  const collapsed = useRadarCollapsed();
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
   const [expanded, setExpanded] = useState(false);
+  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+
+  const annotated = useMemo(() => {
+    return all.filter(i => (i.score ?? 0) >= 60).map(it => {
+      const cls = classifyFamily(it.symbol);
+      return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
+    });
+  }, [all]);
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
@@ -486,22 +432,70 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
     return m;
   }, [all]);
 
-  const allItems = useMemo(
-    () => all.filter(i => (i.score ?? 0) >= 60).sort((a, b) => b.score - a.score),
-    [all],
+  const familyFiltered = useMemo(() => annotated.filter(a => {
+    if (filters.family && a._family !== filters.family) return false;
+    if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
+    return true;
+  }), [annotated, filters.family, filters.subfamily]);
+
+  const tierCounts = useMemo(() => {
+    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
+    for (const it of familyFiltered) c[tierOfScore(it.score)]++;
+    return c;
+  }, [familyFiltered]);
+
+  const familyCounts = useMemo(() => {
+    const c: Partial<Record<Family, number>> = {};
+    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
+    return c;
+  }, [annotated]);
+
+  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
+
+  const suggestions: Suggestion[] = useMemo(
+    () => annotated.map(it => ({ value: it.symbol, label: it.symbol, description: classifyInstrument(it.symbol).description })),
+    [annotated],
   );
+
+  const allItems = useMemo(() => {
+    let arr = familyFiltered;
+    if (filters.tier) arr = arr.filter(it => tierOfScore(it.score) === filters.tier);
+    if (filters.search.trim()) {
+      arr = arr.filter(it => matchSearch(filters.search, [it.symbol, classifyInstrument(it.symbol).description]));
+    }
+    return [...arr].sort((a, b) => b.score - a.score);
+  }, [familyFiltered, filters.tier, filters.search]);
+
   const items = collapsible && !expanded ? allItems.slice(0, initialLimit) : allItems;
   const hiddenCount = allItems.length - items.length;
 
-  if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">El EA no está vigilando ningún instrumento ahora mismo (sin scores ≥ 60 en el último escáner).</p>
-      </div>
-    );
-  }
+  const noScannerData = annotated.length === 0;
 
   return (
+    <div className="space-y-3">
+      {!collapsible && (
+        <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
+          <RadarFiltersBar
+            state={filters}
+            onChange={setFilters}
+            totalCount={annotated.length}
+            familyCounts={familyCounts}
+            availableSubs={availableSubs}
+            tierCounts={tierCounts}
+            suggestions={suggestions}
+          />
+        </div>
+      )}
+
+      {noScannerData ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">El EA no está vigilando ningún instrumento ahora mismo (sin scores ≥ 60 en el último escáner).</p>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">Ningún instrumento coincide con los filtros.</p>
+        </div>
+      ) : (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Desktop */}
       <div className="hidden md:block overflow-x-auto">
@@ -624,6 +618,8 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
             {expanded ? 'Ver menos' : `Ver todos (${hiddenCount} más)`}
           </button>
         </div>
+      )}
+    </div>
       )}
     </div>
   );
