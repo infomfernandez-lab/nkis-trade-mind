@@ -65,11 +65,11 @@ function RadarPage() {
               <TabsTrigger value="escaneado" className="w-full justify-center text-xs sm:text-sm">
                 📡 Escaneado <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{tendenciaCount}</span>
               </TabsTrigger>
-              <TabsTrigger value="posiciones" className="w-full justify-center text-xs sm:text-sm">
-                📈 Posiciones <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{filteredOpen.length}</span>
-              </TabsTrigger>
               <TabsTrigger value="vigilancia" className="w-full justify-center text-xs sm:text-sm">
                 👁 Vigilancia <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{vigCount}</span>
+              </TabsTrigger>
+              <TabsTrigger value="posiciones" className="w-full justify-center text-xs sm:text-sm">
+                📈 Posiciones <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{filteredOpen.length}</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -78,12 +78,12 @@ function RadarPage() {
             <ScannerListView brokerFilter={broker} />
           </TabsContent>
 
-          <TabsContent value="posiciones" className="mt-4">
-            <OpenPositionsTable brokerFilter={broker} />
-          </TabsContent>
-
           <TabsContent value="vigilancia" className="mt-4">
             <VigilanciaView brokerFilter={broker} />
+          </TabsContent>
+
+          <TabsContent value="posiciones" className="mt-4">
+            <OpenPositionsTable brokerFilter={broker} />
           </TabsContent>
         </Tabs>
       </div>
