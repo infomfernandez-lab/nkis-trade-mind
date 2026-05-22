@@ -24,17 +24,11 @@ import { useWatchlist, useAddToWatchlist, useDeleteWatchlistItem } from '@/hooks
 import { useAllTrades } from '@/hooks/use-trades';
 import { toast } from 'sonner';
 
-type Tier = 'elite' | 'solido' | 'observar';
-const TIER_META: Record<Tier, { label: string; min: number; max: number; accent: string }> = {
-  elite:    { label: 'ÉLITE',    min: 75, max: 9999, accent: 'border-l-primary text-primary' },
-  solido:   { label: 'SÓLIDO',   min: 60, max: 74,   accent: 'border-l-success text-success' },
-  observar: { label: 'OBSERVAR', min: 0,  max: 59,   accent: 'border-l-muted-foreground text-muted-foreground' },
+const TIER_META: Record<Tier, { label: string; accent: string }> = {
+  elite:    { label: 'ÉLITE',    accent: 'border-l-primary text-primary' },
+  solido:   { label: 'SÓLIDO',   accent: 'border-l-success text-success' },
+  observar: { label: 'OBSERVAR', accent: 'border-l-muted-foreground text-muted-foreground' },
 };
-function tierOf(score: number): Tier {
-  if (score >= 75) return 'elite';
-  if (score >= 60) return 'solido';
-  return 'observar';
-}
 
 function isAlcistaDir(d: string) {
   const v = (d ?? '').toLowerCase();
