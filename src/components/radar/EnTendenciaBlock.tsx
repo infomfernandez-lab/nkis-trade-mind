@@ -417,6 +417,14 @@ function adxAbbr(state: string | null): string {
   return s.slice(0, 4);
 }
 
+function adxStateColor(state: string | null): string {
+  const s = (state ?? '').toUpperCase();
+  if (s.startsWith('ACEL')) return 'text-success';
+  if (s.startsWith('SUBI') || s.startsWith('BUEN')) return 'text-success/80';
+  if (s.startsWith('AGOT') || s.startsWith('DEBI')) return 'text-destructive';
+  return 'text-muted-foreground';
+}
+
 function adxColor(value: number | null): string {
   if (value == null) return 'text-muted-foreground';
   if (value > 30) return 'text-success';
