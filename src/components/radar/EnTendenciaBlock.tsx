@@ -194,15 +194,16 @@ const TIER_LABEL: Record<Tier, string> = {
 
 type SortKey =
   | 'symbol'
+  | 'name'
   | 'price'
   | 'direction'
+  | 'broker'
   | 'score'
-  | 'qualScore'
   | 'adx'
   | 'pend50'
-  | 'estructura'
   | 'stoch'
-  | 'atr';
+  | 'atr'
+  | 'divergencia';
 
 export function EnTendenciaBlock({ brokerFilter }: Props) {
   const allItems = useUnifiedInstruments(brokerFilter);
