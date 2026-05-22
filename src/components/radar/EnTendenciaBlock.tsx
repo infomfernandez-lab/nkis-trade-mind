@@ -244,15 +244,16 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
     { sort: controls.sort, search: controls.search, limit: controls.limit },
     {
       symbol: it => it.symbol,
+      name: it => classifyInstrument(it.symbol).description,
       price: it => it.current_price,
       direction: it => it.direction,
+      broker: it => it.broker,
       score: it => it.score,
-      qualScore: it => qualMap.get(`${it.symbol}::${it.broker}`)?.score ?? (it.score >= 75 ? 2 : 0),
       adx: it => it.adx_value,
       pend50: it => it.pend50_pct,
-      estructura: it => it.estructura,
       stoch: it => it.stoch_k,
       atr: it => it.atr,
+      divergencia: it => it.divergencia,
     },
     it => [it.symbol, it.broker],
   );
