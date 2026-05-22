@@ -411,9 +411,18 @@ interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialL
 
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
+  const collapsed = useRadarCollapsed();
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
   const [expanded, setExpanded] = useState(false);
+  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+
+  const annotated = useMemo(() => {
+    return all.filter(i => (i.score ?? 0) >= 60).map(it => {
+      const cls = classifyFamily(it.symbol);
+      return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
+    });
+  }, [all]);
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
@@ -423,22 +432,70 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
     return m;
   }, [all]);
 
-  const allItems = useMemo(
-    () => all.filter(i => (i.score ?? 0) >= 60).sort((a, b) => b.score - a.score),
-    [all],
+  const familyFiltered = useMemo(() => annotated.filter(a => {
+    if (filters.family && a._family !== filters.family) return false;
+    if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
+    return true;
+  }), [annotated, filters.family, filters.subfamily]);
+
+  const tierCounts = useMemo(() => {
+    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
+    for (const it of familyFiltered) c[tierOfScore(it.score)]++;
+    return c;
+  }, [familyFiltered]);
+
+  const familyCounts = useMemo(() => {
+    const c: Partial<Record<Family, number>> = {};
+    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
+    return c;
+  }, [annotated]);
+
+  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
+
+  const suggestions: Suggestion[] = useMemo(
+    () => annotated.map(it => ({ value: it.symbol, label: it.symbol, description: classifyInstrument(it.symbol).description })),
+    [annotated],
   );
+
+  const allItems = useMemo(() => {
+    let arr = familyFiltered;
+    if (filters.tier) arr = arr.filter(it => tierOfScore(it.score) === filters.tier);
+    if (filters.search.trim()) {
+      arr = arr.filter(it => matchSearch(filters.search, [it.symbol, classifyInstrument(it.symbol).description]));
+    }
+    return [...arr].sort((a, b) => b.score - a.score);
+  }, [familyFiltered, filters.tier, filters.search]);
+
   const items = collapsible && !expanded ? allItems.slice(0, initialLimit) : allItems;
   const hiddenCount = allItems.length - items.length;
 
-  if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">El EA no está vigilando ningún instrumento ahora mismo (sin scores ≥ 60 en el último escáner).</p>
-      </div>
-    );
-  }
+  const noScannerData = annotated.length === 0;
 
   return (
+    <div className="space-y-3">
+      {!collapsible && (
+        <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
+          <RadarFiltersBar
+            state={filters}
+            onChange={setFilters}
+            totalCount={annotated.length}
+            familyCounts={familyCounts}
+            availableSubs={availableSubs}
+            tierCounts={tierCounts}
+            suggestions={suggestions}
+          />
+        </div>
+      )}
+
+      {noScannerData ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">El EA no está vigilando ningún instrumento ahora mismo (sin scores ≥ 60 en el último escáner).</p>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">Ningún instrumento coincide con los filtros.</p>
+        </div>
+      ) : (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Desktop */}
       <div className="hidden md:block overflow-x-auto">
