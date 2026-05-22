@@ -696,11 +696,12 @@ function rankColor(hl: HighlightTier): string {
 
 function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, expanded, onToggleExpand }: { inst: UnifiedInstrument; rank: number; hl: HighlightTier; isWatched: boolean; isInSeguimiento: boolean; isOpen: boolean; qual?: QualificationRow; expanded: boolean; onToggleExpand: () => void }) {
   const alcista = isAlcistaDir(inst.direction);
-  const est = estructuraMeta(inst.estructura);
+  const meta = classifyInstrument(inst.symbol);
+  const div = inst.divergencia;
+  const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
 
   const highlightCls = highlightClasses(hl);
   const isHl = hl !== 'none';
-  const qualScore = qual?.score ?? (inst.score >= 75 ? 2 : 0);
 
   return (
     <tr
@@ -710,43 +711,49 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, 
       <td className="px-2 py-2 font-data text-center">
         <span className={`font-bold ${isHl ? 'text-base' : 'text-sm'} ${rankColor(hl)}`}>#{rank}</span>
       </td>
-      <td className="px-3 py-2 font-bold text-foreground">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <SymbolName symbol={inst.symbol} />
-            <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-              inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-            }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
-          </div>
-          <SymbolMeta symbol={inst.symbol} />
+      <td className="px-2 py-2 text-center">
+        <ScoreBadge score={inst.score} />
+      </td>
+      <td className="px-2 py-2 font-bold text-sm text-foreground whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5"><TypeIcon symbol={inst.symbol} />{inst.symbol}</span>
+      </td>
+      <td className="px-2 py-2 text-sm text-foreground">
+        <div className="flex flex-col leading-tight">
+          <span className="truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <span>{meta.flag}</span><span>{meta.country}</span>
+          </span>
         </div>
       </td>
-      <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
       <td className="px-2 py-2">
-        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
         }`}>
-          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           {alcista ? 'BUY' : 'SELL'}
         </span>
       </td>
       <td className="px-2 py-2 text-center">
-        <ScoreBadge score={inst.score} />
+        <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
       </td>
-      <td className="px-2 py-2 text-center">
-        <QualificationProgressBadge score={qualScore} />
-      </td>
-      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
+      <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
+      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
+      <td className="px-2 py-2"><StochCell inst={inst} /></td>
+      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
       <td className="px-2 py-2">
-        {inst.estructura ? (
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${est.bg} ${est.color}`}>
-            {est.icon} {est.label}
+        {showDiv ? (
+          <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+            div === 'BAJISTA'
+              ? 'bg-destructive/20 text-destructive border-destructive/40'
+              : 'bg-success/20 text-success border-success/40'
+          }`}>
+            {div === 'BAJISTA' ? '↘ BAJ' : '↗ ALC'}
           </span>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
-      <td className="px-2 py-2"><StochCell inst={inst} /></td>
-      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2"><ActionCell inst={inst} isWatched={isWatched} isInSeguimiento={isInSeguimiento} isOpen={isOpen} qual={qual} expanded={expanded} onToggleExpand={onToggleExpand} /></td>
     </tr>
   );
