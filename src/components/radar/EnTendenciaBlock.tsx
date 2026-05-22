@@ -309,18 +309,19 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
         <table className="w-full">
           <thead className="sticky top-[34px] z-20">
             <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
-              <th className="text-left px-2 py-2 w-[50px]">#</th>
-              <SortHeader label="Símbolo" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} />
-              <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
-              <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
+              <th className="text-center px-2 py-2 w-[50px]">#</th>
               <SortHeader label="Score" sortKey="score" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[80px]" />
-              <SortHeader label="Embudo" sortKey="qualScore" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[90px]" />
-              <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+              <SortHeader label="Ticker" sortKey="symbol" state={controls.sort} onToggle={controls.toggle} className="w-[120px]" />
+              <SortHeader label="Nombre" sortKey="name" state={controls.sort} onToggle={controls.toggle} />
+              <SortHeader label="Dir" sortKey="direction" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
+              <SortHeader label="Cuenta" sortKey="broker" state={controls.sort} onToggle={controls.toggle} align="center" className="w-[70px]" />
+              <SortHeader label="Precio" sortKey="price" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[90px]" />
+              <SortHeader label="ATR" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[80px]" />
               <SortHeader label="Pend50" sortKey="pend50" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[80px]" />
-              <SortHeader label="Estruct" sortKey="estructura" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
-              <SortHeader label="Stoch(14)" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
-              <SortHeader label="Volat" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
-              <th className="text-right px-2 py-2 w-[260px]">Acción</th>
+              <SortHeader label="Stoch" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[90px]" />
+              <SortHeader label="ADX" sortKey="adx" state={controls.sort} onToggle={controls.toggle} className="w-[90px]" />
+              <SortHeader label="Div" sortKey="divergencia" state={controls.sort} onToggle={controls.toggle} className="w-[70px]" />
+              <th className="text-right px-2 py-2 w-[200px]">Acción</th>
             </tr>
           </thead>
           <tbody className="[&>tr:first-child>td]:pt-5">
