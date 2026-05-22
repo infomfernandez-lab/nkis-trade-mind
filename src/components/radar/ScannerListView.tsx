@@ -620,6 +620,8 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
         </div>
       )}
     </div>
+      )}
+    </div>
   );
 }
 
