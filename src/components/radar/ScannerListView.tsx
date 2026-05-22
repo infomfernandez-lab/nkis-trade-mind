@@ -16,8 +16,10 @@ import {
   AtrValueCell,
   estructuraMeta,
 } from './EnTendenciaBlock';
-import { classifyFamily, FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
-import { SortHeader, useTableControls, useFiltered } from './TableControls';
+import { classifyFamily, type Family } from '@/lib/instrument-family';
+import { classifyInstrument } from '@/lib/instrument-classify';
+import { SortHeader, useSort } from './TableControls';
+import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
 import { useWatchlist, useAddToWatchlist, useDeleteWatchlistItem } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
 import { toast } from 'sonner';
