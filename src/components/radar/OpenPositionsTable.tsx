@@ -2,10 +2,12 @@ import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
-import { SymbolMeta } from './EnTendenciaBlock';
-import { TypeFilter } from './TypeFilter';
-import { classifyInstrument, type InstrumentType } from '@/lib/instrument-classify';
-import { useTableControls, useFiltered, SortHeader, TableSearchLimit } from './TableControls';
+import { SymbolMeta, useUnifiedInstruments } from './EnTendenciaBlock';
+import { classifyInstrument } from '@/lib/instrument-classify';
+import { classifyFamily, type Family } from '@/lib/instrument-family';
+import { useTableControls, useFiltered, SortHeader } from './TableControls';
+import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
+import { useRadarCollapsed } from './radar-collapse-context';
 
 type SortKey = 'symbol' | 'direction' | 'entryDate' | 'entryPrice' | 'sl' | 'tp' | 'pnl';
 
@@ -27,26 +29,69 @@ function tradeStatus(t: Trade): string {
 
 export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   const { openTrades, isLoading } = useAllTrades();
+  const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
-  const [typeFilter, setTypeFilter] = useState<Set<InstrumentType>>(new Set());
+  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
   const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
-  const counts = useMemo(() => {
-    const c: Partial<Record<InstrumentType, number>> = {};
-    for (const t of filteredAll) {
-      const tp = classifyInstrument(t.symbol).type;
-      c[tp] = (c[tp] ?? 0) + 1;
-    }
-    return c;
-  }, [filteredAll]);
+  // Mapa score por símbolo+broker (para clasificar tier en posiciones)
+  const scannerAll = useUnifiedInstruments(brokerFilter);
+  const scoreMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it.score ?? 0);
+    return m;
+  }, [scannerAll]);
 
-  const typeFiltered = typeFilter.size === 0
-    ? filteredAll
-    : filteredAll.filter(t => typeFilter.has(classifyInstrument(t.symbol).type));
+  // Anotar trades con familia + tier
+  const annotated = useMemo(() => filteredAll.map(t => {
+    const cls = classifyFamily(t.symbol);
+    const score = scoreMap.get(`${t.symbol}::${t.broker}`);
+    return {
+      trade: t,
+      _family: cls?.family ?? null,
+      _subfamily: cls?.subfamily ?? null,
+      _score: score,
+      _tier: score != null ? tierOfScore(score) : null,
+    };
+  }), [filteredAll, scoreMap]);
+
+  const familyFiltered = useMemo(() => annotated.filter(a => {
+    if (filters.family && a._family !== filters.family) return false;
+    if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
+    return true;
+  }), [annotated, filters.family, filters.subfamily]);
+
+  const tierCounts = useMemo(() => {
+    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
+    for (const it of familyFiltered) if (it._tier) c[it._tier]++;
+    return c;
+  }, [familyFiltered]);
+
+  const familyCounts = useMemo(() => {
+    const c: Partial<Record<Family, number>> = {};
+    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
+    return c;
+  }, [annotated]);
+
+  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
+
+  const suggestions: Suggestion[] = useMemo(
+    () => annotated.map(a => ({ value: a.trade.symbol, label: a.trade.symbol, description: classifyInstrument(a.trade.symbol).description })),
+    [annotated],
+  );
+
+  const tierAndSearchFiltered = useMemo(() => {
+    let arr = familyFiltered;
+    if (filters.tier) arr = arr.filter(a => a._tier === filters.tier);
+    if (filters.search.trim()) {
+      arr = arr.filter(a => matchSearch(filters.search, [a.trade.symbol, classifyInstrument(a.trade.symbol).description]));
+    }
+    return arr.map(a => a.trade);
+  }, [familyFiltered, filters.tier, filters.search]);
 
   const filtered = useFiltered<Trade, SortKey>(
-    typeFiltered,
-    { sort: controls.sort, search: controls.search, limit: controls.limit },
+    tierAndSearchFiltered,
+    { sort: controls.sort, search: '', limit: controls.limit },
     {
       symbol: t => t.symbol,
       direction: t => t.direction,
@@ -78,21 +123,28 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   return (
     <div className="space-y-4">
       {!compact && (
-        <div className="sticky top-0 z-30 flex items-center justify-between gap-2 flex-wrap bg-secondary/95 backdrop-blur border border-border rounded-md px-2 py-1.5">
-          <TableSearchLimit
-            search={controls.search}
-            onSearchChange={controls.setSearch}
-            limit={controls.limit}
-            onLimitChange={controls.setLimit}
-            total={typeFiltered.length}
-            shown={filtered.length}
-            suggestions={typeFiltered.map(t => t.symbol)}
+        <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
+          <RadarFiltersBar
+            state={filters}
+            onChange={setFilters}
+            totalCount={annotated.length}
+            familyCounts={familyCounts}
+            availableSubs={availableSubs}
+            tierCounts={tierCounts}
+            suggestions={suggestions}
           />
-          <TypeFilter selected={typeFilter} onChange={setTypeFilter} availableCounts={counts} />
         </div>
       )}
-      {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
-      {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
+      {filtered.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">Ninguna posición coincide con los filtros.</p>
+        </div>
+      ) : (
+        <>
+          {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
+          {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
+        </>
+      )}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
         Las posiciones abiertas solo las cierra el SL. El scanner no tiene autoridad sobre trades ya abiertos.
       </p>
