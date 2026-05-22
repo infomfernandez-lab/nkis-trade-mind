@@ -329,7 +329,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <Fragment key={`${g.tier ?? 'flat'}-${gi}`}>
                 {g.tier && (
                   <tr className="bg-secondary/20">
-                    <td colSpan={12} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
+                    <td colSpan={13} className="px-3 py-1 text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-t border-border">
                       {TIER_LABEL[g.tier]}
                     </td>
                   </tr>
@@ -354,7 +354,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
                       />
                       {isExpanded && (
                         <tr className="bg-secondary/10">
-                          <td colSpan={12} className="p-0">
+                          <td colSpan={13} className="p-0">
                             <QualificationChecklistPanel
                               symbol={inst.symbol}
                               broker={inst.broker}
