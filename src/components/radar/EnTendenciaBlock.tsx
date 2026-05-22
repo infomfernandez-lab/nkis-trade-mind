@@ -531,6 +531,17 @@ export function StochCell({ inst }: { inst: UnifiedInstrument }) {
 }
 
 export function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
+  const estado = (inst.atr_estado ?? '').toString().toUpperCase();
+  if (estado === 'COHERENTE' || estado === 'BAJA' || estado === 'ELEVADA' || estado === 'ANORMAL') {
+    const map: Record<string, { label: string; cls: string }> = {
+      COHERENTE: { label: 'COH', cls: 'text-muted-foreground' },
+      BAJA: { label: 'BAJA', cls: 'text-blue-400' },
+      ELEVADA: { label: 'ELEV', cls: 'text-orange-400' },
+      ANORMAL: { label: 'ANOM', cls: 'text-destructive' },
+    };
+    const m = map[estado];
+    return <span className={`font-data text-xs font-semibold ${m.cls}`} title={`ATR ${estado}`}>{m.label}</span>;
+  }
   if (inst.atr == null) return <span className="text-xs text-muted-foreground">—</span>;
   const v = inst.atr;
   const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 5;
@@ -545,7 +556,7 @@ export function AdxCell({ inst }: { inst: UnifiedInstrument }) {
     <div className="flex items-center gap-1 leading-tight">
       <div>
         <div className={`font-data text-xs font-semibold ${adxColor(v)}`}>{v}</div>
-        <div className="text-[9px] font-bold text-muted-foreground">{adxAbbr(inst.adx_state)}</div>
+        <div className={`text-[9px] font-bold ${adxStateColor(inst.adx_state)}`}>{adxAbbr(inst.adx_state)}</div>
       </div>
       {low && (
         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-destructive/20 text-destructive border border-destructive/40">⚠</span>
