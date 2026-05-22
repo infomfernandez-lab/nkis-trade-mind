@@ -315,21 +315,6 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function FilterChip({ label, active, onClick, size = 'md' }: { label: string; active: boolean; onClick: () => void; size?: 'sm' | 'md' }) {
-  const pad = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs';
-  return (
-    <button
-      onClick={onClick}
-      className={`${pad} rounded font-medium border transition-colors ${
-        active
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-secondary text-muted-foreground border-border hover:text-foreground hover:border-primary/40'
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
   return (
