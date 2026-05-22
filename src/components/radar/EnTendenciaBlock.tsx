@@ -317,7 +317,7 @@ export function EnTendenciaBlock({ brokerFilter }: Props) {
               <SortHeader label="Pend50" sortKey="pend50" state={controls.sort} onToggle={controls.toggle} align="right" className="w-[80px]" />
               <SortHeader label="Estruct" sortKey="estructura" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
               <SortHeader label="Stoch(14)" sortKey="stoch" state={controls.sort} onToggle={controls.toggle} className="w-[110px]" />
-              <SortHeader label="ATR" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
+              <SortHeader label="Volat" sortKey="atr" state={controls.sort} onToggle={controls.toggle} className="w-[100px]" />
               <th className="text-right px-2 py-2 w-[260px]">Acción</th>
             </tr>
           </thead>
