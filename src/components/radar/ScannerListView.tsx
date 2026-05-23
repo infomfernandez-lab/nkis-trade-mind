@@ -111,14 +111,16 @@ export function ScannerListView({ brokerFilter }: Props) {
     if (sort.key) {
       const getters: Record<SortKey, (t: Row) => string | number | null | undefined> = {
         symbol: it => it.symbol,
+        name: it => classifyInstrument(it.symbol).description,
         score: it => it.score,
         direction: it => it.direction,
+        broker: it => it.broker,
         price: it => it.current_price,
         adx: it => it.adx_value,
         pend50: it => it.pend50_pct,
-        estructura: it => it.estructura,
         stoch: it => it.stoch_k,
         atr: it => it.atr,
+        divergencia: it => it.divergencia,
       };
       const g = getters[sort.key];
       const mult = sort.dir === 'asc' ? 1 : -1;
