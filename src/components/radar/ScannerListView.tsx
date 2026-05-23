@@ -513,21 +513,23 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
         </div>
       ) : (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Desktop */}
+      {/* Desktop — mismas columnas que Escaneado */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-base">
           <thead className="bg-muted/40 border-b border-border">
             <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <th className="text-left px-3 py-3 w-[60px]">#</th>
+              <th className="text-center px-3 py-3 w-[50px]">#</th>
               <th className="text-center px-3 py-3 w-[80px]">Score</th>
-              <th className="text-left px-3 py-3">Símbolo</th>
+              <th className="text-left px-3 py-3 w-[120px]">Ticker</th>
+              <th className="text-left px-3 py-3">Nombre</th>
               <th className="text-left px-3 py-3 w-[70px]">Dir</th>
+              <th className="text-center px-3 py-3 w-[70px]">Cuenta</th>
               <th className="text-right px-3 py-3 w-[90px]">Precio</th>
-              <th className="text-left px-3 py-3 w-[100px]">ADX</th>
+              <th className="text-left px-3 py-3 w-[80px]">ATR</th>
               <th className="text-right px-3 py-3 w-[80px]">Pend50</th>
-              <th className="text-left px-3 py-3 w-[110px]">Estruct</th>
-              <th className="text-left px-3 py-3 w-[100px]">Stoch</th>
-              <th className="text-left px-3 py-3 w-[100px]">ATR</th>
+              <th className="text-left px-3 py-3 w-[90px]">Stoch</th>
+              <th className="text-left px-3 py-3 w-[90px]">ADX</th>
+              <th className="text-left px-3 py-3 w-[70px]">Div</th>
               <th className="text-center px-3 py-3 w-[110px]">Estado</th>
             </tr>
           </thead>
@@ -537,7 +539,9 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
               const rank = globalRanks.get(key) ?? 0;
               const isOpen = openSymbols.has(inst.symbol);
               const alcista = isAlcistaDir(inst.direction);
-              const est = estructuraMeta(inst.estructura);
+              const meta = classifyInstrument(inst.symbol);
+              const div = inst.divergencia;
+              const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
               const rowBg = alcista
                 ? 'bg-success/15 hover:bg-success/25'
                 : 'bg-destructive/15 hover:bg-destructive/25';
@@ -545,15 +549,13 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
                 <tr key={key} className={`border-b border-border transition-colors ${rowBg}`}>
                   <td className="px-3 py-3 font-data text-center text-muted-foreground font-bold">#{rank}</td>
                   <td className="px-3 py-3 text-center"><ScoreBadge score={inst.score} /></td>
-                  <td className="px-3 py-3 font-bold">
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <SymbolName symbol={inst.symbol} />
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                          inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-                        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
-                      </div>
-                      <SymbolMeta symbol={inst.symbol} />
+                  <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{inst.symbol}</td>
+                  <td className="px-3 py-3 text-foreground">
+                    <div className="flex flex-col leading-tight">
+                      <span className="truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span>{meta.flag}</span><span>{meta.country}</span>
+                      </span>
                     </div>
                   </td>
                   <td className="px-3 py-3">
@@ -564,18 +566,25 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
                       {alcista ? 'BUY' : 'SELL'}
                     </span>
                   </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                      inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                    }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+                  </td>
                   <td className="px-3 py-3 text-right"><PriceCell price={inst.current_price} /></td>
-                  <td className="px-3 py-3"><AdxCell inst={inst} /></td>
+                  <td className="px-3 py-3"><AtrValueCell inst={inst} /></td>
                   <td className="px-3 py-3"><Pend50Cell inst={inst} /></td>
+                  <td className="px-3 py-3"><StochCell inst={inst} /></td>
+                  <td className="px-3 py-3"><AdxCell inst={inst} /></td>
                   <td className="px-3 py-3">
-                    {inst.estructura ? (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${est.bg} ${est.color}`}>
-                        {est.icon} {est.label}
+                    {showDiv ? (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        div === 'BAJISTA' ? 'bg-destructive/30 text-destructive' : 'bg-success/30 text-success'
+                      }`}>
+                        {div === 'BAJISTA' ? '↘ BAJ' : '↗ ALC'}
                       </span>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-3 py-3"><StochCell inst={inst} /></td>
-                  <td className="px-3 py-3"><AtrValueCell inst={inst} /></td>
                   <td className="px-3 py-3 text-center">
                     {isOpen ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-success/30 text-success">ABIERTA</span>
@@ -597,7 +606,6 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
           const rank = globalRanks.get(key) ?? 0;
           const isOpen = openSymbols.has(inst.symbol);
           const alcista = isAlcistaDir(inst.direction);
-          const est = estructuraMeta(inst.estructura);
           return (
             <div key={key} className={`p-3 ${isOpen ? 'bg-success/5' : ''}`}>
               <div className="flex items-center gap-2 flex-wrap">
@@ -617,11 +625,10 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
               <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
               <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
                 <div className="flex justify-between"><span className="text-muted-foreground">Precio</span><PriceTag price={inst.current_price} compact /></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
               </div>
             </div>
           );
