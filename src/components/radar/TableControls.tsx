@@ -61,7 +61,7 @@ export function SortHeader<K extends string>({
   const Icon = !active ? ArrowUpDown : state.dir === 'asc' ? ArrowUp : ArrowDown;
   const justify = align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start';
   return (
-    <th className={`px-2 py-2 text-${align} ${className}`}>
+    <th className={`px-3 py-3 text-${align} ${className}`}>
       <button
         type="button"
         onClick={() => onToggle(sortKey)}
