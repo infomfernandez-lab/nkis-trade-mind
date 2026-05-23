@@ -165,7 +165,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <td className="px-2 py-2 text-right"><PriceCell price={item.current_price} /></td>
               <td className="px-2 py-2">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                  item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                  item.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
                 }`}>{item.broker === 'darwinex' ? 'NK' : 'OX'}</span>
               </td>
               <td className="px-2 py-2">
@@ -201,7 +201,7 @@ export function SeguimientoBlock({ brokerFilter }: Props) {
               <span className="font-bold text-sm text-foreground"><SymbolName symbol={item.symbol} /></span>
               <span className="font-data text-xs font-semibold text-foreground">{item.current_price != null ? item.current_price.toLocaleString(undefined, { maximumFractionDigits: 5 }) : ''}</span>
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                item.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                item.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
               }`}>{item.broker === 'darwinex' ? 'NK' : 'OX'}</span>
               <span className={`text-xs font-bold ${item.direction === 'alcista' ? 'text-success' : 'text-destructive'}`}>
                 {item.direction === 'alcista' ? 'BUY' : 'SELL'}

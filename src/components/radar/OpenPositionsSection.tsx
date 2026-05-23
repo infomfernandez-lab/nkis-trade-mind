@@ -119,7 +119,7 @@ function PositionCard({ trade, balance }: { trade: TradeWithSL; balance: number 
               trade.direction === 'BUY' ? 'bg-success/20 text-success border border-success/40' : 'bg-destructive/20 text-destructive border border-destructive/40'
             }`}>{trade.direction}</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-              broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+              broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
             }`}>
               {broker === 'darwinex' ? 'NK' : 'OX'}
             </span>
