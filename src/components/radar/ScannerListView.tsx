@@ -62,6 +62,7 @@ interface Props { brokerFilter: BrokerFilter }
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
   const sortApi = useSort<SortKey>({ key: null, dir: 'desc' });
   const vigSet = useVigilanciaSet();
