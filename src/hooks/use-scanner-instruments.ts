@@ -33,6 +33,7 @@ interface Raw {
   current_price?: number;
   precio_actual?: number;
   price?: number;
+  divergencia?: string;
 }
 
 /**
