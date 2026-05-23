@@ -104,7 +104,7 @@ export function QualifiedStagePanel({ stage, brokerFilter }: Props) {
               </div>
               <PriceCell price={inst.current_price} />
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
               }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
               <span className={`text-xs font-bold ${isBuy ? 'text-success' : 'text-destructive'}`}>
                 {isBuy ? 'BUY' : 'SELL'}

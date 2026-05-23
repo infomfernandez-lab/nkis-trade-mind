@@ -155,7 +155,7 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
 function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'darwinex' | 'octx'; trades: Trade[]; sort: import('./TableControls').SortState<SortKey>; onToggleSort: (k: SortKey) => void }) {
   const total = trades.reduce((s, t) => s + t.netPnl, 0);
   const headerColor = broker === 'darwinex'
-    ? 'bg-blue-950 text-blue-300 border-blue-800'
+    ? 'bg-blue-500/20 text-blue-300 border-blue-400/40'
     : 'bg-orange-900/40 text-orange-300 border-orange-700/50';
 
   return (

@@ -367,7 +367,7 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
       </td>
       <td className="px-3 py-3 text-center">
         <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
-          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+          inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
         }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
       </td>
       <td className="px-3 py-3 text-right"><PriceCell price={inst.current_price} /></td>
@@ -550,7 +550,7 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <SymbolName symbol={inst.symbol} />
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                          inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
                         }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
                       </div>
                       <SymbolMeta symbol={inst.symbol} />

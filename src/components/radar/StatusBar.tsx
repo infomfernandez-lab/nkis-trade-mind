@@ -97,7 +97,7 @@ export function StatusBar({ brokerFilter }: Props) {
         {/* Open positions per broker */}
         {showDarwinex && (
           <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800 mr-1">NK</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/40 mr-1">NK</span>
             <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
           </span>
         )}
