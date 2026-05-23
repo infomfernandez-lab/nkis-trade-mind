@@ -55,7 +55,7 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
 }
 
-type SortKey = 'symbol' | 'score' | 'direction' | 'price' | 'adx' | 'pend50' | 'estructura' | 'stoch' | 'atr';
+type SortKey = 'symbol' | 'name' | 'score' | 'direction' | 'broker' | 'price' | 'adx' | 'pend50' | 'stoch' | 'atr' | 'divergencia';
 
 interface Props { brokerFilter: BrokerFilter }
 
@@ -111,14 +111,16 @@ export function ScannerListView({ brokerFilter }: Props) {
     if (sort.key) {
       const getters: Record<SortKey, (t: Row) => string | number | null | undefined> = {
         symbol: it => it.symbol,
+        name: it => classifyInstrument(it.symbol).description,
         score: it => it.score,
         direction: it => it.direction,
+        broker: it => it.broker,
         price: it => it.current_price,
         adx: it => it.adx_value,
         pend50: it => it.pend50_pct,
-        estructura: it => it.estructura,
         stoch: it => it.stoch_k,
         atr: it => it.atr,
+        divergencia: it => it.divergencia,
       };
       const g = getters[sort.key];
       const mult = sort.dir === 'asc' ? 1 : -1;
@@ -227,16 +229,18 @@ export function ScannerListView({ brokerFilter }: Props) {
           <table className="w-full">
             <thead>
               <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="text-left px-2 py-2 w-[60px]">#</th>
+                <th className="text-center px-2 py-2 w-[50px]">#</th>
                 <SortHeader label="Score" sortKey="score" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[80px]" />
-                <SortHeader label="Símbolo" sortKey="symbol" state={sortApi.sort} onToggle={sortApi.toggle} />
+                <SortHeader label="Ticker" sortKey="symbol" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[120px]" />
+                <SortHeader label="Nombre" sortKey="name" state={sortApi.sort} onToggle={sortApi.toggle} />
                 <SortHeader label="Dir" sortKey="direction" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
+                <SortHeader label="Cuenta" sortKey="broker" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[70px]" />
                 <SortHeader label="Precio" sortKey="price" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[90px]" />
-                <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
+                <SortHeader label="ATR" sortKey="atr" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[80px]" />
                 <SortHeader label="Pend50" sortKey="pend50" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[80px]" />
-                <SortHeader label="Estruct" sortKey="estructura" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[110px]" />
-                <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
-                <SortHeader label="ATR" sortKey="atr" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[100px]" />
+                <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
+                <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
+                <SortHeader label="Div" sortKey="divergencia" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
                 <th className="text-center px-2 py-2 w-[50px]">👁</th>
               </tr>
             </thead>
@@ -248,7 +252,7 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {showTiers && (
                       <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
                           className="bg-secondary/20 scroll-mt-40">
-                        <td colSpan={11} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
+                        <td colSpan={13} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
                           {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
                         </td>
                       </tr>
@@ -334,42 +338,51 @@ function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => vo
 
 function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
   const alcista = isAlcistaDir(inst.direction);
-  const est = estructuraMeta(inst.estructura);
+  const meta = classifyInstrument(inst.symbol);
+  const div = inst.divergencia;
+  const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
   return (
     <tr className={`border-t border-border text-sm ${watched ? 'bg-primary/5' : ''}`}>
       <td className="px-2 py-2 font-data text-center text-muted-foreground font-bold text-sm">#{rank}</td>
       <td className="px-2 py-2 text-center"><ScoreBadge score={inst.score} /></td>
-      <td className="px-3 py-2 font-bold text-foreground">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <SymbolName symbol={inst.symbol} />
-            <span className={`px-1 py-0.5 rounded text-[9px] font-bold border ${
-              inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-            }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
-          </div>
-          <SymbolMeta symbol={inst.symbol} />
+      <td className="px-2 py-2 font-bold text-sm text-foreground whitespace-nowrap">{inst.symbol}</td>
+      <td className="px-2 py-2 text-sm text-foreground">
+        <div className="flex flex-col leading-tight">
+          <span className="truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <span>{meta.flag}</span><span>{meta.country}</span>
+          </span>
         </div>
       </td>
       <td className="px-2 py-2">
-        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold border ${
           alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
         }`}>
-          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           {alcista ? 'BUY' : 'SELL'}
         </span>
       </td>
+      <td className="px-2 py-2 text-center">
+        <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+          inst.broker === 'darwinex' ? 'bg-blue-950 text-blue-300 border-blue-800' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+      </td>
       <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
-      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
+      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2"><Pend50Cell inst={inst} /></td>
+      <td className="px-2 py-2"><StochCell inst={inst} /></td>
+      <td className="px-2 py-2"><AdxCell inst={inst} /></td>
       <td className="px-2 py-2">
-        {inst.estructura ? (
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${est.bg} ${est.color}`}>
-            {est.icon} {est.label}
+        {showDiv ? (
+          <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+            div === 'BAJISTA'
+              ? 'bg-destructive/20 text-destructive border-destructive/40'
+              : 'bg-success/20 text-success border-success/40'
+          }`}>
+            {div === 'BAJISTA' ? '↘ BAJ' : '↗ ALC'}
           </span>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
-      <td className="px-2 py-2"><StochCell inst={inst} /></td>
-      <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>
       <td className="px-2 py-2 text-center"><WatchToggle watched={watched} onClick={onToggleWatch} /></td>
     </tr>
   );
