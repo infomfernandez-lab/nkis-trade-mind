@@ -21,7 +21,7 @@ export const FAMILIES: Family[] = [
 
 /** Subfamilias por familia, en el orden de presentación. */
 export const SUBFAMILIES: Record<Family, string[]> = {
-  Acciones: [],
+  Acciones: [...STOCK_SECTORS],
   Divisas: ['Futuros CME', 'Forex Spot'],
   Energía: ['Petróleo Crudo', 'Refinados', 'Gas Natural'],
   Metales: ['Preciosos', 'Industriales'],
