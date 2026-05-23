@@ -55,7 +55,7 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
 }
 
-type SortKey = 'symbol' | 'score' | 'direction' | 'price' | 'adx' | 'pend50' | 'estructura' | 'stoch' | 'atr';
+type SortKey = 'symbol' | 'name' | 'score' | 'direction' | 'broker' | 'price' | 'adx' | 'pend50' | 'stoch' | 'atr' | 'divergencia';
 
 interface Props { brokerFilter: BrokerFilter }
 
