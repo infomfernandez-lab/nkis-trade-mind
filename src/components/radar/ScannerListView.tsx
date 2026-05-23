@@ -252,7 +252,7 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {showTiers && (
                       <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
                           className="bg-secondary/20 scroll-mt-40">
-                        <td colSpan={11} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
+                        <td colSpan={13} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
                           {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
                         </td>
                       </tr>
