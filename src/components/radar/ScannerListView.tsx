@@ -226,10 +226,10 @@ export function ScannerListView({ brokerFilter }: Props) {
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Desktop */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-secondary text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="text-center px-2 py-2 w-[50px]">#</th>
+          <table className="w-full text-base">
+            <thead className="bg-muted/40 border-b border-border">
+              <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="text-center px-3 py-3 w-[50px]">#</th>
                 <SortHeader label="Score" sortKey="score" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[80px]" />
                 <SortHeader label="Ticker" sortKey="symbol" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[120px]" />
                 <SortHeader label="Nombre" sortKey="name" state={sortApi.sort} onToggle={sortApi.toggle} />
@@ -241,7 +241,7 @@ export function ScannerListView({ brokerFilter }: Props) {
                 <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="Div" sortKey="divergencia" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
-                <th className="text-center px-2 py-2 w-[50px]">👁</th>
+                <th className="text-center px-3 py-3 w-[50px]">👁</th>
               </tr>
             </thead>
             <tbody>
