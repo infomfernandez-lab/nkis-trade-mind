@@ -1,7 +1,9 @@
 // Clasificación de instrumentos por Familia / Subfamilia, según mapeo del usuario.
 // El símbolo base de los futuros es la raíz sin la letra del mes ni el año (6A_M → 6A).
+import { classifyInstrument } from './instrument-classify';
 
 export type Family =
+  | 'Acciones'
   | 'Divisas'
   | 'Energía'
   | 'Metales'
@@ -13,11 +15,12 @@ export type Family =
   | 'ETFs';
 
 export const FAMILIES: Family[] = [
-  'Divisas','Energía','Metales','Índices','Granos','Ganadería','Bonos','Forex','ETFs',
+  'Acciones','Divisas','Energía','Metales','Índices','Granos','Ganadería','Bonos','Forex','ETFs',
 ];
 
 /** Subfamilias por familia, en el orden de presentación. */
 export const SUBFAMILIES: Record<Family, string[]> = {
+  Acciones: [],
   Divisas: ['Futuros CME', 'Forex Spot'],
   Energía: ['Petróleo Crudo', 'Refinados', 'Gas Natural'],
   Metales: ['Preciosos', 'Industriales'],
