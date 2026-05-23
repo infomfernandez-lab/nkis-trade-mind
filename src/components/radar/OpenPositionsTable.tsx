@@ -2,29 +2,26 @@ import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
-import { SymbolMeta, useUnifiedInstruments } from './EnTendenciaBlock';
+import {
+  SymbolMeta,
+  useUnifiedInstruments,
+  type UnifiedInstrument,
+  ScoreBadge,
+  PriceCell,
+  PriceTag,
+  AdxCell,
+  Pend50Cell,
+  StochCell,
+  AtrValueCell,
+} from './EnTendenciaBlock';
 import { classifyInstrument } from '@/lib/instrument-classify';
 import { classifyFamily, type Family } from '@/lib/instrument-family';
-import { useTableControls, useFiltered, SortHeader } from './TableControls';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
 import { useRadarCollapsed } from './radar-collapse-context';
-
-type SortKey = 'symbol' | 'direction' | 'entryDate' | 'entryPrice' | 'sl' | 'tp' | 'pnl';
 
 interface Props {
   brokerFilter: BrokerFilter;
   compact?: boolean;
-}
-
-function formatPrice(price: number): string {
-  if (!price) return '—';
-  return price > 100 ? price.toFixed(2) : price.toFixed(5);
-}
-
-function tradeStatus(t: Trade): string {
-  if (t.netPnl > 0) return 'En beneficio';
-  if (t.netPnl < 0) return 'En pérdida — SL protege';
-  return 'Dejar correr';
 }
 
 export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
@@ -32,28 +29,28 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
-  const controls = useTableControls<SortKey>({ key: null, dir: 'desc' });
 
-  // Mapa score por símbolo+broker (para clasificar tier en posiciones)
+  // Scanner instruments para enriquecer las filas con las mismas columnas que Escaneado
   const scannerAll = useUnifiedInstruments(brokerFilter);
-  const scoreMap = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it.score ?? 0);
+  const scannerMap = useMemo(() => {
+    const m = new Map<string, UnifiedInstrument>();
+    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it);
     return m;
   }, [scannerAll]);
 
-  // Anotar trades con familia + tier
+  // Anotar cada trade con su instrumento de scanner (si existe) + familia + tier
   const annotated = useMemo(() => filteredAll.map(t => {
     const cls = classifyFamily(t.symbol);
-    const score = scoreMap.get(`${t.symbol}::${t.broker}`);
+    const inst = scannerMap.get(`${t.symbol}::${t.broker}`) ?? null;
     return {
       trade: t,
+      inst,
       _family: cls?.family ?? null,
       _subfamily: cls?.subfamily ?? null,
-      _score: score,
-      _tier: score != null ? tierOfScore(score) : null,
+      _score: inst?.score ?? null,
+      _tier: inst?.score != null ? tierOfScore(inst.score) : null,
     };
-  }), [filteredAll, scoreMap]);
+  }), [filteredAll, scannerMap]);
 
   const familyFiltered = useMemo(() => annotated.filter(a => {
     if (filters.family && a._family !== filters.family) return false;
@@ -80,29 +77,14 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
     [annotated],
   );
 
-  const tierAndSearchFiltered = useMemo(() => {
+  const filtered = useMemo(() => {
     let arr = familyFiltered;
     if (filters.tier) arr = arr.filter(a => a._tier === filters.tier);
     if (filters.search.trim()) {
       arr = arr.filter(a => matchSearch(filters.search, [a.trade.symbol, classifyInstrument(a.trade.symbol).description]));
     }
-    return arr.map(a => a.trade);
+    return arr;
   }, [familyFiltered, filters.tier, filters.search]);
-
-  const filtered = useFiltered<Trade, SortKey>(
-    tierAndSearchFiltered,
-    { sort: controls.sort, search: '', limit: controls.limit },
-    {
-      symbol: t => t.symbol,
-      direction: t => t.direction,
-      entryDate: t => new Date(t.entryDate).getTime(),
-      entryPrice: t => t.entryPrice,
-      sl: t => t.slPrice,
-      tp: t => t.tpPrice,
-      pnl: t => t.netPnl,
-    },
-    t => [t.symbol, t.direction],
-  );
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-6">Cargando posiciones...</div>;
@@ -117,8 +99,8 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
     );
   }
 
-  const dwTrades = filtered.filter(t => t.broker === 'darwinex');
-  const fxTrades = filtered.filter(t => t.broker === 'octx');
+  const dwRows = filtered.filter(a => a.trade.broker === 'darwinex');
+  const fxRows = filtered.filter(a => a.trade.broker === 'octx');
 
   return (
     <div className="space-y-4">
@@ -141,8 +123,8 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
         </div>
       ) : (
         <>
-          {dwTrades.length > 0 && <BrokerSubsection broker="darwinex" trades={dwTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
-          {fxTrades.length > 0 && <BrokerSubsection broker="octx" trades={fxTrades} sort={controls.sort} onToggleSort={controls.toggle} />}
+          {dwRows.length > 0 && <BrokerSubsection broker="darwinex" rows={dwRows} />}
+          {fxRows.length > 0 && <BrokerSubsection broker="octx" rows={fxRows} />}
         </>
       )}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
@@ -152,8 +134,10 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   );
 }
 
-function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'darwinex' | 'octx'; trades: Trade[]; sort: import('./TableControls').SortState<SortKey>; onToggleSort: (k: SortKey) => void }) {
-  const total = trades.reduce((s, t) => s + t.netPnl, 0);
+type Row = { trade: Trade; inst: UnifiedInstrument | null };
+
+function BrokerSubsection({ broker, rows }: { broker: 'darwinex' | 'octx'; rows: Row[] }) {
+  const total = rows.reduce((s, r) => s + r.trade.netPnl, 0);
   const headerColor = broker === 'darwinex'
     ? 'bg-blue-500/20 text-blue-300 border-blue-400/40'
     : 'bg-orange-900/40 text-orange-300 border-orange-700/50';
@@ -164,65 +148,96 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${headerColor}`}>
           {broker === 'darwinex' ? 'NK' : 'OX'}
         </span>
-        <span className="text-xs text-muted-foreground">{trades.length} pos</span>
+        <span className="text-xs text-muted-foreground">{rows.length} pos</span>
       </div>
 
-      {/* Desktop */}
-      <table className="w-full hidden md:table text-base">
-        <thead className="bg-muted/40 border-b border-border sticky top-[44px] z-20">
-          <tr className="text-left text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
-            <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
-            <SortHeader label="Apertura" sortKey="entryDate" state={sort} onToggle={onToggleSort} className="w-[110px]" />
-            <SortHeader label="Entrada" sortKey="entryPrice" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
-            <SortHeader label="SL" sortKey="sl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
-            <SortHeader label="TP" sortKey="tp" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
-            <SortHeader label="P&L" sortKey="pnl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
-            <th className="text-left px-3 py-3 w-[180px]">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trades.map(t => {
-            const rowBg = t.direction === 'BUY'
-              ? 'bg-success/15 hover:bg-success/25'
-              : 'bg-destructive/15 hover:bg-destructive/25';
-            return (
-            <tr key={t.id} className={`border-b border-border transition-colors ${rowBg}`}>
-              <td className="px-3 py-3 font-bold">
-                <div className="flex flex-col gap-0.5">
-                  <span>{t.symbol}</span>
-                  <SymbolMeta symbol={t.symbol} />
-                </div>
-              </td>
-              <td className="px-3 py-3">
-                <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
-                  t.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
-                }`}>
-                  {t.direction === 'BUY' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {t.direction}
-                </span>
-              </td>
-              <td className="px-3 py-3 text-sm text-muted-foreground font-data">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
-              <td className="px-3 py-3 text-right font-data text-sm">{formatPrice(t.entryPrice)}</td>
-              <td className="px-3 py-3 text-right font-data text-sm text-destructive/80">{formatPrice(t.slPrice)}</td>
-              <td className="px-3 py-3 text-right font-data text-sm text-success/80">{formatPrice(t.tpPrice)}</td>
-              <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {formatCurrency(t.netPnl)}
-              </td>
-              <td className="px-3 py-3 text-sm text-muted-foreground">{tradeStatus(t)}</td>
+      {/* Desktop — mismas columnas que Escaneado */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-base">
+          <thead className="bg-muted/40 border-b border-border">
+            <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              <th className="text-center px-3 py-3 w-[80px]">Score</th>
+              <th className="text-left px-3 py-3 w-[120px]">Ticker</th>
+              <th className="text-left px-3 py-3">Nombre</th>
+              <th className="text-left px-3 py-3 w-[70px]">Dir</th>
+              <th className="text-center px-3 py-3 w-[70px]">Cuenta</th>
+              <th className="text-right px-3 py-3 w-[90px]">Precio</th>
+              <th className="text-left px-3 py-3 w-[80px]">ATR</th>
+              <th className="text-right px-3 py-3 w-[80px]">Pend50</th>
+              <th className="text-left px-3 py-3 w-[90px]">Stoch</th>
+              <th className="text-left px-3 py-3 w-[90px]">ADX</th>
+              <th className="text-left px-3 py-3 w-[70px]">Div</th>
+              <th className="text-right px-3 py-3 w-[100px]">P&L</th>
             </tr>
-          );})}
-          <tr className="border-t-2 border-border bg-secondary/30">
-            <td colSpan={6} className="px-3 py-3 text-sm font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NK' : 'OX'}</td>
-            <td className={`px-3 py-3 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(({ trade: t, inst }) => {
+              const alcista = t.direction === 'BUY';
+              const meta = classifyInstrument(t.symbol);
+              const div = inst?.divergencia;
+              const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
+              const rowBg = alcista
+                ? 'bg-success/15 hover:bg-success/25'
+                : 'bg-destructive/15 hover:bg-destructive/25';
+              const price = inst?.current_price ?? t.entryPrice;
+              return (
+                <tr key={t.id} className={`border-b border-border transition-colors ${rowBg}`}>
+                  <td className="px-3 py-3 text-center">
+                    {inst ? <ScoreBadge score={inst.score} /> : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{t.symbol}</td>
+                  <td className="px-3 py-3 text-foreground">
+                    <div className="flex flex-col leading-tight">
+                      <span className="truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span>{meta.flag}</span><span>{meta.country}</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
+                      alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
+                    }`}>
+                      {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {t.direction}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                      t.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
+                    }`}>{t.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right"><PriceCell price={price} /></td>
+                  <td className="px-3 py-3">{inst ? <AtrValueCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-3">{inst ? <Pend50Cell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-3">{inst ? <StochCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-3">{inst ? <AdxCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                  <td className="px-3 py-3">
+                    {showDiv ? (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        div === 'BAJISTA' ? 'bg-destructive/30 text-destructive' : 'bg-success/30 text-success'
+                      }`}>
+                        {div === 'BAJISTA' ? '↘ BAJ' : '↗ ALC'}
+                      </span>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
+                  <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {formatCurrency(t.netPnl)}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className="border-t-2 border-border bg-secondary/30">
+              <td colSpan={11} className="px-3 py-3 text-sm font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NK' : 'OX'}</td>
+              <td className={`px-3 py-3 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       {/* Mobile */}
       <div className="md:hidden divide-y divide-border">
-        {trades.map(t => <MobileRow key={t.id} trade={t} />)}
+        {rows.map(({ trade: t, inst }) => <MobileRow key={t.id} trade={t} inst={inst} />)}
         <div className="flex items-center justify-between px-3 py-2 bg-secondary/30 text-xs">
           <span className="text-muted-foreground font-semibold">Total {broker === 'darwinex' ? 'NK' : 'OX'}</span>
           <span className={`font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</span>
@@ -232,30 +247,31 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
   );
 }
 
-function MobileRow({ trade: t }: { trade: Trade }) {
+function MobileRow({ trade: t, inst }: { trade: Trade; inst: UnifiedInstrument | null }) {
   const [open, setOpen] = useState(false);
+  const alcista = t.direction === 'BUY';
   return (
-    <div className="p-3">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2">
+    <div className={`p-3 ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}>
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
+        {inst && <ScoreBadge score={inst.score} />}
         <span className="font-bold text-sm">{t.symbol}</span>
-        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-          t.direction === 'BUY' ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+          alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
         }`}>
-          {t.direction === 'BUY' ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
           {t.direction}
         </span>
         <span className={`ml-auto font-data font-bold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
-      <div className="text-[11px] text-muted-foreground mt-0.5">{tradeStatus(t)}</div>
       <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
-      {open && (
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-          <div><div className="text-muted-foreground">Apertura</div><div className="font-data text-foreground">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div></div>
-          <div><div className="text-muted-foreground">Entrada</div><div className="font-data text-foreground">{formatPrice(t.entryPrice)}</div></div>
-          <div><div className="text-muted-foreground">Lote</div><div className="font-data text-foreground">{t.lotSize}</div></div>
-          <div><div className="text-muted-foreground">SL</div><div className="font-data text-destructive/80">{formatPrice(t.slPrice)}</div></div>
-          <div><div className="text-muted-foreground">TP</div><div className="font-data text-success/80">{formatPrice(t.tpPrice)}</div></div>
+      {open && inst && (
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+          <div className="flex justify-between"><span className="text-muted-foreground">Precio</span><PriceTag price={inst.current_price} compact /></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
         </div>
       )}
     </div>
