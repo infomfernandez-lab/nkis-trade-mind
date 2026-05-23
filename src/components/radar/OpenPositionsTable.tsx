@@ -168,9 +168,9 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
       </div>
 
       {/* Desktop */}
-      <table className="w-full hidden md:table text-sm">
-        <thead className="sticky top-[44px] z-20">
-          <tr className="text-[10px] uppercase tracking-wider text-muted-foreground bg-secondary">
+      <table className="w-full hidden md:table text-base">
+        <thead className="bg-muted/40 border-b border-border sticky top-[44px] z-20">
+          <tr className="text-left text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             <SortHeader label="Símbolo" sortKey="symbol" state={sort} onToggle={onToggleSort} />
             <SortHeader label="Dir" sortKey="direction" state={sort} onToggle={onToggleSort} className="w-[70px]" />
             <SortHeader label="Apertura" sortKey="entryDate" state={sort} onToggle={onToggleSort} className="w-[110px]" />
@@ -178,39 +178,43 @@ function BrokerSubsection({ broker, trades, sort, onToggleSort }: { broker: 'dar
             <SortHeader label="SL" sortKey="sl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
             <SortHeader label="TP" sortKey="tp" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
             <SortHeader label="P&L" sortKey="pnl" state={sort} onToggle={onToggleSort} align="right" className="w-[100px]" />
-            <th className="text-left px-2 py-2 w-[180px]">Estado</th>
+            <th className="text-left px-3 py-3 w-[180px]">Estado</th>
           </tr>
         </thead>
-        <tbody className="[&>tr:first-child>td]:pt-5">
-          {trades.map(t => (
-            <tr key={t.id} className="border-t border-border hover:bg-accent/20 transition-colors">
-              <td className="px-3 py-2 font-bold">
+        <tbody>
+          {trades.map(t => {
+            const rowBg = t.direction === 'BUY'
+              ? 'bg-success/15 hover:bg-success/25'
+              : 'bg-destructive/15 hover:bg-destructive/25';
+            return (
+            <tr key={t.id} className={`border-b border-border transition-colors ${rowBg}`}>
+              <td className="px-3 py-3 font-bold">
                 <div className="flex flex-col gap-0.5">
                   <span>{t.symbol}</span>
                   <SymbolMeta symbol={t.symbol} />
                 </div>
               </td>
-              <td className="px-2 py-2">
-                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                  t.direction === 'BUY' ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+              <td className="px-3 py-3">
+                <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
+                  t.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
                 }`}>
-                  {t.direction === 'BUY' ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                  {t.direction === 'BUY' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {t.direction}
                 </span>
               </td>
-              <td className="px-2 py-2 text-xs text-muted-foreground font-data">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
-              <td className="px-2 py-2 text-right font-data text-xs">{formatPrice(t.entryPrice)}</td>
-              <td className="px-2 py-2 text-right font-data text-xs text-destructive/80">{formatPrice(t.slPrice)}</td>
-              <td className="px-2 py-2 text-right font-data text-xs text-success/80">{formatPrice(t.tpPrice)}</td>
-              <td className={`px-2 py-2 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+              <td className="px-3 py-3 text-sm text-muted-foreground font-data">{new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</td>
+              <td className="px-3 py-3 text-right font-data text-sm">{formatPrice(t.entryPrice)}</td>
+              <td className="px-3 py-3 text-right font-data text-sm text-destructive/80">{formatPrice(t.slPrice)}</td>
+              <td className="px-3 py-3 text-right font-data text-sm text-success/80">{formatPrice(t.tpPrice)}</td>
+              <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
                 {formatCurrency(t.netPnl)}
               </td>
-              <td className="px-2 py-2 text-xs text-muted-foreground">{tradeStatus(t)}</td>
+              <td className="px-3 py-3 text-sm text-muted-foreground">{tradeStatus(t)}</td>
             </tr>
-          ))}
+          );})}
           <tr className="border-t-2 border-border bg-secondary/30">
-            <td colSpan={6} className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NK' : 'OX'}</td>
-            <td className={`px-2 py-2 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
+            <td colSpan={6} className="px-3 py-3 text-sm font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NK' : 'OX'}</td>
+            <td className={`px-3 py-3 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
             <td></td>
           </tr>
         </tbody>
