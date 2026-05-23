@@ -124,6 +124,6 @@ export function classifyFamily(symbol: string): FamilyEntry | null {
   if (MAP[base]) return MAP[base];
   // Fallback: detectar acciones (CFDs) vía classifyInstrument
   const meta = classifyInstrument(symbol);
-  if (meta.type === 'stock') return { family: 'Acciones', subfamily: '—' };
+  if (meta.type === 'stock') return { family: 'Acciones', subfamily: classifyStockSector(symbol) };
   return null;
 }
