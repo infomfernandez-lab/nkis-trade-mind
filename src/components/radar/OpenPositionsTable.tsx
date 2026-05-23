@@ -1,27 +1,62 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
-import {
-  SymbolMeta,
-  useUnifiedInstruments,
-  type UnifiedInstrument,
-  ScoreBadge,
-  PriceCell,
-  PriceTag,
-  AdxCell,
-  Pend50Cell,
-  StochCell,
-  AtrValueCell,
-} from './EnTendenciaBlock';
+import { SymbolMeta, useUnifiedInstruments } from './EnTendenciaBlock';
 import { classifyInstrument } from '@/lib/instrument-classify';
 import { classifyFamily, type Family } from '@/lib/instrument-family';
-import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
+import {
+  RadarFiltersBar,
+  EMPTY_FILTERS,
+  tierOfScore,
+  matchSearch,
+  buildSubsList,
+  type RadarFilterState,
+  type Tier,
+  type Suggestion,
+} from './RadarFiltersBar';
 import { useRadarCollapsed } from './radar-collapse-context';
+import { TradeJournal } from '@/components/TradeJournal';
+import { lookupScannerRank, hasJournal } from '@/lib/trade-derived';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   brokerFilter: BrokerFilter;
   compact?: boolean;
+}
+
+function formatPrice(price: number): string {
+  if (!price) return '—';
+  return price > 100 ? price.toFixed(2) : price.toFixed(5);
+}
+
+function tradeStatus(t: Trade): string {
+  if (t.netPnl > 0) return 'En beneficio';
+  if (t.netPnl < 0) return 'En pérdida — SL protege';
+  return 'Dejar correr';
+}
+
+interface ScannerSessionLite {
+  session_date: string;
+  broker: string;
+  top_instruments: any;
+}
+
+function useScannerSessions() {
+  return useQuery<ScannerSessionLite[]>({
+    queryKey: ['scanner_sessions', 'lookup'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scanner_sessions')
+        .select('session_date, broker, top_instruments')
+        .order('session_date', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as ScannerSessionLite[];
+    },
+    staleTime: 60_000,
+  });
 }
 
 export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
@@ -29,28 +64,27 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: scannerSessions } = useScannerSessions();
 
-  // Scanner instruments para enriquecer las filas con las mismas columnas que Escaneado
   const scannerAll = useUnifiedInstruments(brokerFilter);
-  const scannerMap = useMemo(() => {
-    const m = new Map<string, UnifiedInstrument>();
-    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it);
+  const scoreMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it.score ?? 0);
     return m;
   }, [scannerAll]);
 
-  // Anotar cada trade con su instrumento de scanner (si existe) + familia + tier
   const annotated = useMemo(() => filteredAll.map(t => {
     const cls = classifyFamily(t.symbol);
-    const inst = scannerMap.get(`${t.symbol}::${t.broker}`) ?? null;
+    const score = scoreMap.get(`${t.symbol}::${t.broker}`);
     return {
       trade: t,
-      inst,
       _family: cls?.family ?? null,
       _subfamily: cls?.subfamily ?? null,
-      _score: inst?.score ?? null,
-      _tier: inst?.score != null ? tierOfScore(inst.score) : null,
+      _score: score,
+      _tier: score != null ? tierOfScore(score) : null,
     };
-  }), [filteredAll, scannerMap]);
+  }), [filteredAll, scoreMap]);
 
   const familyFiltered = useMemo(() => annotated.filter(a => {
     if (filters.family && a._family !== filters.family) return false;
@@ -83,7 +117,7 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
     if (filters.search.trim()) {
       arr = arr.filter(a => matchSearch(filters.search, [a.trade.symbol, classifyInstrument(a.trade.symbol).description]));
     }
-    return arr;
+    return arr.map(a => a.trade);
   }, [familyFiltered, filters.tier, filters.search]);
 
   if (isLoading) {
@@ -99,8 +133,9 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
     );
   }
 
-  const dwRows = filtered.filter(a => a.trade.broker === 'darwinex');
-  const fxRows = filtered.filter(a => a.trade.broker === 'octx');
+  const dwTrades = filtered.filter(t => t.broker === 'darwinex');
+  const fxTrades = filtered.filter(t => t.broker === 'octx');
+  const toggle = (id: string) => setExpandedId(prev => prev === id ? null : id);
 
   return (
     <div className="space-y-4">
@@ -123,8 +158,24 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
         </div>
       ) : (
         <>
-          {dwRows.length > 0 && <BrokerSubsection broker="darwinex" rows={dwRows} />}
-          {fxRows.length > 0 && <BrokerSubsection broker="octx" rows={fxRows} />}
+          {dwTrades.length > 0 && (
+            <BrokerSubsection
+              broker="darwinex"
+              trades={dwTrades}
+              expandedId={expandedId}
+              onToggleExpand={toggle}
+              scannerSessions={scannerSessions ?? []}
+            />
+          )}
+          {fxTrades.length > 0 && (
+            <BrokerSubsection
+              broker="octx"
+              trades={fxTrades}
+              expandedId={expandedId}
+              onToggleExpand={toggle}
+              scannerSessions={scannerSessions ?? []}
+            />
+          )}
         </>
       )}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
@@ -134,10 +185,16 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
   );
 }
 
-type Row = { trade: Trade; inst: UnifiedInstrument | null };
-
-function BrokerSubsection({ broker, rows }: { broker: 'darwinex' | 'octx'; rows: Row[] }) {
-  const total = rows.reduce((s, r) => s + r.trade.netPnl, 0);
+function BrokerSubsection({
+  broker, trades, expandedId, onToggleExpand, scannerSessions,
+}: {
+  broker: 'darwinex' | 'octx';
+  trades: Trade[];
+  expandedId: string | null;
+  onToggleExpand: (id: string) => void;
+  scannerSessions: ScannerSessionLite[];
+}) {
+  const total = trades.reduce((s, t) => s + t.netPnl, 0);
   const headerColor = broker === 'darwinex'
     ? 'bg-blue-500/20 text-blue-300 border-blue-400/40'
     : 'bg-orange-900/40 text-orange-300 border-orange-700/50';
@@ -148,88 +205,43 @@ function BrokerSubsection({ broker, rows }: { broker: 'darwinex' | 'octx'; rows:
         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${headerColor}`}>
           {broker === 'darwinex' ? 'NK' : 'OX'}
         </span>
-        <span className="text-xs text-muted-foreground">{rows.length} pos</span>
+        <span className="text-xs text-muted-foreground">{trades.length} pos</span>
       </div>
 
-      {/* Desktop — mismas columnas que Escaneado */}
+      {/* Desktop */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-base">
           <thead className="bg-muted/40 border-b border-border">
             <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              <th className="text-center px-3 py-3 w-[80px]">Score</th>
-              <th className="text-left px-3 py-3 w-[120px]">Ticker</th>
-              <th className="text-left px-3 py-3">Nombre</th>
-              <th className="text-left px-3 py-3 w-[70px]">Dir</th>
-              <th className="text-center px-3 py-3 w-[70px]">Cuenta</th>
-              <th className="text-right px-3 py-3 w-[90px]">Precio</th>
-              <th className="text-left px-3 py-3 w-[80px]">ATR</th>
-              <th className="text-right px-3 py-3 w-[80px]">Pend50</th>
-              <th className="text-left px-3 py-3 w-[90px]">Stoch</th>
-              <th className="text-left px-3 py-3 w-[90px]">ADX</th>
-              <th className="text-left px-3 py-3 w-[70px]">Div</th>
-              <th className="text-right px-3 py-3 w-[100px]">P&L</th>
+              <th className="px-3 py-3 w-[40px]"></th>
+              <th className="text-left px-3 py-3">Symbol</th>
+              <th className="text-left px-3 py-3 w-[80px]">Dir</th>
+              <th className="text-left px-3 py-3 w-[90px]">Fecha</th>
+              <th className="text-right px-3 py-3 w-[100px]">Entrada</th>
+              <th className="text-right px-3 py-3 w-[100px]">SL</th>
+              <th className="text-right px-3 py-3 w-[100px]">TP</th>
+              <th className="text-right px-3 py-3 w-[110px]">P&L</th>
+              <th className="text-left px-3 py-3 w-[200px]">Estado</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ trade: t, inst }) => {
-              const alcista = t.direction === 'BUY';
-              const meta = classifyInstrument(t.symbol);
-              const div = inst?.divergencia;
-              const showDiv = div === 'BAJISTA' || div === 'ALCISTA';
-              const rowBg = alcista
-                ? 'bg-success/15 hover:bg-success/25'
-                : 'bg-destructive/15 hover:bg-destructive/25';
-              const price = inst?.current_price ?? t.entryPrice;
-              return (
-                <tr key={t.id} className={`border-b border-border transition-colors ${rowBg}`}>
-                  <td className="px-3 py-3 text-center">
-                    {inst ? <ScoreBadge score={inst.score} /> : <span className="text-xs text-muted-foreground">—</span>}
-                  </td>
-                  <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{t.symbol}</td>
-                  <td className="px-3 py-3 text-foreground">
-                    <div className="flex flex-col leading-tight">
-                      <span className="truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <span>{meta.flag}</span><span>{meta.country}</span>
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
-                      alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
-                    }`}>
-                      {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {t.direction}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
-                      t.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-                    }`}>{t.broker === 'darwinex' ? 'NK' : 'OX'}</span>
-                  </td>
-                  <td className="px-3 py-3 text-right"><PriceCell price={price} /></td>
-                  <td className="px-3 py-3">{inst ? <AtrValueCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-3 py-3">{inst ? <Pend50Cell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-3 py-3">{inst ? <StochCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-3 py-3">{inst ? <AdxCell inst={inst} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                  <td className="px-3 py-3">
-                    {showDiv ? (
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        div === 'BAJISTA' ? 'bg-destructive/30 text-destructive' : 'bg-success/30 text-success'
-                      }`}>
-                        {div === 'BAJISTA' ? '↘ BAJ' : '↗ ALC'}
-                      </span>
-                    ) : <span className="text-xs text-muted-foreground">—</span>}
-                  </td>
-                  <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(t.netPnl)}
-                  </td>
-                </tr>
-              );
-            })}
+            {trades.map(t => (
+              <PositionRow
+                key={t.id}
+                trade={t}
+                expanded={expandedId === t.id}
+                onToggle={() => onToggleExpand(t.id)}
+                scannerSessions={scannerSessions}
+              />
+            ))}
             <tr className="border-t-2 border-border bg-secondary/30">
-              <td colSpan={11} className="px-3 py-3 text-sm font-semibold text-muted-foreground text-right">Total {broker === 'darwinex' ? 'NK' : 'OX'}</td>
-              <td className={`px-3 py-3 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</td>
+              <td colSpan={7} className="px-3 py-3 text-sm font-semibold text-muted-foreground text-right">
+                Total {broker === 'darwinex' ? 'NK' : 'OX'}
+              </td>
+              <td className={`px-3 py-3 text-right font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {formatCurrency(total)}
+              </td>
+              <td />
             </tr>
           </tbody>
         </table>
@@ -237,7 +249,15 @@ function BrokerSubsection({ broker, rows }: { broker: 'darwinex' | 'octx'; rows:
 
       {/* Mobile */}
       <div className="md:hidden divide-y divide-border">
-        {rows.map(({ trade: t, inst }) => <MobileRow key={t.id} trade={t} inst={inst} />)}
+        {trades.map(t => (
+          <MobileRow
+            key={t.id}
+            trade={t}
+            expanded={expandedId === t.id}
+            onToggle={() => onToggleExpand(t.id)}
+            scannerSessions={scannerSessions}
+          />
+        ))}
         <div className="flex items-center justify-between px-3 py-2 bg-secondary/30 text-xs">
           <span className="text-muted-foreground font-semibold">Total {broker === 'darwinex' ? 'NK' : 'OX'}</span>
           <span className={`font-data font-bold ${total >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(total)}</span>
@@ -247,13 +267,131 @@ function BrokerSubsection({ broker, rows }: { broker: 'darwinex' | 'octx'; rows:
   );
 }
 
-function MobileRow({ trade: t, inst }: { trade: Trade; inst: UnifiedInstrument | null }) {
-  const [open, setOpen] = useState(false);
+function PositionRow({ trade: t, expanded, onToggle, scannerSessions }: {
+  trade: Trade;
+  expanded: boolean;
+  onToggle: () => void;
+  scannerSessions: ScannerSessionLite[];
+}) {
+  const queryClient = useQueryClient();
+  const journalDone = hasJournal(t);
+  const scanner = lookupScannerRank(t, scannerSessions);
   const alcista = t.direction === 'BUY';
+  const rowBg = alcista
+    ? 'bg-success/15 hover:bg-success/25'
+    : 'bg-destructive/15 hover:bg-destructive/25';
+  const meta = classifyInstrument(t.symbol);
+
+  return (
+    <>
+      <tr className={`border-b border-border transition-colors cursor-pointer ${rowBg}`} onClick={onToggle}>
+        <td className="px-3 py-3 text-center">
+          {journalDone
+            ? <BookCheck className="w-4 h-4 text-success inline" />
+            : <Circle className="w-4 h-4 text-muted-foreground inline" />}
+        </td>
+        <td className="px-3 py-3">
+          <div className="flex flex-col leading-tight">
+            <span className="font-bold text-foreground">{t.symbol}</span>
+            <span className="text-xs text-muted-foreground truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+          </div>
+        </td>
+        <td className="px-3 py-3">
+          <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
+            alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
+          }`}>
+            {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {t.direction}
+          </span>
+        </td>
+        <td className="px-3 py-3 text-sm text-muted-foreground whitespace-nowrap">
+          {new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+        </td>
+        <td className="px-3 py-3 text-right font-data">{formatPrice(t.entryPrice)}</td>
+        <td className="px-3 py-3 text-right font-data text-destructive/80">{formatPrice(t.slPrice)}</td>
+        <td className="px-3 py-3 text-right font-data text-success/80">{formatPrice(t.tpPrice)}</td>
+        <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+          {formatCurrency(t.netPnl)}
+        </td>
+        <td className="px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">{tradeStatus(t)}</span>
+            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </div>
+        </td>
+      </tr>
+
+      {expanded && (
+        <tr className="bg-background/40">
+          <td colSpan={9} className="p-0 border-b border-border">
+            <div className="p-4 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Datos del Trade</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <InfoField label="Ticket" value={String(t.ticket)} mono />
+                  <InfoField label="Lote" value={String(t.lotSize)} mono />
+                  <InfoField label="Apertura" value={new Date(t.entryDate).toLocaleString('es-ES')} />
+                  <InfoField label="Cuenta" value={t.broker === 'darwinex' ? 'NK' : 'OX'} />
+                  <InfoField label="Entrada" value={formatPrice(t.entryPrice)} mono />
+                  <InfoField label="SL" value={formatPrice(t.slPrice)} mono />
+                  <InfoField label="TP" value={formatPrice(t.tpPrice)} mono />
+                  <InfoField label="P&L" value={formatCurrency(t.netPnl)} mono pnl={t.netPnl} />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Indicadores al Momento de Entrada</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <InfoField label="ADX" value={t.adxValue ? t.adxValue.toFixed(1) : '—'} mono />
+                  <InfoField label="Stoch K" value={t.stochasticK ? t.stochasticK.toFixed(1) : '—'} mono />
+                  <InfoField label="Momentum 20d" value={t.momentum20d ? t.momentum20d.toFixed(2) : '—'} mono />
+                  <InfoField label="Dist MA50" value={t.distanceToMA50Label || '—'} />
+                  <InfoField label="Scanner rank" value={scanner.rank != null ? `#${scanner.rank}${scanner.total ? `/${scanner.total}` : ''}` : '—'} />
+                  <InfoField label="Score" value={scanner.score != null ? scanner.score.toFixed(0) : '—'} mono />
+                </div>
+              </div>
+
+              <TradeJournal
+                trade={t}
+                scannerInfo={scanner}
+                vixValue={t.vixAtEntry}
+                onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
+              />
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function InfoField({ label, value, mono, pnl }: { label: string; value: string; mono?: boolean; pnl?: number }) {
+  const color = pnl !== undefined ? (pnl >= 0 ? 'text-success' : 'text-destructive') : 'text-foreground';
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className={`text-sm font-semibold ${color} ${mono ? 'font-data' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function MobileRow({ trade: t, expanded, onToggle, scannerSessions }: {
+  trade: Trade;
+  expanded: boolean;
+  onToggle: () => void;
+  scannerSessions: ScannerSessionLite[];
+}) {
+  const queryClient = useQueryClient();
+  const journalDone = hasJournal(t);
+  const scanner = lookupScannerRank(t, scannerSessions);
+  const alcista = t.direction === 'BUY';
+
   return (
     <div className={`p-3 ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}>
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 flex-wrap">
-        {inst && <ScoreBadge score={inst.score} />}
+      <button onClick={onToggle} className="w-full flex items-center gap-2 flex-wrap text-left">
+        {journalDone
+          ? <BookCheck className="w-4 h-4 text-success shrink-0" />
+          : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
         <span className="font-bold text-sm">{t.symbol}</span>
         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
           alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
@@ -261,17 +399,30 @@ function MobileRow({ trade: t, inst }: { trade: Trade; inst: UnifiedInstrument |
           {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
           {t.direction}
         </span>
-        <span className={`ml-auto font-data font-bold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>{formatCurrency(t.netPnl)}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        <span className={`ml-auto font-data font-bold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+          {formatCurrency(t.netPnl)}
+        </span>
+        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
+      <div className="mt-1 text-xs text-muted-foreground">{tradeStatus(t)}</div>
       <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
-      {open && inst && (
-        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-          <div className="flex justify-between"><span className="text-muted-foreground">Precio</span><PriceTag price={inst.current_price} compact /></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
+
+      {expanded && (
+        <div className="mt-3 space-y-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+            <InfoField label="Apertura" value={new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} />
+            <InfoField label="Entrada" value={formatPrice(t.entryPrice)} mono />
+            <InfoField label="Lote" value={String(t.lotSize)} mono />
+            <InfoField label="SL" value={formatPrice(t.slPrice)} mono />
+            <InfoField label="TP" value={formatPrice(t.tpPrice)} mono />
+            <InfoField label="ADX" value={t.adxValue ? t.adxValue.toFixed(1) : '—'} mono />
+          </div>
+          <TradeJournal
+            trade={t}
+            scannerInfo={scanner}
+            vixValue={t.vixAtEntry}
+            onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
+          />
         </div>
       )}
     </div>
