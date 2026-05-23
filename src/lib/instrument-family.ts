@@ -1,6 +1,7 @@
 // Clasificación de instrumentos por Familia / Subfamilia, según mapeo del usuario.
 // El símbolo base de los futuros es la raíz sin la letra del mes ni el año (6A_M → 6A).
 import { classifyInstrument } from './instrument-classify';
+import { STOCK_SECTORS, classifyStockSector } from './stock-sector';
 
 export type Family =
   | 'Acciones'
