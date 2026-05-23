@@ -33,6 +33,7 @@ interface Raw {
   current_price?: number;
   precio_actual?: number;
   price?: number;
+  divergencia?: string;
 }
 
 /**
@@ -74,7 +75,12 @@ export function useLatestScannerByKey(): Map<string, UnifiedInstrument> {
           distance_to_ma50: r.dist_ma50 ?? r.distance_to_ma50 ?? null,
           pend50_pct: null,
           estructura: null,
-          divergencia: null,
+          divergencia: (() => {
+            const d = (r.divergencia ?? '').toUpperCase();
+            if (d.includes('ALCISTA')) return 'ALCISTA';
+            if (d.includes('BAJISTA')) return 'BAJISTA';
+            return null;
+          })(),
           atr_estado: null,
           stoch_subiendo: null,
           pullback_active: !!r.pullback_active,
