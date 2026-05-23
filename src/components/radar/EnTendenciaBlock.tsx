@@ -523,12 +523,12 @@ export function AtrValueCell({ inst }: { inst: UnifiedInstrument }) {
       ANORMAL: { label: 'ANOM', cls: 'text-destructive' },
     };
     const m = map[estado];
-    return <span className={`font-data text-xs font-semibold ${m.cls}`} title={`ATR ${estado}`}>{m.label}</span>;
+    return <span className={`font-data text-sm font-semibold ${m.cls}`} title={`ATR ${estado}`}>{m.label}</span>;
   }
   if (inst.atr == null) return <span className="text-xs text-muted-foreground">—</span>;
   const v = inst.atr;
   const decimals = v >= 100 ? 2 : v >= 1 ? 4 : 5;
-  return <span className="font-data text-xs font-semibold text-foreground">{v.toFixed(decimals)}</span>;
+  return <span className="font-data text-sm font-semibold text-foreground">{v.toFixed(decimals)}</span>;
 }
 
 export function AdxCell({ inst }: { inst: UnifiedInstrument }) {
@@ -538,7 +538,7 @@ export function AdxCell({ inst }: { inst: UnifiedInstrument }) {
   return (
     <div className="flex items-center gap-1 leading-tight">
       <div>
-        <div className={`font-data text-xs font-semibold ${adxColor(v)}`}>{v}</div>
+        <div className={`font-data text-sm font-semibold ${adxColor(v)}`}>{v}</div>
         <div className={`text-[9px] font-bold ${adxStateColor(inst.adx_state)}`}>{adxAbbr(inst.adx_state)}</div>
       </div>
       {low && (
@@ -646,7 +646,7 @@ export function formatPrice(p: number | null | undefined): string | null {
 export function PriceCell({ price }: { price: number | null | undefined }) {
   const f = formatPrice(price);
   if (!f) return <span className="text-xs text-muted-foreground">—</span>;
-  return <span className="font-data text-xs font-semibold text-foreground">{f}</span>;
+  return <span className="font-data text-sm font-semibold text-foreground">{f}</span>;
 }
 
 export function PriceTag({ price, compact = false }: { price: number | null | undefined; compact?: boolean }) {
