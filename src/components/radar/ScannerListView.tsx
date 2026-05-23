@@ -503,17 +503,28 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
   return (
     <div className="space-y-3">
       {!collapsible && (
-        <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
-          <RadarFiltersBar
-            state={filters}
-            onChange={setFilters}
-            totalCount={annotated.length}
-            familyCounts={familyCounts}
-            availableSubs={availableSubs}
-            tierCounts={tierCounts}
-            suggestions={suggestions}
-          />
-        </div>
+        <>
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(o => !o)}
+            className="md:hidden inline-flex items-center gap-2 px-3 h-8 rounded-md border border-border bg-card text-xs font-medium hover:border-primary/40"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filtros y búsqueda</span>
+            {mobileFiltersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
+            <RadarFiltersBar
+              state={filters}
+              onChange={setFilters}
+              totalCount={annotated.length}
+              familyCounts={familyCounts}
+              availableSubs={availableSubs}
+              tierCounts={tierCounts}
+              suggestions={suggestions}
+            />
+          </div>
+        </>
       )}
 
       {noScannerData ? (
