@@ -215,7 +215,7 @@ export default function BacktesterPage() {
       const data = (await res.json()) as BacktestResult;
       setResult(data);
 
-      await (supabase as any).from('backtest_sessions').insert({
+      const { error: insertErr } = await (supabase as any).from('backtest_sessions').insert({
         user_id: user.id,
         symbol,
         broker,
@@ -227,6 +227,11 @@ export default function BacktesterPage() {
         equity_curve: data.equity_curve ?? [],
         trades: data.trades ?? [],
       });
+      if (insertErr) {
+        toast.error(`Backtest OK pero no se guardó: ${insertErr.message}`);
+      } else {
+        toast.success(`Sesión guardada: ${symbol} (${(data.trades ?? []).length} trades)`);
+      }
       qc.invalidateQueries({ queryKey: ['backtest_sessions'] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
