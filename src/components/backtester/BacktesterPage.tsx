@@ -1,7 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  ReferenceLine, BarChart, Bar, ScatterChart, Scatter, ZAxis, Cell,
+} from 'recharts';
 import { FlaskConical, Play, AlertTriangle, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -211,7 +215,7 @@ export default function BacktesterPage() {
       const data = (await res.json()) as BacktestResult;
       setResult(data);
 
-      await (supabase as any).from('backtest_sessions').insert({
+      const { error: insertErr } = await (supabase as any).from('backtest_sessions').insert({
         user_id: user.id,
         symbol,
         broker,
@@ -223,6 +227,11 @@ export default function BacktesterPage() {
         equity_curve: data.equity_curve ?? [],
         trades: data.trades ?? [],
       });
+      if (insertErr) {
+        toast.error(`Backtest OK pero no se guardó: ${insertErr.message}`);
+      } else {
+        toast.success(`Sesión guardada: ${symbol} (${(data.trades ?? []).length} trades)`);
+      }
       qc.invalidateQueries({ queryKey: ['backtest_sessions'] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -458,39 +467,270 @@ function ToggleSliderRow({ label, enabled, onToggle, value, min, max, step, onCh
 
 function ResultsView({ result }: { result: BacktestResult }) {
   const m = result.metrics ?? {};
+  const trades = result.trades ?? [];
+  const equity = result.equity_curve ?? [];
+
+  const analysis = useMemo(() => computeAnalysis(trades, equity), [trades, equity]);
+  const initialEquity = equity[0]?.equity ?? 0;
+  const finalEquity = equity[equity.length - 1]?.equity ?? initialEquity;
+  const equityUp = finalEquity >= initialEquity;
+  const lineColor = equityUp ? 'hsl(var(--success))' : 'hsl(var(--destructive))';
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Resultados</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6">
+        {/* Métricas principales */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Metric label="PnL Total" value={fmtUsd(analysis.pnlTotal)} positive={analysis.pnlTotal >= 0} />
           <Metric label="Win Rate" value={fmtPct(m.win_rate)} />
           <Metric label="Profit Factor" value={fmtNum(m.profit_factor)} />
           <Metric label="Sharpe" value={fmtNum(m.sharpe)} />
-          <Metric label="PnL" value={fmtNum(m.pnl)} positive={(m.pnl ?? 0) >= 0} />
-          <Metric label="Drawdown" value={fmtPct(m.drawdown)} positive={false} />
-          <Metric label="Trades" value={String(m.trades ?? result.trades?.length ?? 0)} />
+          <Metric label="Trades" value={String(m.trades ?? trades.length)} />
+          <Metric label="Drawdown Máx" value={`${fmtPct(analysis.maxDdPct)} · ${fmtUsd(-analysis.maxDdUsd)}`} positive={false} />
+          <Metric label="Expectancy" value={fmtUsd(analysis.expectancy)} positive={analysis.expectancy >= 0} />
+          <Metric label="Duración media" value={`${analysis.avgDays.toFixed(1)} d`} />
+          <Metric label="MFE medio" value={fmtUsd(analysis.avgMfe)} />
+          <Metric label="Salidas STOCH" value={fmtPct(analysis.exitPct.STOCH)} />
+          <Metric label="Salidas SL" value={fmtPct(analysis.exitPct.SL)} positive={false} />
+          <Metric label="Salidas BE" value={fmtPct(analysis.exitPct.BE)} />
+          <Metric label="Trades revertidos" value={`${analysis.reverted} (${fmtPct(analysis.revertedPct)})`} positive={false} />
         </div>
 
-        {result.equity_curve?.length > 0 && (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={result.equity_curve}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
-                <Line type="monotone" dataKey="equity" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+        {/* Curva de equity */}
+        {equity.length > 0 && (
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Curva de equity</div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={equity}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
+                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(v: number) => fmtUsd(v)} />
+                  <ReferenceLine y={initialEquity} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Balance inicial', position: 'right', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                  <Line type="monotone" dataKey="equity" stroke={lineColor} strokeWidth={2} dot={false} isAnimationActive={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
-        {result.trades?.length > 0 && <TradesTable trades={result.trades} />}
+        {/* ¿Qué mejoraría? */}
+        {trades.length > 0 && (
+          <div className="space-y-4 pt-2 border-t border-border">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">¿Qué mejoraría?</h3>
+              <p className="text-xs text-muted-foreground">Análisis avanzado para identificar puntos débiles del sistema.</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Metric label="Captura MFE" value={fmtPct(analysis.mfeCaptureRatio)} positive={analysis.mfeCaptureRatio >= 0.6} />
+              <Metric label="Racha ganadora máx" value={String(analysis.maxWinStreak)} />
+              <Metric label="Racha perdedora máx" value={String(analysis.maxLossStreak)} positive={false} />
+              <Metric label="Mejor / Peor trade" value={`${fmtUsd(analysis.bestTrade)} / ${fmtUsd(analysis.worstTrade)}`} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Distribución de salidas */}
+              <ChartCard title="Distribución de salidas">
+                <BarChart data={analysis.exitDist}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="reason" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {analysis.exitDist.map((d, i) => (
+                      <Cell key={i} fill={exitColor(d.reason)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartCard>
+
+              {/* Curva de rachas */}
+              <ChartCard title="Balance trade a trade (rachas)">
+                <LineChart data={analysis.runningBalance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="i" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
+                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(v: number) => fmtUsd(v)} />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="balance" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} isAnimationActive={false} />
+                </LineChart>
+              </ChartCard>
+
+              {/* Histograma duración */}
+              <ChartCard title="Histograma de duración (días)">
+                <BarChart data={analysis.durationHist}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartCard>
+
+              {/* Scatter PnL vs MFE */}
+              <ChartCard title="PnL vs MFE (dinero dejado encima de la mesa)">
+                <ScatterChart>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v)}`} />
+                  <YAxis type="number" dataKey="pnl" name="PnL" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v)}`} />
+                  <ZAxis range={[40, 40]} />
+                  <ReferenceLine
+                    segment={[
+                      { x: analysis.scatterMin, y: analysis.scatterMin },
+                      { x: analysis.scatterMax, y: analysis.scatterMax },
+                    ]}
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeDasharray="4 4"
+                  />
+                  <Tooltip
+                    contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }}
+                    formatter={(v: number) => fmtUsd(v)}
+                    cursor={{ strokeDasharray: '3 3' }}
+                  />
+                  <Scatter data={analysis.scatter} fill="hsl(var(--primary))">
+                    {analysis.scatter.map((p, i) => (
+                      <Cell key={i} fill={p.pnl >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ChartCard>
+            </div>
+          </div>
+        )}
+
+        {trades.length > 0 && <TradesTable trades={trades} />}
       </CardContent>
     </Card>
   );
+}
+
+function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
+  return (
+    <div className="border border-border rounded-md p-3 bg-secondary/30">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function exitColor(reason: string) {
+  const r = reason.toUpperCase();
+  if (r.includes('STOCH')) return 'hsl(var(--success))';
+  if (r.includes('SL')) return 'hsl(var(--destructive))';
+  if (r.includes('BE')) return 'hsl(var(--primary))';
+  if (r.includes('TRAIL')) return 'hsl(var(--warning, var(--primary)))';
+  return 'hsl(var(--muted-foreground))';
+}
+
+function normalizeReason(raw: string | undefined): string {
+  const r = (raw ?? '').toUpperCase();
+  if (r.includes('STOCH')) return 'STOCH';
+  if (r.includes('BE') || r.includes('BREAKEVEN')) return 'BE';
+  if (r.includes('TRAIL')) return 'TRAIL';
+  if (r.includes('SL') || r.includes('STOP')) return 'SL';
+  return r || 'OTRO';
+}
+
+function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity_curve']) {
+  const n = trades.length;
+  const pnlTotal = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const avgDays = n ? trades.reduce((s, t) => s + (t.days ?? 0), 0) / n : 0;
+  const avgMfe = n ? trades.reduce((s, t) => s + (t.mfe ?? 0), 0) / n : 0;
+  const expectancy = n ? pnlTotal / n : 0;
+
+  // Drawdown sobre equity_curve
+  let peak = equity[0]?.equity ?? 0;
+  let maxDdUsd = 0;
+  let maxDdPct = 0;
+  for (const p of equity) {
+    if (p.equity > peak) peak = p.equity;
+    const dd = peak - p.equity;
+    if (dd > maxDdUsd) {
+      maxDdUsd = dd;
+      maxDdPct = peak > 0 ? dd / peak : 0;
+    }
+  }
+
+  // Distribución salidas
+  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0 };
+  for (const t of trades) {
+    const r = normalizeReason(t.reason);
+    reasonCount[r] = (reasonCount[r] ?? 0) + 1;
+  }
+  const exitDist = Object.entries(reasonCount).map(([reason, count]) => ({ reason, count }));
+  const exitPct = {
+    STOCH: n ? reasonCount.STOCH / n : 0,
+    SL: n ? reasonCount.SL / n : 0,
+    BE: n ? reasonCount.BE / n : 0,
+    TRAIL: n ? (reasonCount.TRAIL ?? 0) / n : 0,
+  };
+
+  // Trades revertidos: MFE > 0 favorable y cerraron en SL con pnl < 0
+  const reverted = trades.filter(t => (t.mfe ?? 0) > 0 && (t.pnl ?? 0) < 0 && normalizeReason(t.reason) === 'SL').length;
+  const revertedPct = n ? reverted / n : 0;
+
+  // Captura MFE
+  const mfeCaptureRatio = avgMfe > 0 ? Math.max(0, expectancy / avgMfe) : 0;
+
+  // Rachas
+  let curW = 0, curL = 0, maxWinStreak = 0, maxLossStreak = 0;
+  for (const t of trades) {
+    if ((t.pnl ?? 0) >= 0) { curW++; curL = 0; if (curW > maxWinStreak) maxWinStreak = curW; }
+    else { curL++; curW = 0; if (curL > maxLossStreak) maxLossStreak = curL; }
+  }
+
+  // Running balance trade a trade
+  let bal = 0;
+  const runningBalance = trades.map((t, i) => { bal += (t.pnl ?? 0); return { i: i + 1, balance: Math.round(bal * 100) / 100 }; });
+
+  // Histograma duración
+  const buckets = [
+    { bucket: '0-1d', min: 0, max: 1 },
+    { bucket: '2-3d', min: 2, max: 3 },
+    { bucket: '4-7d', min: 4, max: 7 },
+    { bucket: '8-14d', min: 8, max: 14 },
+    { bucket: '15-30d', min: 15, max: 30 },
+    { bucket: '>30d', min: 31, max: Infinity },
+  ];
+  const durationHist = buckets.map(b => ({
+    bucket: b.bucket,
+    count: trades.filter(t => (t.days ?? 0) >= b.min && (t.days ?? 0) <= b.max).length,
+  }));
+
+  // Scatter
+  const scatter = trades.map(t => ({ mfe: t.mfe ?? 0, pnl: t.pnl ?? 0 }));
+  const allVals = scatter.flatMap(p => [p.mfe, p.pnl]);
+  const scatterMin = allVals.length ? Math.min(...allVals, 0) : 0;
+  const scatterMax = allVals.length ? Math.max(...allVals, 0) : 0;
+
+  const bestTrade = trades.reduce((m, t) => Math.max(m, t.pnl ?? 0), 0);
+  const worstTrade = trades.reduce((m, t) => Math.min(m, t.pnl ?? 0), 0);
+
+  return {
+    pnlTotal, expectancy, avgDays, avgMfe,
+    maxDdUsd, maxDdPct,
+    exitDist, exitPct,
+    reverted, revertedPct,
+    mfeCaptureRatio,
+    maxWinStreak, maxLossStreak,
+    runningBalance,
+    durationHist,
+    scatter, scatterMin, scatterMax,
+    bestTrade, worstTrade,
+  };
+}
+
+function fmtUsd(v: number | null | undefined) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const sign = v < 0 ? '-' : '';
+  return `${sign}$${Math.abs(v).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function TradesTable({ trades }: { trades: BacktestTrade[] }) {
