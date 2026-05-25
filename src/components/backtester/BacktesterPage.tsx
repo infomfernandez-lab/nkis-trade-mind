@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { FlaskConical, Play, AlertTriangle, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronRight, Search } from 'lucide-react';
@@ -16,7 +16,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const BACKTEST_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
+const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
 
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
@@ -100,6 +100,24 @@ export default function BacktesterPage() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const r = await fetch('https://ointment-handcraft-payee.ngrok-free.dev/health', {
+          method: 'GET',
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        });
+        setServerOnline(r.ok);
+      } catch {
+        setServerOnline(false);
+      }
+    };
+    checkServer();
+    const id = setInterval(checkServer, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const [histSymbol, setHistSymbol] = useState('');
   const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
@@ -160,7 +178,7 @@ export default function BacktesterPage() {
     setRunning(true);
     setResult(null);
     try {
-      const res = await fetch(`${BACKTEST_URL}/backtest/${broker}`, {
+      const res = await fetch(`${SERVER_URL}/backtest/${broker}`, {
         method: 'POST',
         mode: 'cors',
         headers: {
@@ -329,6 +347,10 @@ export default function BacktesterPage() {
             <Play className="w-4 h-4" />
             {running ? 'Ejecutando…' : 'Ejecutar Backtest'}
           </Button>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+            {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
+          </div>
         </CardContent>
       </Card>
 
