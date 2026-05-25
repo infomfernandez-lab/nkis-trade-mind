@@ -504,16 +504,23 @@ function ResultsView({ result }: { result: BacktestResult }) {
         {equity.length > 0 && (
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Curva de equity</div>
-            <div className="h-64">
+            <div className="h-64 rounded-md overflow-hidden" style={{ background: CHART_BG }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={equity}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(v: number) => fmtUsd(v)} />
-                  <ReferenceLine y={initialEquity} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Balance inicial', position: 'right', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <Line type="monotone" dataKey="equity" stroke={lineColor} strokeWidth={2} dot={false} isAnimationActive={false} />
-                </LineChart>
+                <ComposedChart data={equity} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={equityUp ? COLORS.green : COLORS.red} stopOpacity={0.2} />
+                      <stop offset="100%" stopColor={equityUp ? COLORS.green : COLORS.red} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} domain={['auto', 'auto']} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
+                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} />
+                  <ReferenceLine y={initialEquity} stroke={COLORS.axis} strokeDasharray="4 4" label={{ value: 'Balance inicial', position: 'right', fontSize: 10, fill: COLORS.axis }} />
+                  <Area type="monotone" dataKey="equity" stroke="none" fill="url(#equityFill)" isAnimationActive={false} />
+                  <Line type="monotone" dataKey="equity" stroke={equityUp ? COLORS.green : COLORS.red} strokeWidth={2} dot={false} isAnimationActive={false} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -538,10 +545,10 @@ function ResultsView({ result }: { result: BacktestResult }) {
               {/* Distribución de salidas */}
               <ChartCard title="Distribución de salidas">
                 <BarChart data={analysis.exitDist}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="reason" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                  <XAxis dataKey="reason" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <Tooltip {...tooltipProps} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {analysis.exitDist.map((d, i) => (
                       <Cell key={i} fill={exitColor(d.reason)} />
@@ -552,50 +559,64 @@ function ResultsView({ result }: { result: BacktestResult }) {
 
               {/* Curva de rachas */}
               <ChartCard title="Balance trade a trade (rachas)">
-                <LineChart data={analysis.runningBalance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="i" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} formatter={(v: number) => fmtUsd(v)} />
-                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="balance" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} isAnimationActive={false} />
-                </LineChart>
+                <ComposedChart data={analysis.runningBalance}>
+                  <defs>
+                    <linearGradient id="streakFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.2} />
+                      <stop offset="100%" stopColor={COLORS.blue} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                  <XAxis dataKey="i" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
+                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} />
+                  <ReferenceLine y={0} stroke={COLORS.axis} strokeDasharray="4 4" />
+                  <Area type="monotone" dataKey="balance" stroke="none" fill="url(#streakFill)" isAnimationActive={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="balance"
+                    stroke={COLORS.blue}
+                    strokeWidth={2}
+                    isAnimationActive={false}
+                    dot={(props: any) => {
+                      const { cx, cy, payload, index } = props;
+                      const color = (payload?.balance ?? 0) >= 0 ? COLORS.green : COLORS.red;
+                      return <circle key={index} cx={cx} cy={cy} r={3} fill={color} stroke={color} />;
+                    }}
+                  />
+                </ComposedChart>
               </ChartCard>
 
               {/* Histograma duración */}
               <ChartCard title="Histograma de duración (días)">
                 <BarChart data={analysis.durationHist}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
+                  <Tooltip {...tooltipProps} />
+                  <Bar dataKey="count" fill={COLORS.purple} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartCard>
 
               {/* Scatter PnL vs MFE */}
               <ChartCard title="PnL vs MFE (dinero dejado encima de la mesa)">
                 <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v)}`} />
-                  <YAxis type="number" dataKey="pnl" name="PnL" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${Math.round(v)}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+                  <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v)}`} />
+                  <YAxis type="number" dataKey="pnl" name="PnL" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v)}`} />
                   <ZAxis range={[40, 40]} />
                   <ReferenceLine
                     segment={[
                       { x: analysis.scatterMin, y: analysis.scatterMin },
                       { x: analysis.scatterMax, y: analysis.scatterMax },
                     ]}
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={COLORS.yellow}
                     strokeDasharray="4 4"
                   />
-                  <Tooltip
-                    contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }}
-                    formatter={(v: number) => fmtUsd(v)}
-                    cursor={{ strokeDasharray: '3 3' }}
-                  />
-                  <Scatter data={analysis.scatter} fill="hsl(var(--primary))">
+                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} cursor={{ strokeDasharray: '3 3' }} />
+                  <Scatter data={analysis.scatter}>
                     {analysis.scatter.map((p, i) => (
-                      <Cell key={i} fill={p.pnl >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />
+                      <Cell key={i} fill={p.pnl >= 0 ? COLORS.green : COLORS.red} />
                     ))}
                   </Scatter>
                 </ScatterChart>
