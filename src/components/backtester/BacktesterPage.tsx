@@ -16,7 +16,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const BACKTEST_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
+const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
 
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
