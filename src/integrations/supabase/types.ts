@@ -31,6 +31,7 @@ export type Database = {
           riesgo_real: number | null
           stop_loss: number | null
           trailing_sl: number | null
+          user_id: string | null
           valor_punto: number | null
           vix: number | null
         }
@@ -50,6 +51,7 @@ export type Database = {
           riesgo_real?: number | null
           stop_loss?: number | null
           trailing_sl?: number | null
+          user_id?: string | null
           valor_punto?: number | null
           vix?: number | null
         }
@@ -69,6 +71,7 @@ export type Database = {
           riesgo_real?: number | null
           stop_loss?: number | null
           trailing_sl?: number | null
+          user_id?: string | null
           valor_punto?: number | null
           vix?: number | null
         }
@@ -174,6 +177,7 @@ export type Database = {
           symbol: string
           timeframe: string
           total_analyzed: number | null
+          user_id: string | null
           vix_value: number | null
         }
         Insert: {
@@ -197,6 +201,7 @@ export type Database = {
           symbol: string
           timeframe?: string
           total_analyzed?: number | null
+          user_id?: string | null
           vix_value?: number | null
         }
         Update: {
@@ -220,6 +225,7 @@ export type Database = {
           symbol?: string
           timeframe?: string
           total_analyzed?: number | null
+          user_id?: string | null
           vix_value?: number | null
         }
         Relationships: []
