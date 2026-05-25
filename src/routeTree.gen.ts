@@ -20,6 +20,7 @@ import { Route as PatternsRouteImport } from './routes/patterns'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CalculatorRouteImport } from './routes/calculator'
+import { Route as BacktesterRouteImport } from './routes/backtester'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
@@ -81,6 +82,11 @@ const CalculatorRoute = CalculatorRouteImport.update({
   path: '/calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BacktesterRoute = BacktesterRouteImport.update({
+  id: '/backtester',
+  path: '/backtester',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -109,6 +115,7 @@ const ApiSyncBalanceRoute = ApiSyncBalanceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
   '/login': typeof LoginRoute
   '/manual': typeof ManualRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/backtester'
     | '/calculator'
     | '/login'
     | '/manual'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/backtester'
     | '/calculator'
     | '/login'
     | '/manual'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/backtester'
     | '/calculator'
     | '/login'
     | '/manual'
@@ -221,6 +233,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BacktesterRoute: typeof BacktesterRoute
   CalculatorRoute: typeof CalculatorRoute
   LoginRoute: typeof LoginRoute
   ManualRoute: typeof ManualRoute
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/backtester': {
+      id: '/backtester'
+      path: '/backtester'
+      fullPath: '/backtester'
+      preLoaderRoute: typeof BacktesterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -357,6 +377,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BacktesterRoute: BacktesterRoute,
   CalculatorRoute: CalculatorRoute,
   LoginRoute: LoginRoute,
   ManualRoute: ManualRoute,
