@@ -661,11 +661,11 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 function exitColor(reason: string) {
   const r = reason.toUpperCase();
-  if (r.includes('STOCH')) return 'hsl(var(--success))';
-  if (r.includes('SL')) return 'hsl(var(--destructive))';
-  if (r.includes('BE')) return 'hsl(var(--primary))';
-  if (r.includes('TRAIL')) return 'hsl(var(--warning, var(--primary)))';
-  return 'hsl(var(--muted-foreground))';
+  if (r.includes('STOCH')) return COLORS.green;
+  if (r.includes('SL')) return COLORS.red;
+  if (r.includes('BE')) return COLORS.yellow;
+  if (r.includes('TRAIL')) return COLORS.purple;
+  return COLORS.gray;
 }
 
 function normalizeReason(raw: string | undefined): string {
