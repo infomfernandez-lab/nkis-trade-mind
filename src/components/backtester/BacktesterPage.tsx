@@ -100,6 +100,24 @@ export default function BacktesterPage() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const r = await fetch('https://ointment-handcraft-payee.ngrok-free.dev/health', {
+          method: 'GET',
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        });
+        setServerOnline(r.ok);
+      } catch {
+        setServerOnline(false);
+      }
+    };
+    checkServer();
+    const id = setInterval(checkServer, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const [histSymbol, setHistSymbol] = useState('');
   const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
