@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      backtest_sessions: {
+        Row: {
+          broker: string
+          created_at: string
+          date_from: string | null
+          date_to: string | null
+          direction: string
+          equity_curve: Json
+          id: string
+          metrics: Json
+          params: Json
+          symbol: string
+          trades: Json
+          user_id: string
+        }
+        Insert: {
+          broker: string
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          direction: string
+          equity_curve?: Json
+          id?: string
+          metrics?: Json
+          params?: Json
+          symbol: string
+          trades?: Json
+          user_id: string
+        }
+        Update: {
+          broker?: string
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          direction?: string
+          equity_curve?: Json
+          id?: string
+          metrics?: Json
+          params?: Json
+          symbol?: string
+          trades?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       calculadora_registro: {
         Row: {
           atr: number | null
