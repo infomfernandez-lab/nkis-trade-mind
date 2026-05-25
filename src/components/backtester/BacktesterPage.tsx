@@ -178,7 +178,7 @@ export default function BacktesterPage() {
     setRunning(true);
     setResult(null);
     try {
-      const res = await fetch(`${BACKTEST_URL}/backtest/${broker}`, {
+      const res = await fetch(`${SERVER_URL}/backtest/${broker}`, {
         method: 'POST',
         mode: 'cors',
         headers: {
