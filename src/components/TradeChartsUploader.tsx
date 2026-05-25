@@ -12,18 +12,34 @@ interface Props {
 }
 
 const BUCKET = 'trade-charts';
+const SIGNED_TTL = 60 * 60; // 1 hour
 
-function pathFor(ticket: number | string, slot: Slot, ext: string) {
-  return `${ticket}/${slot}.${ext}`;
+async function currentUid(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id ?? null;
 }
 
-async function findExisting(ticket: number | string, slot: Slot): Promise<string | null> {
-  const { data } = await supabase.storage.from(BUCKET).list(String(ticket), { limit: 20 });
+function folderFor(uid: string, ticket: number | string) {
+  return `${uid}/${ticket}`;
+}
+
+function pathFor(uid: string, ticket: number | string, slot: Slot, ext: string) {
+  return `${folderFor(uid, ticket)}/${slot}.${ext}`;
+}
+
+async function signedUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_TTL);
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+async function findExisting(uid: string, ticket: number | string, slot: Slot): Promise<string | null> {
+  const folder = folderFor(uid, ticket);
+  const { data } = await supabase.storage.from(BUCKET).list(folder, { limit: 20 });
   if (!data) return null;
   const file = data.find(f => f.name.startsWith(`${slot}.`));
   if (!file) return null;
-  const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(`${ticket}/${file.name}`);
-  return `${pub.publicUrl}?v=${Date.now()}`;
+  return signedUrl(`${folder}/${file.name}`);
 }
 
 export function TradeChartsUploader({ ticket, onUrlsChange }: Props) {
@@ -34,7 +50,9 @@ export function TradeChartsUploader({ ticket, onUrlsChange }: Props) {
     if (!ticket) return;
     let cancelled = false;
     (async () => {
-      const [entrada, cierre] = await Promise.all([findExisting(ticket, 'entrada'), findExisting(ticket, 'cierre')]);
+      const uid = await currentUid();
+      if (!uid) return;
+      const [entrada, cierre] = await Promise.all([findExisting(uid, ticket, 'entrada'), findExisting(uid, ticket, 'cierre')]);
       if (cancelled) return;
       const next = { entrada, cierre };
       setUrls(next);
@@ -53,18 +71,19 @@ export function TradeChartsUploader({ ticket, onUrlsChange }: Props) {
   const handleFile = async (slot: Slot, file: File) => {
     setBusy(slot);
     try {
-      // Remove any prior file with another extension
-      const { data: list } = await supabase.storage.from(BUCKET).list(String(ticket));
+      const uid = await currentUid();
+      if (!uid) throw new Error('Sesión requerida');
+      const folder = folderFor(uid, ticket);
+      const { data: list } = await supabase.storage.from(BUCKET).list(folder);
       const stale = (list ?? []).filter(f => f.name.startsWith(`${slot}.`));
       if (stale.length > 0) {
-        await supabase.storage.from(BUCKET).remove(stale.map(f => `${ticket}/${f.name}`));
+        await supabase.storage.from(BUCKET).remove(stale.map(f => `${folder}/${f.name}`));
       }
       const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-      const path = pathFor(ticket, slot, ext);
+      const path = pathFor(uid, ticket, slot, ext);
       const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type || 'image/png' });
       if (error) throw error;
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const url = `${pub.publicUrl}?v=${Date.now()}`;
+      const url = await signedUrl(path);
       const next = { ...urls, [slot]: url };
       setUrls(next);
       onUrlsChange?.(next);
@@ -79,10 +98,13 @@ export function TradeChartsUploader({ ticket, onUrlsChange }: Props) {
   const handleRemove = async (slot: Slot) => {
     setBusy(slot);
     try {
-      const { data: list } = await supabase.storage.from(BUCKET).list(String(ticket));
+      const uid = await currentUid();
+      if (!uid) throw new Error('Sesión requerida');
+      const folder = folderFor(uid, ticket);
+      const { data: list } = await supabase.storage.from(BUCKET).list(folder);
       const stale = (list ?? []).filter(f => f.name.startsWith(`${slot}.`));
       if (stale.length > 0) {
-        await supabase.storage.from(BUCKET).remove(stale.map(f => `${ticket}/${f.name}`));
+        await supabase.storage.from(BUCKET).remove(stale.map(f => `${folder}/${f.name}`));
       }
       const next = { ...urls, [slot]: null };
       setUrls(next);

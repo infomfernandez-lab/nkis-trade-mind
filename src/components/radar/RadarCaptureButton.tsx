@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const BUCKET = 'trade-charts';
+const SIGNED_TTL = 60 * 60;
 
 function fechaTag(): string {
   const d = new Date();
@@ -18,13 +19,16 @@ export function RadarCaptureButton({ symbol }: { symbol: string }) {
   const handleFile = async (file: File) => {
     setBusy(true);
     try {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u?.user?.id;
+      if (!uid) throw new Error('Sesión requerida');
       const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-      const path = `${symbol}/seguimiento_${fechaTag()}.${ext}`;
+      const path = `${uid}/${symbol}/seguimiento_${fechaTag()}.${ext}`;
       const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type || 'image/png' });
       if (error) throw error;
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(path, SIGNED_TTL);
       toast.success(`Captura de ${symbol} guardada`, {
-        action: { label: 'Ver', onClick: () => window.open(pub.publicUrl, '_blank') },
+        action: signed ? { label: 'Ver', onClick: () => window.open(signed.signedUrl, '_blank') } : undefined,
       });
     } catch (e: any) {
       toast.error(`Error: ${e.message ?? e}`);
