@@ -175,9 +175,25 @@ export default function BacktesterPage() {
       trailing_mult: trMult,
     };
 
+    const payload = {
+      symbol,
+      direction: direction === 'BUY' ? 1 : -1,
+      date_from: dateFrom ? dateFrom : null,
+      date_to: dateTo ? dateTo : null,
+      adx_min: Number(adxMin),
+      atr_mult: Number(atrSl),
+      stoch_buy: Number(stochBuy),
+      stoch_sell: Number(stochSell),
+      use_be: Boolean(beEnabled),
+      be_mult: Number(beMult),
+      use_trail: Boolean(trEnabled),
+      trail_mult: Number(trMult),
+    };
+
     setRunning(true);
     setResult(null);
     try {
+      console.log('[backtest] POST payload:', JSON.stringify(payload, null, 2));
       const res = await fetch(`${SERVER_URL}/backtest/${broker}`, {
         method: 'POST',
         mode: 'cors',
@@ -185,9 +201,13 @@ export default function BacktesterPage() {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error('[backtest] Server error', res.status, errText);
+        throw new Error(`HTTP ${res.status} — ${errText || 'sin detalle'}`);
+      }
       const data = (await res.json()) as BacktestResult;
       setResult(data);
 
@@ -205,12 +225,14 @@ export default function BacktesterPage() {
       });
       qc.invalidateQueries({ queryKey: ['backtest_sessions'] });
     } catch (e) {
-      setError('Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC');
-      console.error(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Error del servidor: ${msg}`);
+      console.error('[backtest] Fetch failed:', e);
     } finally {
       setRunning(false);
     }
   }
+
 
   async function deleteSession(id: string) {
     await (supabase as any).from('backtest_sessions').delete().eq('id', id);
