@@ -23,6 +23,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
 
+const COLORS = {
+  green: '#10b981',
+  red: '#ef4444',
+  yellow: '#f59e0b',
+  purple: '#6366f1',
+  blue: '#3b82f6',
+  gray: '#64748b',
+  grid: '#1e2d45',
+  axis: '#64748b',
+} as const;
+const CHART_BG = '#0a0e1a';
+const tooltipProps = {
+  contentStyle: { background: '#111827', border: '1px solid #1e2d45', fontSize: 12, color: '#e5e7eb' },
+  labelStyle: { color: '#e5e7eb' },
+  itemStyle: { color: '#e5e7eb' },
+} as const;
+
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
 
