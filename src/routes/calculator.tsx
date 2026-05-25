@@ -513,7 +513,15 @@ function CalculatorPage() {
     }
     setSaving(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) {
+        toast.error('Inicia sesión para guardar el cálculo');
+        setSaving(false);
+        return;
+      }
       const { error } = await (supabase as any).from('calculadora_registro').insert({
+        user_id: uid,
         instrumento: instrument.trim(),
         broker: account,
         direccion: direction,
