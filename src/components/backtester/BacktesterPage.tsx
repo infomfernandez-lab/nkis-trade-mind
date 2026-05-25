@@ -347,6 +347,10 @@ export default function BacktesterPage() {
             <Play className="w-4 h-4" />
             {running ? 'Ejecutando…' : 'Ejecutar Backtest'}
           </Button>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+            {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
+          </div>
         </CardContent>
       </Card>
 
