@@ -1325,37 +1325,7 @@ async function exportPdf(session: SavedSession, node: HTMLElement) {
     }
     doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
   } catch (e) {
-    console.error('[exportPdf] failed, falling back to table PDF', e);
-    fallbackPdf(session);
+    console.error('[exportPdf] failed', e);
+    toast.error('No se pudo exportar el PDF');
   }
-}
-
-function fallbackPdf(session: SavedSession) {
-  const doc = new jsPDF();
-  doc.setFontSize(14);
-  doc.text(`Backtest — ${session.symbol} (${session.broker.toUpperCase()} ${session.direction})`, 14, 16);
-  doc.setFontSize(9);
-  doc.text(`Generado: ${new Date(session.created_at).toLocaleString('es-ES')}`, 14, 22);
-  const m = session.metrics ?? {};
-  autoTable(doc, {
-    startY: 28,
-    head: [['Métrica', 'Valor']],
-    body: Object.entries(m).map(([k, v]) => [k, String(v)]),
-    styles: { fontSize: 8 },
-  });
-  const trades = session.trades ?? [];
-  if (trades.length > 0) {
-    autoTable(doc, {
-      head: [['Entrada', 'Salida', 'Precio', 'SL', 'Lotes', 'Días', 'MFE', 'PnL', 'Razón']],
-      body: trades.map(t => [
-        fmtDate(t.entry_date), fmtDate(t.exit_date),
-        fmtNum(t.entry_price, 4), fmtNum(t.sl_price, 4),
-        fmtNum(t.lot_size, 2), t.days ?? '—',
-        fmtNum(t.mfe, 2), fmtNum(t.pnl, 2),
-        t.reason ?? '—',
-      ]),
-      styles: { fontSize: 7 },
-    });
-  }
-  doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
 }
