@@ -336,7 +336,7 @@ export default function BacktesterPage() {
               {(['nkis', 'octx'] as BrokerKey[]).map(b => (
                 <button
                   key={b}
-                  onClick={() => { setBroker(b); setSymbol(''); setSymbolQuery(''); }}
+                  onClick={() => switchBroker(b)}
                   className={`px-4 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
                     broker === b
                       ? 'bg-primary/20 text-primary border-primary/40'
