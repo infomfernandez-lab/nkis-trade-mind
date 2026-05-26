@@ -9,7 +9,7 @@ import { FlaskConical, Play, AlertTriangle, FileSpreadsheet, FileText, Trash2, C
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
 import html2canvas from 'html2canvas';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
