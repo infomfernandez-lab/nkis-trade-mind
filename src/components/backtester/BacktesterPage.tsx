@@ -582,40 +582,13 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
     if (!el || !exportMeta) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(el, {
-        backgroundColor: '#0a0e1a',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      if (imgHeight <= pageHeight) {
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      } else {
-        const pxPerMm = canvas.width / imgWidth;
-        const pageHpx = pageHeight * pxPerMm;
-        let y = 0;
-        while (y < canvas.height) {
-          const sliceH = Math.min(pageHpx, canvas.height - y);
-          const tmp = document.createElement('canvas');
-          tmp.width = canvas.width;
-          tmp.height = sliceH;
-          const ctx = tmp.getContext('2d')!;
-          ctx.fillStyle = '#0a0e1a';
-          ctx.fillRect(0, 0, tmp.width, tmp.height);
-          ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-          if (y > 0) pdf.addPage();
-          pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgWidth, sliceH / pxPerMm);
-          y += sliceH;
-        }
-      }
-      pdf.save(`backtest_${exportMeta.symbol}_${exportMeta.broker}_${exportMeta.direction}.pdf`);
+      await exportPdfBySections(
+        el,
+        `backtest_${exportMeta.symbol}_${exportMeta.broker}_${exportMeta.direction}.pdf`
+      );
     } catch (e) {
       console.error('[exportPDF] failed', e);
+      toast.error('Error al exportar el PDF');
     } finally {
       setExporting(false);
     }
@@ -634,7 +607,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Métricas principales */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div data-pdf-section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <Metric label="PnL Total" value={fmtUsd(analysis.pnlTotal)} positive={analysis.pnlTotal >= 0} />
           <Metric label="Win Rate" value={fmtPct(m.win_rate)} />
           <Metric label="Profit Factor" value={fmtNum(m.profit_factor)} />
@@ -652,7 +625,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
 
         {/* Curva de equity */}
         {equity.length > 0 && (
-          <div>
+          <div data-pdf-section>
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Curva de equity</div>
             <div className="h-64 rounded-md overflow-hidden" style={{ background: CHART_BG }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -684,7 +657,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
               <p className="text-xs text-muted-foreground">Análisis avanzado para identificar puntos débiles del sistema.</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div data-pdf-section className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Metric label="Captura MFE" value={fmtPct(analysis.mfeCaptureRatio)} positive={analysis.mfeCaptureRatio >= 0.6} />
               <Metric label="Racha ganadora máx" value={String(analysis.maxWinStreak)} />
               <Metric label="Racha perdedora máx" value={String(analysis.maxLossStreak)} positive={false} />
@@ -783,7 +756,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
   return (
-    <div className="border border-border rounded-md p-3 bg-secondary/30">
+    <div data-pdf-section className="border border-border rounded-md p-3 bg-secondary/30">
       <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
@@ -907,60 +880,78 @@ function fmtUsd(v: number | null | undefined) {
 }
 
 function TradesTable({ trades }: { trades: BacktestTrade[] }) {
+  const CHUNK = 20;
+  const chunks: BacktestTrade[][] = [];
+  if (trades.length === 0) {
+    chunks.push([]);
+  } else {
+    for (let i = 0; i < trades.length; i += CHUNK) {
+      chunks.push(trades.slice(i, i + CHUNK));
+    }
+  }
   return (
-    <div className="rounded-lg border border-border bg-card overflow-x-auto">
-      <table className="w-full text-base">
-        <thead className="bg-muted/40 border-b border-border">
-          <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            <th className="px-3 py-3">#</th>
-            <th className="px-3 py-3">Entrada</th>
-            <th className="px-3 py-3">Salida</th>
-            <th className="px-3 py-3 text-right">Precio</th>
-            <th className="px-3 py-3 text-right">SL</th>
-            <th className="px-3 py-3 text-right">Lotes</th>
-            <th className="px-3 py-3 text-right">Días</th>
-            <th className="px-3 py-3 text-right">MFE</th>
-            <th className="px-3 py-3 text-right">P&L</th>
-            <th className="px-3 py-3">Razón</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trades.map((t, i) => {
-            const win = t.pnl >= 0;
-            const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
-            const pnlColor = win ? 'text-success' : 'text-destructive';
-            const reason = (t.reason ?? '—').toUpperCase();
-            const reasonBg = reason.includes('STOCH')
-              ? 'bg-success/30 text-success'
-              : reason.includes('SL') || reason.includes('STOP')
-              ? 'bg-destructive/30 text-destructive'
-              : reason.includes('BE')
-              ? 'bg-warning/30 text-warning'
-              : reason.includes('TRAIL')
-              ? 'bg-primary/30 text-primary'
-              : 'bg-muted/50 text-muted-foreground';
-            return (
-              <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
-                <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
-                <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
-                <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
-                <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
-                <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
-                <td className="px-3 py-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
-                </td>
+    <div className="space-y-3">
+      {chunks.map((chunk, ci) => (
+        <div
+          key={ci}
+          data-pdf-section
+          className="rounded-lg border border-border bg-card overflow-x-auto"
+        >
+          <table className="w-full text-base">
+            <thead className="bg-muted/40 border-b border-border">
+              <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="px-3 py-3">#</th>
+                <th className="px-3 py-3">Entrada</th>
+                <th className="px-3 py-3">Salida</th>
+                <th className="px-3 py-3 text-right">Precio</th>
+                <th className="px-3 py-3 text-right">SL</th>
+                <th className="px-3 py-3 text-right">Lotes</th>
+                <th className="px-3 py-3 text-right">Días</th>
+                <th className="px-3 py-3 text-right">MFE</th>
+                <th className="px-3 py-3 text-right">P&L</th>
+                <th className="px-3 py-3">Razón</th>
               </tr>
-            );
-          })}
-          {trades.length === 0 && (
-            <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {chunk.map((t, idx) => {
+                const i = ci * CHUNK + idx;
+                const win = t.pnl >= 0;
+                const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
+                const pnlColor = win ? 'text-success' : 'text-destructive';
+                const reason = (t.reason ?? '—').toUpperCase();
+                const reasonBg = reason.includes('STOCH')
+                  ? 'bg-success/30 text-success'
+                  : reason.includes('SL') || reason.includes('STOP')
+                  ? 'bg-destructive/30 text-destructive'
+                  : reason.includes('BE')
+                  ? 'bg-warning/30 text-warning'
+                  : reason.includes('TRAIL')
+                  ? 'bg-primary/30 text-primary'
+                  : 'bg-muted/50 text-muted-foreground';
+                return (
+                  <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
+                    <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
+                    <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
+                    <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
+                    <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
+                    <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {chunk.length === 0 && (
+                <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1297,25 +1288,31 @@ async function exportXlsx(session: SavedSession) {
   XLSX.writeFile(wb, `backtest_${session.symbol}_${session.id.slice(0, 8)}.xlsx`);
 }
 
-async function exportPdf(session: SavedSession, node: HTMLElement) {
-  try {
-    const canvas = await html2canvas(node, {
+async function exportPdfBySections(root: HTMLElement, filename: string) {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 0;
+
+  let sections = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
+  if (sections.length === 0) sections = [root];
+
+  let currentY = 0;
+  let firstPage = true;
+
+  for (const section of sections) {
+    const canvas = await html2canvas(section, {
       backgroundColor: '#0a0e1a',
       scale: 2,
       useCORS: true,
       logging: false,
     });
-    const imgW = 210; // A4 mm
-    const pageH = 297;
-    const ratio = canvas.height / canvas.width;
-    const imgH = imgW * ratio;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
 
-    if (imgH <= pageH) {
-      doc.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
-    } else {
-      // paginate by slicing
+    // If the section itself is taller than a page, slice it across pages
+    if (imgH > pageH) {
+      if (!firstPage) { pdf.addPage(); currentY = 0; }
       const pxPerMm = canvas.width / imgW;
       const pageHpx = pageH * pxPerMm;
       let y = 0;
@@ -1328,13 +1325,30 @@ async function exportPdf(session: SavedSession, node: HTMLElement) {
         ctx.fillStyle = '#0a0e1a';
         ctx.fillRect(0, 0, tmp.width, tmp.height);
         ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        const slice = tmp.toDataURL('image/jpeg', 0.92);
-        if (y > 0) doc.addPage();
-        doc.addImage(slice, 'JPEG', 0, 0, imgW, sliceH / pxPerMm);
+        if (y > 0) pdf.addPage();
+        pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', margin, 0, imgW, sliceH / pxPerMm);
         y += sliceH;
       }
+      currentY = pageH; // force new page for next section
+      firstPage = false;
+      continue;
     }
-    doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
+
+    if (!firstPage && currentY + imgH > pageH) {
+      pdf.addPage();
+      currentY = 0;
+    }
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, currentY, imgW, imgH);
+    currentY += imgH + 3;
+    firstPage = false;
+  }
+
+  pdf.save(filename);
+}
+
+async function exportPdf(session: SavedSession, node: HTMLElement) {
+  try {
+    await exportPdfBySections(node, `backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
   } catch (e) {
     console.error('[exportPdf] failed', e);
     toast.error('No se pudo exportar el PDF');
