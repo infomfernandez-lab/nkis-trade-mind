@@ -978,25 +978,36 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
     trades: session.trades ?? [],
   }), [session]);
 
-  const ensureOpen = useCallback(async () => {
-    if (!open) {
-      setOpen(true);
-      // wait two frames + a tick for recharts to lay out
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 350))));
-    }
-  }, [open]);
-
   const handlePdf = async () => {
     setBusy('pdf');
     try {
-      await ensureOpen();
-      if (panelRef.current) await exportPdf(session, panelRef.current);
+      if (!open) {
+        setOpen(true);
+        await new Promise(r => setTimeout(r, 600));
+      }
+      // ensure panelRef is mounted (in case open just toggled)
+      for (let i = 0; i < 20 && !panelRef.current; i++) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+      const el = panelRef.current;
+      if (!el) {
+        toast.error('No se pudo capturar el contenido');
+        return;
+      }
+      await exportPdf(session, el);
+    } catch (e) {
+      console.error('[handlePdf] failed', e);
+      toast.error('Error al exportar el PDF');
     } finally { setBusy(null); }
   };
   const handleXlsx = async () => {
     setBusy('xlsx');
     try {
       await exportXlsx(session);
+      toast.success('Excel descargado');
+    } catch (e) {
+      console.error('[handleXlsx] failed', e);
+      toast.error('Error al descargar el archivo Excel');
     } finally { setBusy(null); }
   };
 
