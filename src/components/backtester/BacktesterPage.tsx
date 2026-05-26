@@ -353,47 +353,17 @@ export default function BacktesterPage() {
             </div>
           </div>
 
-          {/* Símbolo */}
-          <div className="relative">
+          {/* Símbolo — picker estilo Radar */}
+          <div>
             <Label className="mb-2 block">Símbolo</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={symbolQuery}
-                  onChange={e => { setSymbolQuery(e.target.value); setSymbol(''); }}
-                  placeholder={`Buscar entre ${symbolsForBroker.length} instrumentos…`}
-                  className="pl-8"
-                />
-              </div>
-              <Select
-                value={symbol || undefined}
-                onValueChange={(v) => { setSymbol(v); setSymbolQuery(v); }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Elegir de la lista…" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {symbolsForBroker.map(s => (
-                    <SelectItem key={s} value={s} className="font-mono text-xs">{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <RadarSymbolPicker
+              broker={broker}
+              selected={symbol}
+              onSelect={(s) => { setSymbol(s); setSymbolQuery(s); }}
+            />
             {symbol && (
-              <div className="mt-1.5 text-xs text-primary">Seleccionado: <span className="font-mono font-semibold">{symbol}</span></div>
-            )}
-            {symbolQuery && !symbol && symbolSuggestions.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full bg-popover border border-border rounded-md shadow-md max-h-64 overflow-y-auto">
-                {symbolSuggestions.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => { setSymbol(s); setSymbolQuery(s); }}
-                    className="w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-accent"
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className="mt-2 text-xs text-primary">
+                Seleccionado: <span className="font-mono font-semibold">{symbol}</span>
               </div>
             )}
           </div>
