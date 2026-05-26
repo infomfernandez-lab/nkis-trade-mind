@@ -987,9 +987,13 @@ function fmtDate(s: string | undefined) {
   catch { return s; }
 }
 
-function exportXlsx(session: SavedSession) {
+async function exportXlsx(session: SavedSession) {
   const wb = XLSX.utils.book_new();
-  const meta = [
+  const trades = session.trades ?? [];
+  const equity = session.equity_curve ?? [];
+  const a = computeAnalysis(trades, equity);
+
+  const meta: any[][] = [
     ['Símbolo', session.symbol],
     ['Broker', session.broker],
     ['Dirección', session.direction],
@@ -997,22 +1001,91 @@ function exportXlsx(session: SavedSession) {
     ['Hasta', session.date_to ?? ''],
     ['Creado', session.created_at],
     [],
-    ['— Métricas —'],
-    ...Object.entries(session.metrics ?? {}).map(([k, v]) => [k, v as any]),
+    ['— Métricas principales —'],
+    ['PnL Total', a.pnlTotal],
+    ['Win Rate', session.metrics?.win_rate ?? ''],
+    ['Profit Factor', session.metrics?.profit_factor ?? ''],
+    ['Sharpe', session.metrics?.sharpe ?? ''],
+    ['Trades', session.metrics?.trades ?? trades.length],
+    ['Drawdown Máx %', a.maxDdPct],
+    ['Drawdown Máx USD', a.maxDdUsd],
+    ['Expectancy', a.expectancy],
+    ['Duración media (d)', a.avgDays],
+    ['MFE medio', a.avgMfe],
+    ['Salidas STOCH %', a.exitPct.STOCH],
+    ['Salidas SL %', a.exitPct.SL],
+    ['Salidas BE %', a.exitPct.BE],
+    ['Salidas TRAIL %', a.exitPct.TRAIL],
+    ['Trades revertidos', a.reverted],
+    ['Trades revertidos %', a.revertedPct],
+    [],
+    ['— ¿Qué mejoraría? —'],
+    ['Captura MFE', a.mfeCaptureRatio],
+    ['Racha ganadora máx', a.maxWinStreak],
+    ['Racha perdedora máx', a.maxLossStreak],
+    ['Mejor trade', a.bestTrade],
+    ['Peor trade', a.worstTrade],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(meta), 'Resumen');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(session.trades ?? []), 'Trades');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(session.equity_curve ?? []), 'Equity');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trades), 'Trades');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(equity), 'Equity');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.exitDist), 'Distribución salidas');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.durationHist), 'Duración (histograma)');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.runningBalance), 'Balance trade a trade');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.scatter), 'Scatter PnL vs MFE');
   XLSX.writeFile(wb, `backtest_${session.symbol}_${session.id.slice(0, 8)}.xlsx`);
 }
 
-function exportPdf(session: SavedSession) {
+async function exportPdf(session: SavedSession, node: HTMLElement) {
+  try {
+    const canvas = await html2canvas(node, {
+      backgroundColor: '#0a0e1a',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    const imgW = 210; // A4 mm
+    const pageH = 297;
+    const ratio = canvas.height / canvas.width;
+    const imgH = imgW * ratio;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+    if (imgH <= pageH) {
+      doc.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+    } else {
+      // paginate by slicing
+      const pxPerMm = canvas.width / imgW;
+      const pageHpx = pageH * pxPerMm;
+      let y = 0;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pageHpx, canvas.height - y);
+        const tmp = document.createElement('canvas');
+        tmp.width = canvas.width;
+        tmp.height = sliceH;
+        const ctx = tmp.getContext('2d')!;
+        ctx.fillStyle = '#0a0e1a';
+        ctx.fillRect(0, 0, tmp.width, tmp.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const slice = tmp.toDataURL('image/jpeg', 0.92);
+        if (y > 0) doc.addPage();
+        doc.addImage(slice, 'JPEG', 0, 0, imgW, sliceH / pxPerMm);
+        y += sliceH;
+      }
+    }
+    doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
+  } catch (e) {
+    console.error('[exportPdf] failed, falling back to table PDF', e);
+    fallbackPdf(session);
+  }
+}
+
+function fallbackPdf(session: SavedSession) {
   const doc = new jsPDF();
   doc.setFontSize(14);
   doc.text(`Backtest — ${session.symbol} (${session.broker.toUpperCase()} ${session.direction})`, 14, 16);
   doc.setFontSize(9);
   doc.text(`Generado: ${new Date(session.created_at).toLocaleString('es-ES')}`, 14, 22);
-
   const m = session.metrics ?? {};
   autoTable(doc, {
     startY: 28,
@@ -1020,7 +1093,6 @@ function exportPdf(session: SavedSession) {
     body: Object.entries(m).map(([k, v]) => [k, String(v)]),
     styles: { fontSize: 8 },
   });
-
   const trades = session.trades ?? [];
   if (trades.length > 0) {
     autoTable(doc, {
@@ -1035,6 +1107,5 @@ function exportPdf(session: SavedSession) {
       styles: { fontSize: 7 },
     });
   }
-
   doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
 }
