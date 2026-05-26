@@ -92,6 +92,29 @@ interface BacktestResult {
   trades: BacktestTrade[];
 }
 
+/** Normalize raw server response → BacktestResult.
+ * The Python backend returns trades with fields like `sl`, `lots`, `exit_reason`;
+ * we map them to our internal shape so charts and tables show the correct data. */
+function normalizeBacktestResult(raw: any): BacktestResult {
+  const trades: BacktestTrade[] = (raw?.trades ?? []).map((t: any) => ({
+    entry_date: t.entry_date ?? t.entryDate ?? '',
+    exit_date: t.exit_date ?? t.exitDate ?? '',
+    entry_price: Number(t.entry_price ?? t.entryPrice ?? 0),
+    exit_price: t.exit_price ?? t.exitPrice ?? undefined,
+    sl_price: Number(t.sl_price ?? t.sl ?? t.stop_loss ?? 0) || undefined,
+    lot_size: Number(t.lot_size ?? t.lots ?? t.size ?? 0) || undefined,
+    days: t.days ?? t.duration_days ?? undefined,
+    mfe: t.mfe ?? t.max_favorable ?? undefined,
+    pnl: Number(t.pnl ?? t.profit ?? t.net_pnl ?? 0),
+    reason: t.reason ?? t.exit_reason ?? t.close_reason ?? undefined,
+  }));
+  return {
+    metrics: raw?.metrics ?? {},
+    equity_curve: raw?.equity_curve ?? [],
+    trades,
+  };
+}
+
 interface SavedSession {
   id: string;
   symbol: string;
