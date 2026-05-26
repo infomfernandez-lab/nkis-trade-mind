@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { CONTRACT_SPECS } from '@/lib/contract-specs';
