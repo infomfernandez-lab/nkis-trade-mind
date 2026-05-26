@@ -607,7 +607,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Métricas principales */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div data-pdf-section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <Metric label="PnL Total" value={fmtUsd(analysis.pnlTotal)} positive={analysis.pnlTotal >= 0} />
           <Metric label="Win Rate" value={fmtPct(m.win_rate)} />
           <Metric label="Profit Factor" value={fmtNum(m.profit_factor)} />
