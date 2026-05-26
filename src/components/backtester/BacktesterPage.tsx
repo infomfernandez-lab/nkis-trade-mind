@@ -417,14 +417,33 @@ export default function BacktesterPage() {
           </div>
 
           {/* Fechas */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="mb-1.5 block text-xs">Desde (opcional)</Label>
-              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { l: 'Último año', y: 1 as const },
+                { l: 'Últimos 3 años', y: 3 as const },
+                { l: 'Últimos 10 años', y: 10 as const },
+                { l: 'Todo el historial', y: 'all' as const },
+              ]).map(p => (
+                <button
+                  key={p.l}
+                  type="button"
+                  onClick={() => setDatePreset(p.y)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  {p.l}
+                </button>
+              ))}
             </div>
-            <div>
-              <Label className="mb-1.5 block text-xs">Hasta (opcional)</Label>
-              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1.5 block text-xs">Desde (opcional)</Label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs">Hasta (opcional)</Label>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+              </div>
             </div>
           </div>
 
