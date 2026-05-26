@@ -893,7 +893,38 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
 
 function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<null | 'pdf' | 'xlsx'>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const m = session.metrics ?? {};
+
+  const sessionAsResult: BacktestResult = useMemo(() => ({
+    metrics: session.metrics ?? {},
+    equity_curve: session.equity_curve ?? [],
+    trades: session.trades ?? [],
+  }), [session]);
+
+  const ensureOpen = useCallback(async () => {
+    if (!open) {
+      setOpen(true);
+      // wait two frames + a tick for recharts to lay out
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 350))));
+    }
+  }, [open]);
+
+  const handlePdf = async () => {
+    setBusy('pdf');
+    try {
+      await ensureOpen();
+      if (panelRef.current) await exportPdf(session, panelRef.current);
+    } finally { setBusy(null); }
+  };
+  const handleXlsx = async () => {
+    setBusy('xlsx');
+    try {
+      await exportXlsx(session);
+    } finally { setBusy(null); }
+  };
+
   return (
     <div className="border border-border rounded-md">
       <div className="flex items-center gap-2 p-2.5">
@@ -911,10 +942,10 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
           <div className="text-muted-foreground text-[10px]">{new Date(session.created_at).toLocaleString('es-ES')}</div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <Button size="sm" variant="ghost" onClick={() => exportXlsx(session)} title="Exportar Excel">
+          <Button size="sm" variant="ghost" onClick={handleXlsx} disabled={busy !== null} title="Exportar Excel">
             <FileSpreadsheet className="w-3.5 h-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => exportPdf(session)} title="Exportar PDF">
+          <Button size="sm" variant="ghost" onClick={handlePdf} disabled={busy !== null} title="Exportar PDF (mismo aspecto)">
             <FileText className="w-3.5 h-3.5" />
           </Button>
           <Button size="sm" variant="ghost" onClick={onDelete} title="Eliminar">
@@ -923,21 +954,8 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
         </div>
       </div>
       {open && (
-        <div className="border-t border-border p-3 space-y-3 bg-secondary/30">
-          {session.equity_curve?.length > 0 && (
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={session.equity_curve}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
-                  <Line type="monotone" dataKey="equity" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {session.trades?.length > 0 && <TradesTable trades={session.trades} />}
+        <div ref={panelRef} className="border-t border-border p-3 bg-background">
+          <ResultsView result={sessionAsResult} />
         </div>
       )}
     </div>
