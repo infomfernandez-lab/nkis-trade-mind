@@ -9,7 +9,7 @@ import { FlaskConical, Play, AlertTriangle, FileSpreadsheet, FileText, Trash2, C
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
 import html2canvas from 'html2canvas';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -90,6 +90,29 @@ interface BacktestResult {
   metrics: BacktestMetrics;
   equity_curve: Array<{ date?: string; equity: number }>;
   trades: BacktestTrade[];
+}
+
+/** Normalize raw server response → BacktestResult.
+ * The Python backend returns trades with fields like `sl`, `lots`, `exit_reason`;
+ * we map them to our internal shape so charts and tables show the correct data. */
+function normalizeBacktestResult(raw: any): BacktestResult {
+  const trades: BacktestTrade[] = (raw?.trades ?? []).map((t: any) => ({
+    entry_date: t.entry_date ?? t.entryDate ?? '',
+    exit_date: t.exit_date ?? t.exitDate ?? '',
+    entry_price: Number(t.entry_price ?? t.entryPrice ?? 0),
+    exit_price: t.exit_price ?? t.exitPrice ?? undefined,
+    sl_price: Number(t.sl_price ?? t.sl ?? t.stop_loss ?? 0) || undefined,
+    lot_size: Number(t.lot_size ?? t.lots ?? t.size ?? 0) || undefined,
+    days: t.days ?? t.duration_days ?? undefined,
+    mfe: t.mfe ?? t.max_favorable ?? undefined,
+    pnl: Number(t.pnl ?? t.profit ?? t.net_pnl ?? 0),
+    reason: t.reason ?? t.exit_reason ?? t.close_reason ?? undefined,
+  }));
+  return {
+    metrics: raw?.metrics ?? {},
+    equity_curve: raw?.equity_curve ?? [],
+    trades,
+  };
 }
 
 interface SavedSession {
@@ -282,7 +305,8 @@ export default function BacktesterPage() {
         console.error('[backtest] Server error', res.status, errText);
         throw new Error(`HTTP ${res.status} — ${errText || 'sin detalle'}`);
       }
-      const data = (await res.json()) as BacktestResult;
+      const raw = await res.json();
+      const data = normalizeBacktestResult(raw);
       setResult(data);
 
       const { error: insertErr } = await (supabase as any).from('backtest_sessions').insert({
@@ -1071,6 +1095,14 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
     description: classifyInstrument(it.symbol).description,
   })), [annotated]);
 
+  // Si el usuario teclea (o elige una sugerencia) un símbolo exacto del radar, lo seleccionamos
+  useEffect(() => {
+    const q = filters.search.trim().toUpperCase();
+    if (!q) return;
+    const exact = annotated.find(a => a.symbol.toUpperCase() === q);
+    if (exact && exact.symbol !== selected) onSelect(exact.symbol);
+  }, [filters.search, annotated, selected, onSelect]);
+
   return (
     <div className="space-y-2">
       <RadarFiltersBar
@@ -1293,37 +1325,7 @@ async function exportPdf(session: SavedSession, node: HTMLElement) {
     }
     doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
   } catch (e) {
-    console.error('[exportPdf] failed, falling back to table PDF', e);
-    fallbackPdf(session);
+    console.error('[exportPdf] failed', e);
+    toast.error('No se pudo exportar el PDF');
   }
-}
-
-function fallbackPdf(session: SavedSession) {
-  const doc = new jsPDF();
-  doc.setFontSize(14);
-  doc.text(`Backtest — ${session.symbol} (${session.broker.toUpperCase()} ${session.direction})`, 14, 16);
-  doc.setFontSize(9);
-  doc.text(`Generado: ${new Date(session.created_at).toLocaleString('es-ES')}`, 14, 22);
-  const m = session.metrics ?? {};
-  autoTable(doc, {
-    startY: 28,
-    head: [['Métrica', 'Valor']],
-    body: Object.entries(m).map(([k, v]) => [k, String(v)]),
-    styles: { fontSize: 8 },
-  });
-  const trades = session.trades ?? [];
-  if (trades.length > 0) {
-    autoTable(doc, {
-      head: [['Entrada', 'Salida', 'Precio', 'SL', 'Lotes', 'Días', 'MFE', 'PnL', 'Razón']],
-      body: trades.map(t => [
-        fmtDate(t.entry_date), fmtDate(t.exit_date),
-        fmtNum(t.entry_price, 4), fmtNum(t.sl_price, 4),
-        fmtNum(t.lot_size, 2), t.days ?? '—',
-        fmtNum(t.mfe, 2), fmtNum(t.pnl, 2),
-        t.reason ?? '—',
-      ]),
-      styles: { fontSize: 7 },
-    });
-  }
-  doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
 }
