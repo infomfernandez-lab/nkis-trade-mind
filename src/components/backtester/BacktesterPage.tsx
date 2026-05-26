@@ -972,6 +972,41 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
   );
 }
 
+function SessionHeader({ symbol, broker, direction, dateFrom, dateTo, createdAt, params }: {
+  symbol: string; broker: string; direction: string;
+  dateFrom: string | null; dateTo: string | null; createdAt: string;
+  params?: BacktestParams;
+}) {
+  const periodo = dateFrom || dateTo
+    ? `${dateFrom ?? '—'}  →  ${dateTo ?? '—'}`
+    : 'Todo el historial disponible';
+  return (
+    <div className="border border-border rounded-md p-3 bg-secondary/30">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div className="text-base font-bold font-mono">{symbol}</div>
+          <div className="text-xs text-muted-foreground">
+            {broker.toUpperCase()} · {direction} · Periodo: <span className="font-mono">{periodo}</span>
+          </div>
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          Generado: {new Date(createdAt).toLocaleString('es-ES')}
+        </div>
+      </div>
+      {params && (
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <div>ADX mín: <span className="font-mono text-foreground">{params.adx_min}</span></div>
+          <div>ATR×SL: <span className="font-mono text-foreground">{params.atr_sl}</span></div>
+          <div>Stoch BUY: <span className="font-mono text-foreground">{params.stoch_buy}</span></div>
+          <div>Stoch SELL: <span className="font-mono text-foreground">{params.stoch_sell}</span></div>
+          <div>Breakeven: <span className="font-mono text-foreground">{params.breakeven_enabled ? `ON ×${params.breakeven_mult}` : 'OFF'}</span></div>
+          <div>Trailing: <span className="font-mono text-foreground">{params.trailing_enabled ? `ON ×${params.trailing_mult}` : 'OFF'}</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Metric({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
   const colorClass = positive == null ? 'text-foreground' : positive ? 'text-success' : 'text-destructive';
   return (
