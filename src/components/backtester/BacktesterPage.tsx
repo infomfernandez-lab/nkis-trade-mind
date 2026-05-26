@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { CONTRACT_SPECS } from '@/lib/contract-specs';
@@ -20,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
 
@@ -104,7 +106,26 @@ export default function BacktesterPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const [broker, setBroker] = useState<BrokerKey>('nkis');
+  type BrokerState = {
+    symbol: string; symbolQuery: string; direction: Direction;
+    dateFrom: string; dateTo: string;
+    adxMin: number; atrSl: number; stochBuy: number; stochSell: number;
+    beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
+    result: BacktestResult | null;
+  };
+  const defaultBrokerState = (): BrokerState => ({
+    symbol: '', symbolQuery: '', direction: 'BUY',
+    dateFrom: '', dateTo: '',
+    adxMin: 23, atrSl: 1.5, stochBuy: 70, stochSell: 30,
+    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 2.0,
+    result: null,
+  });
+  const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
+    nkis: defaultBrokerState(),
+    octx: defaultBrokerState(),
+  });
+
+  const [broker, setBrokerState] = useState<BrokerKey>('nkis');
   const [symbol, setSymbol] = useState('');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [direction, setDirection] = useState<Direction>('BUY');
@@ -114,15 +135,42 @@ export default function BacktesterPage() {
   const [atrSl, setAtrSl] = useState(1.5);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
-  const [beEnabled, setBeEnabled] = useState(true);
+  const [beEnabled, setBeEnabled] = useState(false);
   const [beMult, setBeMult] = useState(1.0);
-  const [trEnabled, setTrEnabled] = useState(true);
+  const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(2.0);
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+
+  const switchBroker = useCallback((next: BrokerKey) => {
+    if (next === broker) return;
+    // save current
+    brokerStatesRef.current[broker] = {
+      symbol, symbolQuery, direction, dateFrom, dateTo,
+      adxMin, atrSl, stochBuy, stochSell,
+      beEnabled, beMult, trEnabled, trMult, result,
+    };
+    // restore next
+    const s = brokerStatesRef.current[next];
+    setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
+    setDateFrom(s.dateFrom); setDateTo(s.dateTo);
+    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
+    setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
+    setResult(s.result); setError(null);
+    setBrokerState(next);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
+
+  const setDatePreset = useCallback((years: number | 'all') => {
+    if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - years);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    setDateFrom(iso(from)); setDateTo(iso(to));
+  }, []);
 
   useEffect(() => {
     const checkServer = async () => {
@@ -288,7 +336,7 @@ export default function BacktesterPage() {
               {(['nkis', 'octx'] as BrokerKey[]).map(b => (
                 <button
                   key={b}
-                  onClick={() => { setBroker(b); setSymbol(''); setSymbolQuery(''); }}
+                  onClick={() => switchBroker(b)}
                   className={`px-4 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
                     broker === b
                       ? 'bg-primary/20 text-primary border-primary/40'
@@ -304,14 +352,29 @@ export default function BacktesterPage() {
           {/* Símbolo */}
           <div className="relative">
             <Label className="mb-2 block">Símbolo</Label>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={symbolQuery}
-                onChange={e => { setSymbolQuery(e.target.value); setSymbol(''); }}
-                placeholder={`Buscar entre ${symbolsForBroker.length} instrumentos…`}
-                className="pl-8"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={symbolQuery}
+                  onChange={e => { setSymbolQuery(e.target.value); setSymbol(''); }}
+                  placeholder={`Buscar entre ${symbolsForBroker.length} instrumentos…`}
+                  className="pl-8"
+                />
+              </div>
+              <Select
+                value={symbol || undefined}
+                onValueChange={(v) => { setSymbol(v); setSymbolQuery(v); }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Elegir de la lista…" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {symbolsForBroker.map(s => (
+                    <SelectItem key={s} value={s} className="font-mono text-xs">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {symbol && (
               <div className="mt-1.5 text-xs text-primary">Seleccionado: <span className="font-mono font-semibold">{symbol}</span></div>
@@ -354,14 +417,33 @@ export default function BacktesterPage() {
           </div>
 
           {/* Fechas */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="mb-1.5 block text-xs">Desde (opcional)</Label>
-              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { l: 'Último año', y: 1 as const },
+                { l: 'Últimos 3 años', y: 3 as const },
+                { l: 'Últimos 10 años', y: 10 as const },
+                { l: 'Todo el historial', y: 'all' as const },
+              ]).map(p => (
+                <button
+                  key={p.l}
+                  type="button"
+                  onClick={() => setDatePreset(p.y)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  {p.l}
+                </button>
+              ))}
             </div>
-            <div>
-              <Label className="mb-1.5 block text-xs">Hasta (opcional)</Label>
-              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1.5 block text-xs">Desde (opcional)</Label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div>
+                <Label className="mb-1.5 block text-xs">Hasta (opcional)</Label>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+              </div>
             </div>
           </div>
 
@@ -811,7 +893,38 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
 
 function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<null | 'pdf' | 'xlsx'>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const m = session.metrics ?? {};
+
+  const sessionAsResult: BacktestResult = useMemo(() => ({
+    metrics: session.metrics ?? {},
+    equity_curve: session.equity_curve ?? [],
+    trades: session.trades ?? [],
+  }), [session]);
+
+  const ensureOpen = useCallback(async () => {
+    if (!open) {
+      setOpen(true);
+      // wait two frames + a tick for recharts to lay out
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 350))));
+    }
+  }, [open]);
+
+  const handlePdf = async () => {
+    setBusy('pdf');
+    try {
+      await ensureOpen();
+      if (panelRef.current) await exportPdf(session, panelRef.current);
+    } finally { setBusy(null); }
+  };
+  const handleXlsx = async () => {
+    setBusy('xlsx');
+    try {
+      await exportXlsx(session);
+    } finally { setBusy(null); }
+  };
+
   return (
     <div className="border border-border rounded-md">
       <div className="flex items-center gap-2 p-2.5">
@@ -829,10 +942,10 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
           <div className="text-muted-foreground text-[10px]">{new Date(session.created_at).toLocaleString('es-ES')}</div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <Button size="sm" variant="ghost" onClick={() => exportXlsx(session)} title="Exportar Excel">
+          <Button size="sm" variant="ghost" onClick={handleXlsx} disabled={busy !== null} title="Exportar Excel">
             <FileSpreadsheet className="w-3.5 h-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => exportPdf(session)} title="Exportar PDF">
+          <Button size="sm" variant="ghost" onClick={handlePdf} disabled={busy !== null} title="Exportar PDF (mismo aspecto)">
             <FileText className="w-3.5 h-3.5" />
           </Button>
           <Button size="sm" variant="ghost" onClick={onDelete} title="Eliminar">
@@ -841,21 +954,8 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
         </div>
       </div>
       {open && (
-        <div className="border-t border-border p-3 space-y-3 bg-secondary/30">
-          {session.equity_curve?.length > 0 && (
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={session.equity_curve}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
-                  <Line type="monotone" dataKey="equity" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {session.trades?.length > 0 && <TradesTable trades={session.trades} />}
+        <div ref={panelRef} className="border-t border-border p-3 bg-background">
+          <ResultsView result={sessionAsResult} />
         </div>
       )}
     </div>
@@ -887,9 +987,13 @@ function fmtDate(s: string | undefined) {
   catch { return s; }
 }
 
-function exportXlsx(session: SavedSession) {
+async function exportXlsx(session: SavedSession) {
   const wb = XLSX.utils.book_new();
-  const meta = [
+  const trades = session.trades ?? [];
+  const equity = session.equity_curve ?? [];
+  const a = computeAnalysis(trades, equity);
+
+  const meta: any[][] = [
     ['Símbolo', session.symbol],
     ['Broker', session.broker],
     ['Dirección', session.direction],
@@ -897,22 +1001,91 @@ function exportXlsx(session: SavedSession) {
     ['Hasta', session.date_to ?? ''],
     ['Creado', session.created_at],
     [],
-    ['— Métricas —'],
-    ...Object.entries(session.metrics ?? {}).map(([k, v]) => [k, v as any]),
+    ['— Métricas principales —'],
+    ['PnL Total', a.pnlTotal],
+    ['Win Rate', session.metrics?.win_rate ?? ''],
+    ['Profit Factor', session.metrics?.profit_factor ?? ''],
+    ['Sharpe', session.metrics?.sharpe ?? ''],
+    ['Trades', session.metrics?.trades ?? trades.length],
+    ['Drawdown Máx %', a.maxDdPct],
+    ['Drawdown Máx USD', a.maxDdUsd],
+    ['Expectancy', a.expectancy],
+    ['Duración media (d)', a.avgDays],
+    ['MFE medio', a.avgMfe],
+    ['Salidas STOCH %', a.exitPct.STOCH],
+    ['Salidas SL %', a.exitPct.SL],
+    ['Salidas BE %', a.exitPct.BE],
+    ['Salidas TRAIL %', a.exitPct.TRAIL],
+    ['Trades revertidos', a.reverted],
+    ['Trades revertidos %', a.revertedPct],
+    [],
+    ['— ¿Qué mejoraría? —'],
+    ['Captura MFE', a.mfeCaptureRatio],
+    ['Racha ganadora máx', a.maxWinStreak],
+    ['Racha perdedora máx', a.maxLossStreak],
+    ['Mejor trade', a.bestTrade],
+    ['Peor trade', a.worstTrade],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(meta), 'Resumen');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(session.trades ?? []), 'Trades');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(session.equity_curve ?? []), 'Equity');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trades), 'Trades');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(equity), 'Equity');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.exitDist), 'Distribución salidas');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.durationHist), 'Duración (histograma)');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.runningBalance), 'Balance trade a trade');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.scatter), 'Scatter PnL vs MFE');
   XLSX.writeFile(wb, `backtest_${session.symbol}_${session.id.slice(0, 8)}.xlsx`);
 }
 
-function exportPdf(session: SavedSession) {
+async function exportPdf(session: SavedSession, node: HTMLElement) {
+  try {
+    const canvas = await html2canvas(node, {
+      backgroundColor: '#0a0e1a',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+    const imgW = 210; // A4 mm
+    const pageH = 297;
+    const ratio = canvas.height / canvas.width;
+    const imgH = imgW * ratio;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+    if (imgH <= pageH) {
+      doc.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
+    } else {
+      // paginate by slicing
+      const pxPerMm = canvas.width / imgW;
+      const pageHpx = pageH * pxPerMm;
+      let y = 0;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pageHpx, canvas.height - y);
+        const tmp = document.createElement('canvas');
+        tmp.width = canvas.width;
+        tmp.height = sliceH;
+        const ctx = tmp.getContext('2d')!;
+        ctx.fillStyle = '#0a0e1a';
+        ctx.fillRect(0, 0, tmp.width, tmp.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const slice = tmp.toDataURL('image/jpeg', 0.92);
+        if (y > 0) doc.addPage();
+        doc.addImage(slice, 'JPEG', 0, 0, imgW, sliceH / pxPerMm);
+        y += sliceH;
+      }
+    }
+    doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
+  } catch (e) {
+    console.error('[exportPdf] failed, falling back to table PDF', e);
+    fallbackPdf(session);
+  }
+}
+
+function fallbackPdf(session: SavedSession) {
   const doc = new jsPDF();
   doc.setFontSize(14);
   doc.text(`Backtest — ${session.symbol} (${session.broker.toUpperCase()} ${session.direction})`, 14, 16);
   doc.setFontSize(9);
   doc.text(`Generado: ${new Date(session.created_at).toLocaleString('es-ES')}`, 14, 22);
-
   const m = session.metrics ?? {};
   autoTable(doc, {
     startY: 28,
@@ -920,7 +1093,6 @@ function exportPdf(session: SavedSession) {
     body: Object.entries(m).map(([k, v]) => [k, String(v)]),
     styles: { fontSize: 8 },
   });
-
   const trades = session.trades ?? [];
   if (trades.length > 0) {
     autoTable(doc, {
@@ -935,6 +1107,5 @@ function exportPdf(session: SavedSession) {
       styles: { fontSize: 7 },
     });
   }
-
   doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
 }
