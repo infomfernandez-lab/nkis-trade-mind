@@ -1095,6 +1095,14 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
     description: classifyInstrument(it.symbol).description,
   })), [annotated]);
 
+  // Si el usuario teclea (o elige una sugerencia) un símbolo exacto del radar, lo seleccionamos
+  useEffect(() => {
+    const q = filters.search.trim().toUpperCase();
+    if (!q) return;
+    const exact = annotated.find(a => a.symbol.toUpperCase() === q);
+    if (exact && exact.symbol !== selected) onSelect(exact.symbol);
+  }, [filters.search, annotated, selected, onSelect]);
+
   return (
     <div className="space-y-2">
       <RadarFiltersBar
