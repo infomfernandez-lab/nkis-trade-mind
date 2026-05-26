@@ -756,7 +756,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
 
 function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
   return (
-    <div className="border border-border rounded-md p-3 bg-secondary/30">
+    <div data-pdf-section className="border border-border rounded-md p-3 bg-secondary/30">
       <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
