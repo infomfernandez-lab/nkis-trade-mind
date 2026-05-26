@@ -352,14 +352,29 @@ export default function BacktesterPage() {
           {/* Símbolo */}
           <div className="relative">
             <Label className="mb-2 block">Símbolo</Label>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={symbolQuery}
-                onChange={e => { setSymbolQuery(e.target.value); setSymbol(''); }}
-                placeholder={`Buscar entre ${symbolsForBroker.length} instrumentos…`}
-                className="pl-8"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={symbolQuery}
+                  onChange={e => { setSymbolQuery(e.target.value); setSymbol(''); }}
+                  placeholder={`Buscar entre ${symbolsForBroker.length} instrumentos…`}
+                  className="pl-8"
+                />
+              </div>
+              <Select
+                value={symbol || undefined}
+                onValueChange={(v) => { setSymbol(v); setSymbolQuery(v); }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Elegir de la lista…" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {symbolsForBroker.map(s => (
+                    <SelectItem key={s} value={s} className="font-mono text-xs">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {symbol && (
               <div className="mt-1.5 text-xs text-primary">Seleccionado: <span className="font-mono font-semibold">{symbol}</span></div>
