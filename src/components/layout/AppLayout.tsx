@@ -24,9 +24,9 @@ export function useBrokerFilter() {
 const navItems = [
   { to: '/' as const, label: 'Panel', icon: LayoutDashboard },
   { to: '/radar' as const, label: 'Radar', icon: Radar },
+  { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/backtester' as const, label: 'Backtester', icon: FlaskConical },
   { to: '/calculator' as const, label: 'Calculadora', icon: Calculator },
-  { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
   { to: '/reports' as const, label: 'Informes', icon: FileText },
@@ -176,7 +176,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 text-xl font-mono overscroll-contain">
+          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 overscroll-contain">
             {children}
           </main>
 
