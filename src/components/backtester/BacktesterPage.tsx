@@ -282,7 +282,8 @@ export default function BacktesterPage() {
         console.error('[backtest] Server error', res.status, errText);
         throw new Error(`HTTP ${res.status} — ${errText || 'sin detalle'}`);
       }
-      const data = (await res.json()) as BacktestResult;
+      const raw = await res.json();
+      const data = normalizeBacktestResult(raw);
       setResult(data);
 
       const { error: insertErr } = await (supabase as any).from('backtest_sessions').insert({
