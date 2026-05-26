@@ -106,7 +106,26 @@ export default function BacktesterPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  const [broker, setBroker] = useState<BrokerKey>('nkis');
+  type BrokerState = {
+    symbol: string; symbolQuery: string; direction: Direction;
+    dateFrom: string; dateTo: string;
+    adxMin: number; atrSl: number; stochBuy: number; stochSell: number;
+    beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
+    result: BacktestResult | null;
+  };
+  const defaultBrokerState = (): BrokerState => ({
+    symbol: '', symbolQuery: '', direction: 'BUY',
+    dateFrom: '', dateTo: '',
+    adxMin: 23, atrSl: 1.5, stochBuy: 70, stochSell: 30,
+    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 2.0,
+    result: null,
+  });
+  const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
+    nkis: defaultBrokerState(),
+    octx: defaultBrokerState(),
+  });
+
+  const [broker, setBrokerState] = useState<BrokerKey>('nkis');
   const [symbol, setSymbol] = useState('');
   const [symbolQuery, setSymbolQuery] = useState('');
   const [direction, setDirection] = useState<Direction>('BUY');
@@ -116,15 +135,42 @@ export default function BacktesterPage() {
   const [atrSl, setAtrSl] = useState(1.5);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
-  const [beEnabled, setBeEnabled] = useState(true);
+  const [beEnabled, setBeEnabled] = useState(false);
   const [beMult, setBeMult] = useState(1.0);
-  const [trEnabled, setTrEnabled] = useState(true);
+  const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(2.0);
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+
+  const switchBroker = useCallback((next: BrokerKey) => {
+    if (next === broker) return;
+    // save current
+    brokerStatesRef.current[broker] = {
+      symbol, symbolQuery, direction, dateFrom, dateTo,
+      adxMin, atrSl, stochBuy, stochSell,
+      beEnabled, beMult, trEnabled, trMult, result,
+    };
+    // restore next
+    const s = brokerStatesRef.current[next];
+    setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
+    setDateFrom(s.dateFrom); setDateTo(s.dateTo);
+    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
+    setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
+    setResult(s.result); setError(null);
+    setBrokerState(next);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
+
+  const setDatePreset = useCallback((years: number | 'all') => {
+    if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
+    const to = new Date();
+    const from = new Date();
+    from.setFullYear(from.getFullYear() - years);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    setDateFrom(iso(from)); setDateTo(iso(to));
+  }, []);
 
   useEffect(() => {
     const checkServer = async () => {
