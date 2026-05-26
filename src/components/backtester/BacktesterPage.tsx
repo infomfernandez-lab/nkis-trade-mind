@@ -1038,13 +1038,24 @@ async function exportXlsx(session: SavedSession) {
   const equity = session.equity_curve ?? [];
   const a = computeAnalysis(trades, equity);
 
+  const p = session.params ?? ({} as Partial<BacktestParams>);
   const meta: any[][] = [
+    ['BACKTEST — Resultado completo'],
+    [],
     ['Símbolo', session.symbol],
     ['Broker', session.broker],
     ['Dirección', session.direction],
-    ['Desde', session.date_from ?? ''],
-    ['Hasta', session.date_to ?? ''],
-    ['Creado', session.created_at],
+    ['Periodo desde', session.date_from ?? 'Todo el historial'],
+    ['Periodo hasta', session.date_to ?? 'Todo el historial'],
+    ['Creado', new Date(session.created_at).toLocaleString('es-ES')],
+    [],
+    ['— Parámetros —'],
+    ['ADX mínimo', p.adx_min ?? ''],
+    ['ATR × SL', p.atr_sl ?? ''],
+    ['Stoch BUY', p.stoch_buy ?? ''],
+    ['Stoch SELL', p.stoch_sell ?? ''],
+    ['Breakeven', p.breakeven_enabled ? `ON ×${p.breakeven_mult}` : 'OFF'],
+    ['Trailing', p.trailing_enabled ? `ON ×${p.trailing_mult}` : 'OFF'],
     [],
     ['— Métricas principales —'],
     ['PnL Total', a.pnlTotal],
