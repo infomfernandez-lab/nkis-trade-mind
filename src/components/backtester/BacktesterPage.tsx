@@ -880,60 +880,78 @@ function fmtUsd(v: number | null | undefined) {
 }
 
 function TradesTable({ trades }: { trades: BacktestTrade[] }) {
+  const CHUNK = 20;
+  const chunks: BacktestTrade[][] = [];
+  if (trades.length === 0) {
+    chunks.push([]);
+  } else {
+    for (let i = 0; i < trades.length; i += CHUNK) {
+      chunks.push(trades.slice(i, i + CHUNK));
+    }
+  }
   return (
-    <div className="rounded-lg border border-border bg-card overflow-x-auto">
-      <table className="w-full text-base">
-        <thead className="bg-muted/40 border-b border-border">
-          <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            <th className="px-3 py-3">#</th>
-            <th className="px-3 py-3">Entrada</th>
-            <th className="px-3 py-3">Salida</th>
-            <th className="px-3 py-3 text-right">Precio</th>
-            <th className="px-3 py-3 text-right">SL</th>
-            <th className="px-3 py-3 text-right">Lotes</th>
-            <th className="px-3 py-3 text-right">Días</th>
-            <th className="px-3 py-3 text-right">MFE</th>
-            <th className="px-3 py-3 text-right">P&L</th>
-            <th className="px-3 py-3">Razón</th>
-          </tr>
-        </thead>
-        <tbody>
-          {trades.map((t, i) => {
-            const win = t.pnl >= 0;
-            const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
-            const pnlColor = win ? 'text-success' : 'text-destructive';
-            const reason = (t.reason ?? '—').toUpperCase();
-            const reasonBg = reason.includes('STOCH')
-              ? 'bg-success/30 text-success'
-              : reason.includes('SL') || reason.includes('STOP')
-              ? 'bg-destructive/30 text-destructive'
-              : reason.includes('BE')
-              ? 'bg-warning/30 text-warning'
-              : reason.includes('TRAIL')
-              ? 'bg-primary/30 text-primary'
-              : 'bg-muted/50 text-muted-foreground';
-            return (
-              <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
-                <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
-                <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
-                <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
-                <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
-                <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
-                <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
-                <td className="px-3 py-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
-                </td>
+    <div className="space-y-3">
+      {chunks.map((chunk, ci) => (
+        <div
+          key={ci}
+          data-pdf-section
+          className="rounded-lg border border-border bg-card overflow-x-auto"
+        >
+          <table className="w-full text-base">
+            <thead className="bg-muted/40 border-b border-border">
+              <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <th className="px-3 py-3">#</th>
+                <th className="px-3 py-3">Entrada</th>
+                <th className="px-3 py-3">Salida</th>
+                <th className="px-3 py-3 text-right">Precio</th>
+                <th className="px-3 py-3 text-right">SL</th>
+                <th className="px-3 py-3 text-right">Lotes</th>
+                <th className="px-3 py-3 text-right">Días</th>
+                <th className="px-3 py-3 text-right">MFE</th>
+                <th className="px-3 py-3 text-right">P&L</th>
+                <th className="px-3 py-3">Razón</th>
               </tr>
-            );
-          })}
-          {trades.length === 0 && (
-            <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {chunk.map((t, idx) => {
+                const i = ci * CHUNK + idx;
+                const win = t.pnl >= 0;
+                const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
+                const pnlColor = win ? 'text-success' : 'text-destructive';
+                const reason = (t.reason ?? '—').toUpperCase();
+                const reasonBg = reason.includes('STOCH')
+                  ? 'bg-success/30 text-success'
+                  : reason.includes('SL') || reason.includes('STOP')
+                  ? 'bg-destructive/30 text-destructive'
+                  : reason.includes('BE')
+                  ? 'bg-warning/30 text-warning'
+                  : reason.includes('TRAIL')
+                  ? 'bg-primary/30 text-primary'
+                  : 'bg-muted/50 text-muted-foreground';
+                return (
+                  <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
+                    <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
+                    <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
+                    <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
+                    <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
+                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
+                    <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {chunk.length === 0 && (
+                <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }
