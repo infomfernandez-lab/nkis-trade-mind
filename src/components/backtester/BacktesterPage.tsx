@@ -582,40 +582,13 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
     if (!el || !exportMeta) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(el, {
-        backgroundColor: '#0a0e1a',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      if (imgHeight <= pageHeight) {
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      } else {
-        const pxPerMm = canvas.width / imgWidth;
-        const pageHpx = pageHeight * pxPerMm;
-        let y = 0;
-        while (y < canvas.height) {
-          const sliceH = Math.min(pageHpx, canvas.height - y);
-          const tmp = document.createElement('canvas');
-          tmp.width = canvas.width;
-          tmp.height = sliceH;
-          const ctx = tmp.getContext('2d')!;
-          ctx.fillStyle = '#0a0e1a';
-          ctx.fillRect(0, 0, tmp.width, tmp.height);
-          ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-          if (y > 0) pdf.addPage();
-          pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgWidth, sliceH / pxPerMm);
-          y += sliceH;
-        }
-      }
-      pdf.save(`backtest_${exportMeta.symbol}_${exportMeta.broker}_${exportMeta.direction}.pdf`);
+      await exportPdfBySections(
+        el,
+        `backtest_${exportMeta.symbol}_${exportMeta.broker}_${exportMeta.direction}.pdf`
+      );
     } catch (e) {
       console.error('[exportPDF] failed', e);
+      toast.error('Error al exportar el PDF');
     } finally {
       setExporting(false);
     }
