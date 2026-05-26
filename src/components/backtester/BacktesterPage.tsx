@@ -955,7 +955,16 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
         </div>
       </div>
       {open && (
-        <div ref={panelRef} className="border-t border-border p-3 bg-background">
+        <div ref={panelRef} className="border-t border-border p-4 bg-background space-y-3">
+          <SessionHeader
+            symbol={session.symbol}
+            broker={session.broker}
+            direction={session.direction}
+            dateFrom={session.date_from}
+            dateTo={session.date_to}
+            createdAt={session.created_at}
+            params={session.params}
+          />
           <ResultsView result={sessionAsResult} />
         </div>
       )}
