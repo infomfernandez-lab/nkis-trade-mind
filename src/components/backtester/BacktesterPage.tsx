@@ -319,14 +319,11 @@ export default function BacktesterPage() {
   }
 
   return (
-    <div className="space-y-6 text-sm font-sans">
-      <header className="flex items-center gap-3">
-        <FlaskConical className="w-6 h-6 text-primary" />
-        <div>
-          <h1 className="text-xl font-bold">Backtester</h1>
-          <p className="text-xs text-muted-foreground">Ejecuta y guarda backtests del sistema CAP Trend Following</p>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Backtester</h1>
+        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests del sistema CAP Trend Following</p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -334,20 +331,20 @@ export default function BacktesterPage() {
         </CardHeader>
         <CardContent className="space-y-5">
           {/* Cuenta */}
-          <div>
-            <Label className="mb-2 block">Cuenta</Label>
-            <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground font-medium">Cuenta</span>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
               {(['nkis', 'octx'] as BrokerKey[]).map(b => (
                 <button
                   key={b}
                   onClick={() => switchBroker(b)}
-                  className={`px-4 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                     broker === b
-                      ? 'bg-primary/20 text-primary border-primary/40'
-                      : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-transparent text-muted-foreground hover:bg-accent'
                   }`}
                 >
-                  {b === 'nkis' ? 'NKIS' : 'OCTX'}
+                  {b === 'nkis' ? 'NK' : 'OX'}
                 </button>
               ))}
             </div>
@@ -355,7 +352,7 @@ export default function BacktesterPage() {
 
           {/* Símbolo — picker estilo Radar */}
           <div>
-            <Label className="mb-2 block">Símbolo</Label>
+            <Label className="mb-2 block text-xs text-muted-foreground font-medium">Símbolo</Label>
             <RadarSymbolPicker
               broker={broker}
               selected={symbol}
@@ -363,25 +360,23 @@ export default function BacktesterPage() {
             />
             {symbol && (
               <div className="mt-2 text-xs text-primary">
-                Seleccionado: <span className="font-mono font-semibold">{symbol}</span>
+                Seleccionado: <span className="font-data font-semibold">{symbol}</span>
               </div>
             )}
           </div>
 
           {/* Dirección */}
-          <div>
-            <Label className="mb-2 block">Dirección</Label>
-            <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground font-medium">Dirección</span>
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
               {(['BUY', 'SELL'] as Direction[]).map(d => (
                 <button
                   key={d}
                   onClick={() => setDirection(d)}
-                  className={`px-4 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
+                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
                     direction === d
-                      ? d === 'BUY'
-                        ? 'bg-success/20 text-success border-success/40'
-                        : 'bg-destructive/20 text-destructive border-destructive/40'
-                      : 'bg-secondary text-muted-foreground border-border hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-transparent text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   {d}
@@ -389,6 +384,7 @@ export default function BacktesterPage() {
               ))}
             </div>
           </div>
+
 
           {/* Fechas */}
           <div className="space-y-2">
@@ -888,40 +884,63 @@ function fmtUsd(v: number | null | undefined) {
 
 function TradesTable({ trades }: { trades: BacktestTrade[] }) {
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Entrada</TableHead>
-            <TableHead>Salida</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="text-right">SL</TableHead>
-            <TableHead className="text-right">Lotes</TableHead>
-            <TableHead className="text-right">Días</TableHead>
-            <TableHead className="text-right">MFE</TableHead>
-            <TableHead className="text-right">PnL</TableHead>
-            <TableHead>Razón</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {trades.map((t, i) => (
-            <TableRow key={i}>
-              <TableCell className="font-mono text-xs">{fmtDate(t.entry_date)}</TableCell>
-              <TableCell className="font-mono text-xs">{fmtDate(t.exit_date)}</TableCell>
-              <TableCell className="text-right font-mono text-xs">{fmtNum(t.entry_price, 4)}</TableCell>
-              <TableCell className="text-right font-mono text-xs">{fmtNum(t.sl_price, 4)}</TableCell>
-              <TableCell className="text-right font-mono text-xs">{fmtNum(t.lot_size, 2)}</TableCell>
-              <TableCell className="text-right font-mono text-xs">{t.days ?? '—'}</TableCell>
-              <TableCell className="text-right font-mono text-xs">{fmtNum(t.mfe, 2)}</TableCell>
-              <TableCell className={`text-right font-mono text-xs font-semibold ${t.pnl >= 0 ? 'text-success' : 'text-destructive'}`}>{fmtNum(t.pnl, 2)}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{t.reason ?? '—'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="rounded-lg border border-border bg-card overflow-x-auto">
+      <table className="w-full text-base">
+        <thead className="bg-muted/40 border-b border-border">
+          <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            <th className="px-3 py-3">#</th>
+            <th className="px-3 py-3">Entrada</th>
+            <th className="px-3 py-3">Salida</th>
+            <th className="px-3 py-3 text-right">Precio</th>
+            <th className="px-3 py-3 text-right">SL</th>
+            <th className="px-3 py-3 text-right">Lotes</th>
+            <th className="px-3 py-3 text-right">Días</th>
+            <th className="px-3 py-3 text-right">MFE</th>
+            <th className="px-3 py-3 text-right">P&L</th>
+            <th className="px-3 py-3">Razón</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trades.map((t, i) => {
+            const win = t.pnl >= 0;
+            const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
+            const pnlColor = win ? 'text-success' : 'text-destructive';
+            const reason = (t.reason ?? '—').toUpperCase();
+            const reasonBg = reason.includes('STOCH')
+              ? 'bg-success/30 text-success'
+              : reason.includes('SL') || reason.includes('STOP')
+              ? 'bg-destructive/30 text-destructive'
+              : reason.includes('BE')
+              ? 'bg-warning/30 text-warning'
+              : reason.includes('TRAIL')
+              ? 'bg-primary/30 text-primary'
+              : 'bg-muted/50 text-muted-foreground';
+            return (
+              <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
+                <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
+                <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
+                <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
+                <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
+                <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
+                <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
+                <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
+                <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
+                <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
+                <td className="px-3 py-3">
+                  <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
+                </td>
+              </tr>
+            );
+          })}
+          {trades.length === 0 && (
+            <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
+
 
 function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
@@ -1152,12 +1171,13 @@ function SessionHeader({ symbol, broker, direction, dateFrom, dateTo, createdAt,
 function Metric({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
   const colorClass = positive == null ? 'text-foreground' : positive ? 'text-success' : 'text-destructive';
   return (
-    <div className="p-3 rounded-md border border-border bg-secondary/40">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`text-lg font-data font-bold ${colorClass}`}>{value}</div>
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
+      <div className={`text-2xl font-data font-bold ${colorClass}`}>{value}</div>
     </div>
   );
 }
+
 
 function fmtNum(v: number | null | undefined, decimals = 2) {
   if (v == null || Number.isNaN(v)) return '—';
