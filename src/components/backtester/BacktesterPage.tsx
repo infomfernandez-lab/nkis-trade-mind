@@ -751,12 +751,13 @@ function exitColor(reason: string) {
 }
 
 function normalizeReason(raw: string | undefined): string {
-  const r = (raw ?? '').toUpperCase();
-  if (r.includes('STOCH')) return 'STOCH';
-  if (r.includes('BE') || r.includes('BREAKEVEN')) return 'BE';
+  const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('STOCH') || r.includes('SIGNAL') || r.includes('CROSS') || r.includes('EXIT')) return 'STOCH';
+  if (r.includes('BREAKEVEN') || r === 'BE' || r.includes('_BE') || r.includes('BE_')) return 'BE';
   if (r.includes('TRAIL')) return 'TRAIL';
-  if (r.includes('SL') || r.includes('STOP')) return 'SL';
-  return r || 'OTRO';
+  if (r.includes('SL') || r.includes('STOP') || r.includes('LOSS')) return 'SL';
+  // El sistema solo sale por SL o STOCH: cualquier salida no clasificada se asume STOCH (take por señal)
+  return 'STOCH';
 }
 
 function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity_curve']) {
@@ -954,8 +955,52 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
         </div>
       </div>
       {open && (
-        <div ref={panelRef} className="border-t border-border p-3 bg-background">
+        <div ref={panelRef} className="border-t border-border p-4 bg-background space-y-3">
+          <SessionHeader
+            symbol={session.symbol}
+            broker={session.broker}
+            direction={session.direction}
+            dateFrom={session.date_from}
+            dateTo={session.date_to}
+            createdAt={session.created_at}
+            params={session.params}
+          />
           <ResultsView result={sessionAsResult} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SessionHeader({ symbol, broker, direction, dateFrom, dateTo, createdAt, params }: {
+  symbol: string; broker: string; direction: string;
+  dateFrom: string | null; dateTo: string | null; createdAt: string;
+  params?: BacktestParams;
+}) {
+  const periodo = dateFrom || dateTo
+    ? `${dateFrom ?? '—'}  →  ${dateTo ?? '—'}`
+    : 'Todo el historial disponible';
+  return (
+    <div className="border border-border rounded-md p-3 bg-secondary/30">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div className="text-base font-bold font-mono">{symbol}</div>
+          <div className="text-xs text-muted-foreground">
+            {broker.toUpperCase()} · {direction} · Periodo: <span className="font-mono">{periodo}</span>
+          </div>
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          Generado: {new Date(createdAt).toLocaleString('es-ES')}
+        </div>
+      </div>
+      {params && (
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <div>ADX mín: <span className="font-mono text-foreground">{params.adx_min}</span></div>
+          <div>ATR×SL: <span className="font-mono text-foreground">{params.atr_sl}</span></div>
+          <div>Stoch BUY: <span className="font-mono text-foreground">{params.stoch_buy}</span></div>
+          <div>Stoch SELL: <span className="font-mono text-foreground">{params.stoch_sell}</span></div>
+          <div>Breakeven: <span className="font-mono text-foreground">{params.breakeven_enabled ? `ON ×${params.breakeven_mult}` : 'OFF'}</span></div>
+          <div>Trailing: <span className="font-mono text-foreground">{params.trailing_enabled ? `ON ×${params.trailing_mult}` : 'OFF'}</span></div>
         </div>
       )}
     </div>
@@ -993,13 +1038,24 @@ async function exportXlsx(session: SavedSession) {
   const equity = session.equity_curve ?? [];
   const a = computeAnalysis(trades, equity);
 
+  const p = session.params ?? ({} as Partial<BacktestParams>);
   const meta: any[][] = [
+    ['BACKTEST — Resultado completo'],
+    [],
     ['Símbolo', session.symbol],
     ['Broker', session.broker],
     ['Dirección', session.direction],
-    ['Desde', session.date_from ?? ''],
-    ['Hasta', session.date_to ?? ''],
-    ['Creado', session.created_at],
+    ['Periodo desde', session.date_from ?? 'Todo el historial'],
+    ['Periodo hasta', session.date_to ?? 'Todo el historial'],
+    ['Creado', new Date(session.created_at).toLocaleString('es-ES')],
+    [],
+    ['— Parámetros —'],
+    ['ADX mínimo', p.adx_min ?? ''],
+    ['ATR × SL', p.atr_sl ?? ''],
+    ['Stoch BUY', p.stoch_buy ?? ''],
+    ['Stoch SELL', p.stoch_sell ?? ''],
+    ['Breakeven', p.breakeven_enabled ? `ON ×${p.breakeven_mult}` : 'OFF'],
+    ['Trailing', p.trailing_enabled ? `ON ×${p.trailing_mult}` : 'OFF'],
     [],
     ['— Métricas principales —'],
     ['PnL Total', a.pnlTotal],
