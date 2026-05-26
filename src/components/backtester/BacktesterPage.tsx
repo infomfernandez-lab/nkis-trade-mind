@@ -1288,25 +1288,31 @@ async function exportXlsx(session: SavedSession) {
   XLSX.writeFile(wb, `backtest_${session.symbol}_${session.id.slice(0, 8)}.xlsx`);
 }
 
-async function exportPdf(session: SavedSession, node: HTMLElement) {
-  try {
-    const canvas = await html2canvas(node, {
+async function exportPdfBySections(root: HTMLElement, filename: string) {
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = 210;
+  const pageH = 297;
+  const margin = 0;
+
+  let sections = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
+  if (sections.length === 0) sections = [root];
+
+  let currentY = 0;
+  let firstPage = true;
+
+  for (const section of sections) {
+    const canvas = await html2canvas(section, {
       backgroundColor: '#0a0e1a',
       scale: 2,
       useCORS: true,
       logging: false,
     });
-    const imgW = 210; // A4 mm
-    const pageH = 297;
-    const ratio = canvas.height / canvas.width;
-    const imgH = imgW * ratio;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
 
-    if (imgH <= pageH) {
-      doc.addImage(imgData, 'JPEG', 0, 0, imgW, imgH);
-    } else {
-      // paginate by slicing
+    // If the section itself is taller than a page, slice it across pages
+    if (imgH > pageH) {
+      if (!firstPage) { pdf.addPage(); currentY = 0; }
       const pxPerMm = canvas.width / imgW;
       const pageHpx = pageH * pxPerMm;
       let y = 0;
@@ -1319,13 +1325,30 @@ async function exportPdf(session: SavedSession, node: HTMLElement) {
         ctx.fillStyle = '#0a0e1a';
         ctx.fillRect(0, 0, tmp.width, tmp.height);
         ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        const slice = tmp.toDataURL('image/jpeg', 0.92);
-        if (y > 0) doc.addPage();
-        doc.addImage(slice, 'JPEG', 0, 0, imgW, sliceH / pxPerMm);
+        if (y > 0) pdf.addPage();
+        pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', margin, 0, imgW, sliceH / pxPerMm);
         y += sliceH;
       }
+      currentY = pageH; // force new page for next section
+      firstPage = false;
+      continue;
     }
-    doc.save(`backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
+
+    if (!firstPage && currentY + imgH > pageH) {
+      pdf.addPage();
+      currentY = 0;
+    }
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, currentY, imgW, imgH);
+    currentY += imgH + 3;
+    firstPage = false;
+  }
+
+  pdf.save(filename);
+}
+
+async function exportPdf(session: SavedSession, node: HTMLElement) {
+  try {
+    await exportPdfBySections(node, `backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
   } catch (e) {
     console.error('[exportPdf] failed', e);
     toast.error('No se pudo exportar el PDF');
