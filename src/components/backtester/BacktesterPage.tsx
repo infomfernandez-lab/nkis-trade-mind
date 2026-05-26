@@ -657,7 +657,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
               <p className="text-xs text-muted-foreground">Análisis avanzado para identificar puntos débiles del sistema.</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div data-pdf-section className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Metric label="Captura MFE" value={fmtPct(analysis.mfeCaptureRatio)} positive={analysis.mfeCaptureRatio >= 0.6} />
               <Metric label="Racha ganadora máx" value={String(analysis.maxWinStreak)} />
               <Metric label="Racha perdedora máx" value={String(analysis.maxLossStreak)} positive={false} />
