@@ -625,7 +625,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
 
         {/* Curva de equity */}
         {equity.length > 0 && (
-          <div>
+          <div data-pdf-section>
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Curva de equity</div>
             <div className="h-64 rounded-md overflow-hidden" style={{ background: CHART_BG }}>
               <ResponsiveContainer width="100%" height="100%">
