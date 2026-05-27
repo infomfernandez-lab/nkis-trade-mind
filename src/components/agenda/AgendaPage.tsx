@@ -80,7 +80,7 @@ export default function AgendaPage() {
               <CalendarIcon className="w-3.5 h-3.5" /> Calendario
             </button>
           </div>
-          <Button onClick={() => setDialogOpen(true)} size="sm">
+          <Button onClick={openNew} size="sm">
             <Plus className="w-4 h-4" /> Nueva actividad
           </Button>
         </div>
@@ -107,12 +107,12 @@ export default function AgendaPage() {
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : view === 'list' ? (
-        <ListView grouped={grouped} />
+        <ListView grouped={grouped} onEdit={openEdit} />
       ) : (
         <CalendarView activities={filtered} />
       )}
 
-      <NewActivityDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <NewActivityDialog open={dialogOpen} onOpenChange={setDialogOpen} activity={editing} />
     </div>
   );
 }
@@ -154,7 +154,7 @@ function ListView({ grouped }: { grouped: [string, Activity[]][] }) {
           <div key={dateKey}>
             <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{label}</div>
             <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
-              {items.map(a => <ActivityRow key={a.id} activity={a} />)}
+              {items.map(a => <ActivityRow key={a.id} activity={a} onEdit={onEdit} />)}
             </div>
           </div>
         );
