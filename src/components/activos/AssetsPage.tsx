@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { assetsSupabase } from './assets-supabase-client';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRightPanel } from '@/contexts/RightPanelContext';
