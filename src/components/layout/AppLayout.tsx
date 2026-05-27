@@ -2,7 +2,7 @@ import { Link, useLocation } from '@tanstack/react-router';
 import { useState, createContext, useContext, useMemo, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, BookOpen, Brain, BookMarked, FileText,
-  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator, Sun, Moon, FlaskConical,
+  Settings, Menu, X, LogOut, Radar, BarChart3, Calculator, Sun, Moon, FlaskConical, CalendarDays,
 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, computeStatsFromTrades, filterByBroker, type BrokerFilter } from '@/lib/trade-utils';
@@ -27,6 +27,7 @@ const navItems = [
   { to: '/radar' as const, label: 'Radar', icon: Radar },
   { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
   { to: '/backtester' as const, label: 'Backtester', icon: FlaskConical },
+  { to: '/agenda' as const, label: 'Agenda', icon: CalendarDays },
   { to: '/calculator' as const, label: 'Calculadora', icon: Calculator },
   { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
