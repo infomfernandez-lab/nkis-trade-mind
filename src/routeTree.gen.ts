@@ -22,6 +22,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as CalculatorRouteImport } from './routes/calculator'
 import { Route as BacktesterRouteImport } from './routes/backtester'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as ActivosRouteImport } from './routes/activos'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
@@ -93,6 +94,11 @@ const AgendaRoute = AgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActivosRoute = ActivosRouteImport.update({
+  id: '/activos',
+  path: '/activos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -121,6 +127,7 @@ const ApiSyncBalanceRoute = ApiSyncBalanceRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activos': typeof ActivosRoute
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activos': typeof ActivosRoute
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activos': typeof ActivosRoute
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/activos'
     | '/agenda'
     | '/backtester'
     | '/calculator'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/activos'
     | '/agenda'
     | '/backtester'
     | '/calculator'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/activos'
     | '/agenda'
     | '/backtester'
     | '/calculator'
@@ -245,6 +257,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivosRoute: typeof ActivosRoute
   AgendaRoute: typeof AgendaRoute
   BacktesterRoute: typeof BacktesterRoute
   CalculatorRoute: typeof CalculatorRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activos': {
+      id: '/activos'
+      path: '/activos'
+      fullPath: '/activos'
+      preLoaderRoute: typeof ActivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -397,6 +417,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivosRoute: ActivosRoute,
   AgendaRoute: AgendaRoute,
   BacktesterRoute: BacktesterRoute,
   CalculatorRoute: CalculatorRoute,
