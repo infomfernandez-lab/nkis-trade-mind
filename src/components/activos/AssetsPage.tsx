@@ -39,10 +39,10 @@ export default function AssetsPage() {
     queryKey: ['assets-all'],
     queryFn: async () => {
       // Test simple: primeras 10 filas + count
-      const probe = await supabase.from('assets').select('*', { count: 'exact' }).limit(10);
+      const probe = await assetsSupabase.from('assets').select('*', { count: 'exact' }).limit(10);
       console.log('[Activos] probe (primeras 10):', probe);
 
-      const { data, error, count } = await supabase
+      const { data, error, count } = await assetsSupabase
         .from('assets')
         .select('*', { count: 'exact' })
         .order('last_score', { ascending: false, nullsFirst: false })
