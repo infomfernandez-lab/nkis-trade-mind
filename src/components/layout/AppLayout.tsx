@@ -11,6 +11,7 @@ import { useWatchlist } from '@/hooks/use-watchlist';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { useTheme } from '@/hooks/use-theme';
 import { BrokerSelector } from '@/components/BrokerSelector';
+import { RightPanel } from '@/contexts/RightPanelContext';
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
   broker: 'all',
