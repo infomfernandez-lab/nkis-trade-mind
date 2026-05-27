@@ -28,6 +28,7 @@ import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
 import { Route as ApiSyncEaWatchlistRouteImport } from './routes/api/sync-ea-watchlist'
 import { Route as ApiSyncBalanceRouteImport } from './routes/api/sync-balance'
+import { Route as ActivosBrokerSymbolRouteImport } from './routes/activos.$broker.$symbol'
 
 const WatchlistRoute = WatchlistRouteImport.update({
   id: '/watchlist',
@@ -124,10 +125,15 @@ const ApiSyncBalanceRoute = ApiSyncBalanceRouteImport.update({
   path: '/api/sync-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActivosBrokerSymbolRoute = ActivosBrokerSymbolRouteImport.update({
+  id: '/$broker/$symbol',
+  path: '/$broker/$symbol',
+  getParentRoute: () => ActivosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/activos': typeof ActivosRoute
+  '/activos': typeof ActivosRouteWithChildren
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -145,10 +151,11 @@ export interface FileRoutesByFullPath {
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
+  '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/activos': typeof ActivosRoute
+  '/activos': typeof ActivosRouteWithChildren
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -166,11 +173,12 @@ export interface FileRoutesByTo {
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
+  '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/activos': typeof ActivosRoute
+  '/activos': typeof ActivosRouteWithChildren
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
+  '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
+    | '/activos/$broker/$symbol'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
+    | '/activos/$broker/$symbol'
   id:
     | '__root__'
     | '/'
@@ -253,11 +264,12 @@ export interface FileRouteTypes {
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
     | '/api/sync-trades'
+    | '/activos/$broker/$symbol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ActivosRoute: typeof ActivosRoute
+  ActivosRoute: typeof ActivosRouteWithChildren
   AgendaRoute: typeof AgendaRoute
   BacktesterRoute: typeof BacktesterRoute
   CalculatorRoute: typeof CalculatorRoute
@@ -412,12 +424,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activos/$broker/$symbol': {
+      id: '/activos/$broker/$symbol'
+      path: '/$broker/$symbol'
+      fullPath: '/activos/$broker/$symbol'
+      preLoaderRoute: typeof ActivosBrokerSymbolRouteImport
+      parentRoute: typeof ActivosRoute
+    }
   }
 }
 
+interface ActivosRouteChildren {
+  ActivosBrokerSymbolRoute: typeof ActivosBrokerSymbolRoute
+}
+
+const ActivosRouteChildren: ActivosRouteChildren = {
+  ActivosBrokerSymbolRoute: ActivosBrokerSymbolRoute,
+}
+
+const ActivosRouteWithChildren =
+  ActivosRoute._addFileChildren(ActivosRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ActivosRoute: ActivosRoute,
+  ActivosRoute: ActivosRouteWithChildren,
   AgendaRoute: AgendaRoute,
   BacktesterRoute: BacktesterRoute,
   CalculatorRoute: CalculatorRoute,
