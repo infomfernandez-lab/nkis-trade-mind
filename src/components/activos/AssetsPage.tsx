@@ -37,18 +37,20 @@ export default function AssetsPage() {
   const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
     queryFn: async () => {
-      // Test simple: primeras 10 filas + count
-      const probe = await assetsSupabase.from('assets').select('*', { count: 'exact' }).limit(10);
-      console.log('[Activos] probe (primeras 10):', probe);
+      // RAW: sin filtros, sin orden, sin limit explícito (Supabase usa 1000 por defecto)
+      const raw = await assetsSupabase.from('assets').select('*');
+      console.log('[Activos] RAW query →', {
+        error: raw.error,
+        rows: raw.data?.length,
+        first5: raw.data?.slice(0, 5),
+      });
+      if (raw.error) throw raw.error;
 
-      const { data, error, count } = await assetsSupabase
-        .from('assets')
-        .select('*', { count: 'exact' })
-        .order('last_score', { ascending: false, nullsFirst: false })
-        .limit(2000);
-      console.log('[Activos] full query →', { count, rows: data?.length, error });
-      if (error) throw error;
-      return (data ?? []) as Asset[];
+      // Count separado
+      const c = await assetsSupabase.from('assets').select('*', { count: 'exact', head: true });
+      console.log('[Activos] COUNT →', { count: c.count, error: c.error });
+
+      return (raw.data ?? []) as Asset[];
     },
   });
 
