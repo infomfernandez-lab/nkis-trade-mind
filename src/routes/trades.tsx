@@ -396,16 +396,12 @@ interface TradeRowProps {
   num: number;
   fullName: string;
   scannerSessions: any[];
-  expanded: boolean;
-  onToggle: () => void;
 }
 
-function TradeRow({ trade, num, fullName, scannerSessions, expanded, onToggle }: TradeRowProps) {
-  const queryClient = useQueryClient();
+function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
+  const { openPanel } = useRightPanel();
   const close = detectCloseType(trade);
-  const rr = computeRR(trade);
   const journalDone = hasJournal(trade);
-  const scanner = lookupScannerRank(trade, scannerSessions);
 
   const rowBg = trade.netPnl >= 0
     ? 'bg-success/15 hover:bg-success/25'
@@ -415,96 +411,99 @@ function TradeRow({ trade, num, fullName, scannerSessions, expanded, onToggle }:
   const pnlColor = trade.netPnl >= 0 ? 'text-success' : 'text-destructive';
   const dirBg = trade.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive';
 
+  const handleOpen = () => {
+    openPanel(
+      <TradeDetail trade={trade} scannerSessions={scannerSessions} />,
+      `${trade.symbol} — ${fullName}`
+    );
+  };
+
   return (
-    <>
-      <tr
-        onClick={onToggle}
-        className={`border-b border-border cursor-pointer transition-colors ${rowBg}`}
-      >
-        <td className="px-3 py-3 font-data text-muted-foreground">{num}</td>
-        <td className="px-3 py-3 font-semibold">{trade.symbol}</td>
-        <td className="px-3 py-3 text-muted-foreground">{fullName}</td>
-        <td className="px-3 py-3">
-          <span className={`px-2 py-0.5 rounded text-sm font-data font-bold ${dirBg}`}>{trade.direction}</span>
-        </td>
-        <td className="px-3 py-3 font-data">{brokerLabel}</td>
-        <td className="px-3 py-3 font-data">{formatShortDate(trade.entryDate)}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.entryPrice}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.exitPrice ?? '—'}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.slPrice}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.tpPrice}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.lotSize}</td>
-        <td className="px-3 py-3 font-data text-right">{trade.durationHours}h</td>
-        <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{formatEur(trade.netPnl)}</td>
-        <td className="px-3 py-3 text-right">
-          <div className="inline-flex items-center gap-2">
-            {journalDone ? (
-              <BookCheck className="w-4 h-4 text-primary" aria-label="Bitácora rellenada" />
-            ) : (
-              <Circle className="w-4 h-4 text-muted-foreground/50" aria-label="Bitácora vacía" />
-            )}
-            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+    <tr onClick={handleOpen} className={`border-b border-border cursor-pointer transition-colors ${rowBg}`}>
+      <td className="px-3 py-3 font-data text-muted-foreground">{num}</td>
+      <td className="px-3 py-3 font-semibold">{trade.symbol}</td>
+      <td className="px-3 py-3 text-muted-foreground">{fullName}</td>
+      <td className="px-3 py-3">
+        <span className={`px-2 py-0.5 rounded text-sm font-data font-bold ${dirBg}`}>{trade.direction}</span>
+      </td>
+      <td className="px-3 py-3 font-data">{brokerLabel}</td>
+      <td className="px-3 py-3 font-data">{formatShortDate(trade.entryDate)}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.entryPrice}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.exitPrice ?? '—'}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.slPrice}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.tpPrice}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.lotSize}</td>
+      <td className="px-3 py-3 font-data text-right">{trade.durationHours}h</td>
+      <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{formatEur(trade.netPnl)}</td>
+      <td className="px-3 py-3 text-right">
+        {journalDone ? (
+          <BookCheck className="w-4 h-4 text-primary inline" aria-label="Bitácora rellenada" />
+        ) : (
+          <Circle className="w-4 h-4 text-muted-foreground/50 inline" aria-label="Bitácora vacía" />
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function TradeDetail({ trade, scannerSessions }: { trade: Trade; scannerSessions: any[] }) {
+  const queryClient = useQueryClient();
+  const close = detectCloseType(trade);
+  const rr = computeRR(trade);
+  const scanner = lookupScannerRank(trade, scannerSessions);
+  const brokerLabel = trade.broker === 'darwinex' ? 'NK' : trade.broker === 'octx' ? 'OX' : trade.broker;
+
+  return (
+    <div className="space-y-6 text-sm">
+      <Section title="Datos del Trade">
+        <Grid>
+          <Field label="Ticket" value={`#${trade.ticket}`} />
+          <Field label="Broker" value={brokerLabel} />
+          <Field label="Precio Entrada" value={String(trade.entryPrice)} mono />
+          <Field label="Precio Salida" value={String(trade.exitPrice ?? '—')} mono />
+          <Field label="SL" value={String(trade.slPrice)} mono />
+          <Field label="TP" value={String(trade.tpPrice)} mono />
+          <Field label="Lotaje" value={String(trade.lotSize)} mono />
+          <Field label="P&L Bruto" value={formatEur(trade.grossPnl)} pnl={trade.grossPnl} />
+          <Field label="Comisión" value={`€${trade.commission}`} />
+          <Field label="Swap" value={`€${trade.swap}`} />
+          <Field label="P&L Neto" value={formatEur(trade.netPnl)} pnl={trade.netPnl} />
+          <Field label="Duración" value={`${trade.durationHours}h`} />
+          <Field label="RR Real" value={rr != null ? rr.toFixed(2) : '—'} mono />
+          <div>
+            <div className="text-xs text-muted-foreground mb-0.5">Tipo de Cierre</div>
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-data font-bold ${close.bg} ${close.color}`}>
+              {close.label}
+            </span>
           </div>
-        </td>
-      </tr>
+        </Grid>
+      </Section>
 
-      {expanded && (
-        <tr>
-          <td colSpan={14} className="border-b border-border bg-card p-4 lg:p-6">
-            <div className="space-y-6 text-sm">
-              <Section title="Datos del Trade">
-                <Grid>
-                  <Field label="Ticket" value={`#${trade.ticket}`} />
-                  <Field label="Broker" value={brokerLabel} />
-                  <Field label="Precio Entrada" value={String(trade.entryPrice)} mono />
-                  <Field label="Precio Salida" value={String(trade.exitPrice ?? '—')} mono />
-                  <Field label="SL" value={String(trade.slPrice)} mono />
-                  <Field label="TP" value={String(trade.tpPrice)} mono />
-                  <Field label="Lotaje" value={String(trade.lotSize)} mono />
-                  <Field label="P&L Bruto" value={formatEur(trade.grossPnl)} pnl={trade.grossPnl} />
-                  <Field label="Comisión" value={`€${trade.commission}`} />
-                  <Field label="Swap" value={`€${trade.swap}`} />
-                  <Field label="P&L Neto" value={formatEur(trade.netPnl)} pnl={trade.netPnl} />
-                  <Field label="Duración" value={`${trade.durationHours}h`} />
-                  <Field label="RR Real" value={rr != null ? rr.toFixed(2) : '—'} mono />
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-0.5">Tipo de Cierre</div>
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-data font-bold ${close.bg} ${close.color}`}>
-                      {close.label}
-                    </span>
-                  </div>
-                </Grid>
-              </Section>
+      <Section title="Indicadores al Momento de Entrada">
+        <Grid>
+          <Field label="ADX" value={`${trade.adxValue} (${trade.adxState})`} mono />
+          <Field label="Dist. a MA50" value={`${trade.distanceToMA50}% (${trade.distanceToMA50Label})`} mono />
+          <Field label="Momentum 20d" value={`${trade.momentum20d}% ${trade.momentumAligned ? '✓ Alineado' : '✗ No alineado'}`} mono />
+          <Field label="Stochastic K" value={String(trade.stochasticK)} mono />
+          <Field
+            label="Ranking Scanner"
+            value={
+              scanner.rank != null
+                ? `#${scanner.rank} de ${scanner.total} — Score: ${scanner.score ?? '—'}`
+                : 'No estaba en el radar'
+            }
+          />
+          <Field label="VIX al Entrar" value={trade.vixAtEntry != null ? `VIX: ${trade.vixAtEntry}` : 'VIX: —'} />
+        </Grid>
+      </Section>
 
-              <Section title="Indicadores al Momento de Entrada">
-                <Grid>
-                  <Field label="ADX" value={`${trade.adxValue} (${trade.adxState})`} mono />
-                  <Field label="Dist. a MA50" value={`${trade.distanceToMA50}% (${trade.distanceToMA50Label})`} mono />
-                  <Field label="Momentum 20d" value={`${trade.momentum20d}% ${trade.momentumAligned ? '✓ Alineado' : '✗ No alineado'}`} mono />
-                  <Field label="Stochastic K" value={String(trade.stochasticK)} mono />
-                  <Field
-                    label="Ranking Scanner"
-                    value={
-                      scanner.rank != null
-                        ? `#${scanner.rank} de ${scanner.total} — Score: ${scanner.score ?? '—'}`
-                        : 'No estaba en el radar'
-                    }
-                  />
-                  <Field label="VIX al Entrar" value={trade.vixAtEntry != null ? `VIX: ${trade.vixAtEntry}` : 'VIX: —'} />
-                </Grid>
-              </Section>
-
-              <TradeJournal
-                trade={trade}
-                scannerInfo={scanner}
-                vixValue={trade.vixAtEntry}
-                onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
-              />
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+      <TradeJournal
+        trade={trade}
+        scannerInfo={scanner}
+        vixValue={trade.vixAtEntry}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
+      />
+    </div>
   );
 }
 
