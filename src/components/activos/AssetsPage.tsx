@@ -35,18 +35,25 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const { openPanel } = useRightPanel();
 
-  const { data: assets = [], isLoading } = useQuery({
+  const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Test simple: primeras 10 filas + count
+      const probe = await supabase.from('assets').select('*', { count: 'exact' }).limit(10);
+      console.log('[Activos] probe (primeras 10):', probe);
+
+      const { data, error, count } = await supabase
         .from('assets')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('last_score', { ascending: false, nullsFirst: false })
         .limit(2000);
+      console.log('[Activos] full query →', { count, rows: data?.length, error });
       if (error) throw error;
       return (data ?? []) as Asset[];
     },
   });
+
+  if (queryError) console.error('[Activos] queryError:', queryError);
 
   const familias = useMemo(() => {
     const s = new Set<string>();
