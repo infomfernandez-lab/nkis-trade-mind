@@ -142,7 +142,7 @@ export default function AssetsPage() {
               <TableRow
                 key={`${a.symbol}-${a.broker}`}
                 className="cursor-pointer"
-                onClick={() => openPanel(<AssetInfoPanel symbol={a.symbol} broker={a.broker} />, a.symbol)}
+                onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: a.broker, symbol: a.symbol } })}
               >
                 <TableCell className="font-data font-bold">
                   {a.symbol}
