@@ -323,8 +323,6 @@ function TradeLog() {
                 num={num}
                 fullName={name}
                 scannerSessions={scannerSessions ?? []}
-                expanded={expandedId === trade.id}
-                onToggle={() => setExpandedId(expandedId === trade.id ? null : trade.id)}
               />
             ))}
             {display.length === 0 && (
