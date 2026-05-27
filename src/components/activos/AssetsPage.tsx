@@ -37,18 +37,20 @@ export default function AssetsPage() {
   const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
     queryFn: async () => {
-      // Test simple: primeras 10 filas + count
-      const probe = await assetsSupabase.from('assets').select('*', { count: 'exact' }).limit(10);
-      console.log('[Activos] probe (primeras 10):', probe);
+      // RAW: sin filtros, sin orden, sin limit explícito (Supabase usa 1000 por defecto)
+      const raw = await assetsSupabase.from('assets').select('*');
+      console.log('[Activos] RAW query →', {
+        error: raw.error,
+        rows: raw.data?.length,
+        first5: raw.data?.slice(0, 5),
+      });
+      if (raw.error) throw raw.error;
 
-      const { data, error, count } = await assetsSupabase
-        .from('assets')
-        .select('*', { count: 'exact' })
-        .order('last_score', { ascending: false, nullsFirst: false })
-        .limit(2000);
-      console.log('[Activos] full query →', { count, rows: data?.length, error });
-      if (error) throw error;
-      return (data ?? []) as Asset[];
+      // Count separado
+      const c = await assetsSupabase.from('assets').select('*', { count: 'exact', head: true });
+      console.log('[Activos] COUNT →', { count: c.count, error: c.error });
+
+      return (raw.data ?? []) as Asset[];
     },
   });
 
@@ -62,14 +64,16 @@ export default function AssetsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toUpperCase();
-    return assets.filter(a => {
-      if (brokerF !== 'all' && a.broker !== brokerF) return false;
+    const out = assets.filter(a => {
+      if (brokerF !== 'all' && (a.broker ?? '').toLowerCase() !== brokerF) return false;
       if (familiaF !== 'all' && a.familia !== familiaF) return false;
       if (dirF !== 'all' && (a.last_direction ?? '').toUpperCase() !== dirF) return false;
       if (activeF === 'active' && !a.is_active_scanner) return false;
       if (q && !a.symbol.toUpperCase().includes(q)) return false;
       return true;
     });
+    out.sort((a, b) => (Number(b.last_score ?? -Infinity)) - (Number(a.last_score ?? -Infinity)));
+    return out;
   }, [assets, brokerF, familiaF, dirF, activeF, search]);
 
   const activeCount = assets.filter(a => a.is_active_scanner).length;
