@@ -20,9 +20,14 @@ export const Route = createFileRoute('/api/assets-proxy')({
               apikey: EXTERNAL_KEY,
               Authorization: `Bearer ${EXTERNAL_KEY}`,
               Accept: 'application/json',
-              Prefer: request.headers.get('prefer') ?? '',
+              // Override PostgREST default max-rows (often 1000) by requesting
+              // an explicit byte/row range. 0-9999 covers ~10k rows.
+              Range: '0-9999',
+              'Range-Unit': 'items',
+              Prefer: request.headers.get('prefer') ?? 'count=exact',
             },
           });
+
 
           const body = await res.text();
           const headers = new Headers({
