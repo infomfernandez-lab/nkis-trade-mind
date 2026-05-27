@@ -56,7 +56,6 @@ type AccFilter = 'all' | 'darwinex' | 'octx';
 type PnlFilter = 'all' | 'win' | 'loss';
 
 function TradeLog() {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const { broker } = useBrokerFilter();
   const { data: closedTrades, isLoading, error } = useClosedTrades();
   const { data: scannerSessions } = useScannerSessions();
