@@ -12,6 +12,7 @@ import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
 import { VigilanciaView } from '@/components/radar/ScannerListView';
 import { PnlCalendarSection } from '@/components/statistics/PnlCalendarSection';
 import { MarketBriefing } from '@/components/dashboard/MarketBriefing';
+import { AgendaTodayWidget } from '@/components/agenda/AgendaTodayWidget';
 import { supabase } from '@/integrations/supabase/client';
 
 export const Route = createFileRoute('/')({
@@ -125,6 +126,9 @@ function Dashboard() {
 
       {/* 5. Últimas cerradas */}
       <RecentClosed closed={closedTrades} />
+
+      {/* 6. Agenda de hoy */}
+      <AgendaTodayWidget />
 
       {closedTrades.length === 0 && openTrades.length === 0 && (
         <div className="rounded-lg border border-border bg-card p-10 text-center">
