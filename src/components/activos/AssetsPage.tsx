@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { assetsSupabase } from './assets-supabase-client';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useRightPanel } from '@/contexts/RightPanelContext';
-import { AssetInfoPanel } from '@/components/agenda/AssetInfoPanel';
 
 type Asset = {
   symbol: string;
@@ -33,7 +32,7 @@ export default function AssetsPage() {
   const [dirF, setDirF] = useState<DirFilter>('all');
   const [activeF, setActiveF] = useState<ActiveFilter>('all');
   const [search, setSearch] = useState('');
-  const { openPanel } = useRightPanel();
+  const navigate = useNavigate();
 
   const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
@@ -143,7 +142,7 @@ export default function AssetsPage() {
               <TableRow
                 key={`${a.symbol}-${a.broker}`}
                 className="cursor-pointer"
-                onClick={() => openPanel(<AssetInfoPanel symbol={a.symbol} broker={a.broker} />, a.symbol)}
+                onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: a.broker, symbol: a.symbol } })}
               >
                 <TableCell className="font-data font-bold">
                   {a.symbol}
