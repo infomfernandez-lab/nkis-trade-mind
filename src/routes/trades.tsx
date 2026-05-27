@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Loader2, BookCheck, Circle, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Loader2, BookCheck, Circle, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useClosedTrades } from '@/hooks/use-trades';
 import { filterByBroker, type Trade } from '@/lib/trade-utils';
@@ -12,6 +12,7 @@ import { classifyInstrument } from '@/lib/instrument-classify';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useRightPanel } from '@/contexts/RightPanelContext';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
