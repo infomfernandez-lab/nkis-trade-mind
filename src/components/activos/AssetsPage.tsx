@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { assetsSupabase } from './assets-supabase-client';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useRightPanel } from '@/contexts/RightPanelContext';
@@ -39,10 +39,10 @@ export default function AssetsPage() {
     queryKey: ['assets-all'],
     queryFn: async () => {
       // Test simple: primeras 10 filas + count
-      const probe = await supabase.from('assets').select('*', { count: 'exact' }).limit(10);
+      const probe = await assetsSupabase.from('assets').select('*', { count: 'exact' }).limit(10);
       console.log('[Activos] probe (primeras 10):', probe);
 
-      const { data, error, count } = await supabase
+      const { data, error, count } = await assetsSupabase
         .from('assets')
         .select('*', { count: 'exact' })
         .order('last_score', { ascending: false, nullsFirst: false })
