@@ -136,7 +136,7 @@ function ToggleGroup<T extends string>({
   );
 }
 
-function ListView({ grouped }: { grouped: [string, Activity[]][] }) {
+function ListView({ grouped, onEdit }: { grouped: [string, Activity[]][]; onEdit: (a: Activity) => void }) {
   if (grouped.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
