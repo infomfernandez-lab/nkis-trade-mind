@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
-import { assetsSupabase } from './assets-supabase-client';
+
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -37,20 +37,12 @@ export default function AssetsPage() {
   const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
     queryFn: async () => {
-      // RAW: sin filtros, sin orden, sin limit explícito (Supabase usa 1000 por defecto)
-      const raw = await assetsSupabase.from('assets').select('*');
-      console.log('[Activos] RAW query →', {
-        error: raw.error,
-        rows: raw.data?.length,
-        first5: raw.data?.slice(0, 5),
-      });
-      if (raw.error) throw raw.error;
-
-      // Count separado
-      const c = await assetsSupabase.from('assets').select('*', { count: 'exact', head: true });
-      console.log('[Activos] COUNT →', { count: c.count, error: c.error });
-
-      return (raw.data ?? []) as Asset[];
+      // Proxy server route — evita CORS del proyecto externo
+      const res = await fetch('/api/assets-proxy?select=*&limit=2000');
+      if (!res.ok) throw new Error(`Proxy ${res.status}: ${await res.text()}`);
+      const rows = (await res.json()) as Asset[];
+      console.log('[Activos] proxy →', { rows: rows.length, first5: rows.slice(0, 5) });
+      return rows;
     },
   });
 
