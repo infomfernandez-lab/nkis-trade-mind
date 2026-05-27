@@ -34,6 +34,9 @@ export default function AgendaPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | ActivityStatus>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | ActivityType>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Activity | null>(null);
+  const openEdit = (a: Activity) => { setEditing(a); setDialogOpen(true); };
+  const openNew = () => { setEditing(null); setDialogOpen(true); };
 
   const filtered = useMemo(() => {
     const list = (activities ?? []).filter(a => {
