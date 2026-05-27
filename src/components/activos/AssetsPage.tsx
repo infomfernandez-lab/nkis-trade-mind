@@ -35,22 +35,23 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
+  // Map global broker filter (darwinex/octx/all) → DB broker value (nkis/octx/all)
+  const brokerDb = globalBroker === 'darwinex' ? 'nkis' : globalBroker === 'octx' ? 'octx' : 'all';
+
   const { data: assets = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['assets-all'],
+    queryKey: ['assets-all', brokerDb],
     queryFn: async () => {
-      // Proxy server route — evita CORS del proyecto externo
-      const res = await fetch('/api/assets-proxy?select=*&limit=2000');
+      const qs = new URLSearchParams({ select: '*' });
+      if (brokerDb !== 'all') qs.set('broker', brokerDb);
+      const res = await fetch(`/api/assets-proxy?${qs.toString()}`);
       if (!res.ok) throw new Error(`Proxy ${res.status}: ${await res.text()}`);
       const rows = (await res.json()) as Asset[];
-      console.log('[Activos] proxy →', { rows: rows.length, first5: rows.slice(0, 5) });
+      console.log('[Activos] proxy →', { brokerDb, rows: rows.length, brokers: [...new Set(rows.map(r => r.broker))] });
       return rows;
     },
   });
 
   if (queryError) console.error('[Activos] queryError:', queryError);
-
-  // Map global broker filter (darwinex/octx/all) → DB broker value (nkis/octx/all)
-  const brokerDb = globalBroker === 'darwinex' ? 'nkis' : globalBroker === 'octx' ? 'octx' : 'all';
 
   const familias = useMemo(() => {
     const s = new Set<string>();
