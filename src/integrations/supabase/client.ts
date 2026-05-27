@@ -1,11 +1,9 @@
-// Cliente Supabase apuntando al proyecto externo del usuario.
-// NOTA: se sobreescriben las variables de entorno autogeneradas por Lovable Cloud
-// porque la app debe leer/escribir en el proyecto Supabase propio del usuario.
+// Auto-generated Supabase client for Lovable Cloud.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = 'https://rddewywrhtnddzbtozwy.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YcIBPL9NCTuexuAqqCVCWA_GXNCWcZR';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 function createSupabaseClient() {
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
