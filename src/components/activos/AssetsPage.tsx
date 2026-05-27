@@ -64,14 +64,16 @@ export default function AssetsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toUpperCase();
-    return assets.filter(a => {
-      if (brokerF !== 'all' && a.broker !== brokerF) return false;
+    const out = assets.filter(a => {
+      if (brokerF !== 'all' && (a.broker ?? '').toLowerCase() !== brokerF) return false;
       if (familiaF !== 'all' && a.familia !== familiaF) return false;
       if (dirF !== 'all' && (a.last_direction ?? '').toUpperCase() !== dirF) return false;
       if (activeF === 'active' && !a.is_active_scanner) return false;
       if (q && !a.symbol.toUpperCase().includes(q)) return false;
       return true;
     });
+    out.sort((a, b) => (Number(b.last_score ?? -Infinity)) - (Number(a.last_score ?? -Infinity)));
+    return out;
   }, [assets, brokerF, familiaF, dirF, activeF, search]);
 
   const activeCount = assets.filter(a => a.is_active_scanner).length;
