@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useCreateActivity, type ActivityType, type ActivityPriority } from '@/hooks/use-activities';
+import {
+  useCreateActivity, useUpdateActivity,
+  type Activity, type ActivityType, type ActivityPriority,
+} from '@/hooks/use-activities';
 import { TYPE_OPTIONS, PRIORITY_OPTIONS, todayISO } from './activity-utils';
 import { CONTRACT_SPECS } from '@/lib/contract-specs';
 
@@ -11,10 +14,14 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultDate?: string;
+  activity?: Activity | null;
 }
 
-export function NewActivityDialog({ open, onOpenChange, defaultDate }: Props) {
+export function NewActivityDialog({ open, onOpenChange, defaultDate, activity }: Props) {
   const create = useCreateActivity();
+  const update = useUpdateActivity();
+  const editing = !!activity;
+
   const [title, setTitle] = useState('');
   const [type, setType] = useState<ActivityType>('REVISAR');
   const [priority, setPriority] = useState<ActivityPriority>('MEDIA');
@@ -23,22 +30,32 @@ export function NewActivityDialog({ open, onOpenChange, defaultDate }: Props) {
   const [broker, setBroker] = useState<'' | 'nkis' | 'octx'>('');
   const [description, setDescription] = useState('');
 
+  // Sync form when the dialog opens (with or without an activity to edit)
+  useEffect(() => {
+    if (!open) return;
+    if (activity) {
+      setTitle(activity.title ?? '');
+      setType((activity.type as ActivityType) ?? 'REVISAR');
+      setPriority((activity.priority as ActivityPriority) ?? 'MEDIA');
+      setDueDate(activity.due_date ?? defaultDate ?? todayISO());
+      setSymbol(activity.symbol ?? '');
+      setBroker(((activity.broker as 'nkis' | 'octx') ?? '') as '' | 'nkis' | 'octx');
+      setDescription(activity.description ?? '');
+    } else {
+      setTitle(''); setType('REVISAR'); setPriority('MEDIA');
+      setDueDate(defaultDate ?? todayISO()); setSymbol(''); setBroker(''); setDescription('');
+    }
+  }, [open, activity, defaultDate]);
+
   const symbolMatches = useMemo(() => {
     const q = symbol.trim().toUpperCase();
-    if (!q || q.length < 1) return [];
-    return CONTRACT_SPECS
-      .filter(s => s.symbol.toUpperCase().includes(q))
-      .slice(0, 8);
+    if (!q) return [];
+    return CONTRACT_SPECS.filter(s => s.symbol.toUpperCase().includes(q)).slice(0, 8);
   }, [symbol]);
-
-  const reset = () => {
-    setTitle(''); setType('REVISAR'); setPriority('MEDIA');
-    setDueDate(defaultDate ?? todayISO()); setSymbol(''); setBroker(''); setDescription('');
-  };
 
   const handleSave = async () => {
     if (!title.trim()) return;
-    await create.mutateAsync({
+    const payload = {
       title: title.trim(),
       type,
       priority,
@@ -46,16 +63,22 @@ export function NewActivityDialog({ open, onOpenChange, defaultDate }: Props) {
       symbol: symbol.trim() || null,
       broker: broker || null,
       description: description.trim() || null,
-    });
-    reset();
+    };
+    if (editing && activity) {
+      await update.mutateAsync({ id: activity.id, ...payload });
+    } else {
+      await create.mutateAsync(payload);
+    }
     onOpenChange(false);
   };
 
+  const pending = create.isPending || update.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nueva actividad</DialogTitle>
+          <DialogTitle>{editing ? 'Editar actividad' : 'Nueva actividad'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -107,8 +130,8 @@ export function NewActivityDialog({ open, onOpenChange, defaultDate }: Props) {
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={!title.trim() || create.isPending}>
-            {create.isPending ? 'Guardando…' : 'Guardar'}
+          <Button onClick={handleSave} disabled={!title.trim() || pending}>
+            {pending ? 'Guardando…' : editing ? 'Actualizar' : 'Guardar'}
           </Button>
         </DialogFooter>
       </DialogContent>

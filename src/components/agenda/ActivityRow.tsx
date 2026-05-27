@@ -1,11 +1,16 @@
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useDeleteActivity, useToggleActivityDone, type Activity } from '@/hooks/use-activities';
 import { TYPE_ICON, TYPE_COLOR, PRIORITY_BADGE, isOverdue } from './activity-utils';
 import { useRightPanel } from '@/contexts/RightPanelContext';
-import { getContractSpec } from '@/lib/contract-specs';
+import { AssetInfoPanel } from './AssetInfoPanel';
 
-export function ActivityRow({ activity }: { activity: Activity }) {
+interface Props {
+  activity: Activity;
+  onEdit?: (a: Activity) => void;
+}
+
+export function ActivityRow({ activity, onEdit }: Props) {
   const toggle = useToggleActivityDone();
   const del = useDeleteActivity();
   const { openPanel } = useRightPanel();
@@ -16,60 +21,68 @@ export function ActivityRow({ activity }: { activity: Activity }) {
 
   const onSymbolClick = () => {
     if (!activity.symbol) return;
-    const spec = getContractSpec(activity.symbol);
     openPanel(
-      <div className="space-y-2 text-sm">
-        <div className="font-bold text-base">{activity.symbol}</div>
-        {spec && (
-          <>
-            <div className="text-muted-foreground">{spec.description}</div>
-            <div className="grid grid-cols-2 gap-2 text-xs pt-2">
-              <div><span className="text-muted-foreground">Broker:</span> {spec.broker.toUpperCase()}</div>
-              <div><span className="text-muted-foreground">Tick:</span> {spec.tickSize}</div>
-              <div><span className="text-muted-foreground">Tick value:</span> {spec.tickValue} {spec.profitCurrency}</div>
-              <div><span className="text-muted-foreground">Contract size:</span> {spec.contractSize}</div>
-            </div>
-          </>
-        )}
-      </div>,
+      <AssetInfoPanel symbol={activity.symbol} broker={activity.broker} />,
       activity.symbol,
     );
   };
 
   const due = activity.due_date ? new Date(activity.due_date) : null;
-  const dueStr = due ? due.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+  const dueStr = due
+    ? due.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', year: '2-digit' })
+    : 'Sin fecha';
 
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 ${overdue ? 'bg-destructive/5 border-l-2 border-destructive' : ''}`}>
-      <Checkbox checked={done} onCheckedChange={() => toggle(activity)} />
-      <Icon className={`w-4 h-4 shrink-0 ${TYPE_COLOR[activity.type]}`} />
-      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${PRIORITY_BADGE[activity.priority]}`}>
+    <div className={`flex items-start gap-3 px-3 py-2.5 ${overdue ? 'bg-destructive/5 border-l-2 border-destructive' : ''}`}>
+      <div className="pt-0.5">
+        <Checkbox checked={done} onCheckedChange={() => toggle(activity)} />
+      </div>
+      <Icon className={`w-4 h-4 shrink-0 mt-1 ${TYPE_COLOR[activity.type]}`} />
+      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 mt-0.5 ${PRIORITY_BADGE[activity.priority]}`}>
         {activity.priority}
       </span>
       <div className={`flex-1 min-w-0 ${done || cancelled ? 'opacity-50 line-through' : ''}`}>
-        <div className="text-sm font-semibold truncate">{activity.title}</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold truncate">{activity.title}</span>
+          {activity.symbol && (
+            <button
+              onClick={onSymbolClick}
+              className="px-2 py-0.5 rounded text-[11px] font-data font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
+              title="Ver info del activo"
+            >
+              {activity.symbol}
+            </button>
+          )}
+        </div>
         {activity.description && (
-          <div className="text-xs text-muted-foreground truncate">{activity.description}</div>
+          <div className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
+            {activity.description}
+          </div>
         )}
       </div>
-      {activity.symbol && (
-        <button
-          onClick={onSymbolClick}
-          className="px-2 py-0.5 rounded text-[11px] font-data font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
-        >
-          {activity.symbol}
-        </button>
-      )}
-      <span className={`text-xs font-data shrink-0 w-20 text-right ${overdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+      <span className={`text-xs font-data shrink-0 text-right mt-0.5 ${overdue ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
         {dueStr}
       </span>
-      <button
-        onClick={() => { if (confirm('¿Eliminar esta actividad?')) del.mutate(activity.id); }}
-        className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-        aria-label="Eliminar"
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      <div className="flex items-center gap-1 shrink-0 mt-0.5">
+        {onEdit && (
+          <button
+            onClick={() => onEdit(activity)}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Editar"
+            title="Editar"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          onClick={() => { if (confirm('¿Eliminar esta actividad?')) del.mutate(activity.id); }}
+          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+          aria-label="Eliminar"
+          title="Eliminar"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
