@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      activities: {
+        Row: {
+          broker: string | null
+          created_at: string | null
+          description: string | null
+          done_at: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          status: string
+          symbol: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          broker?: string | null
+          created_at?: string | null
+          description?: string | null
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          symbol?: string | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          broker?: string | null
+          created_at?: string | null
+          description?: string | null
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          status?: string
+          symbol?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          broker: string
+          created_at: string | null
+          description: string | null
+          familia: string | null
+          first_seen: string | null
+          is_active_scanner: boolean | null
+          last_adx: number | null
+          last_atr_state: string | null
+          last_direction: string | null
+          last_price: number | null
+          last_score: number | null
+          last_seen_scanner: string | null
+          last_stoch: number | null
+          sector: string | null
+          symbol: string
+        }
+        Insert: {
+          broker: string
+          created_at?: string | null
+          description?: string | null
+          familia?: string | null
+          first_seen?: string | null
+          is_active_scanner?: boolean | null
+          last_adx?: number | null
+          last_atr_state?: string | null
+          last_direction?: string | null
+          last_price?: number | null
+          last_score?: number | null
+          last_seen_scanner?: string | null
+          last_stoch?: number | null
+          sector?: string | null
+          symbol: string
+        }
+        Update: {
+          broker?: string
+          created_at?: string | null
+          description?: string | null
+          familia?: string | null
+          first_seen?: string | null
+          is_active_scanner?: boolean | null
+          last_adx?: number | null
+          last_atr_state?: string | null
+          last_direction?: string | null
+          last_price?: number | null
+          last_score?: number | null
+          last_seen_scanner?: string | null
+          last_stoch?: number | null
+          sector?: string | null
+          symbol?: string
+        }
+        Relationships: []
+      }
       backtest_sessions: {
         Row: {
           broker: string
@@ -161,6 +260,48 @@ export type Database = {
           system_followed?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          active: boolean | null
+          amount: number
+          category: string
+          created_at: string | null
+          currency: string
+          frequency: string
+          id: string
+          name: string
+          next_due_date: string | null
+          notes: string | null
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          amount: number
+          category: string
+          created_at?: string | null
+          currency?: string
+          frequency: string
+          id?: string
+          name: string
+          next_due_date?: string | null
+          notes?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          amount?: number
+          category?: string
+          created_at?: string | null
+          currency?: string
+          frequency?: string
+          id?: string
+          name?: string
+          next_due_date?: string | null
+          notes?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
