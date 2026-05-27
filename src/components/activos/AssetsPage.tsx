@@ -32,7 +32,7 @@ export default function AssetsPage() {
   const [dirF, setDirF] = useState<DirFilter>('all');
   const [activeF, setActiveF] = useState<ActiveFilter>('all');
   const [search, setSearch] = useState('');
-  const { openPanel } = useRightPanel();
+  const navigate = useNavigate();
 
   const { data: assets = [], isLoading, error: queryError } = useQuery({
     queryKey: ['assets-all'],
