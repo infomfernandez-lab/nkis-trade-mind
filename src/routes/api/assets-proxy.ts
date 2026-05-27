@@ -11,9 +11,14 @@ export const Route = createFileRoute('/api/assets-proxy')({
       GET: async ({ request }) => {
         try {
           const incoming = new URL(request.url);
-          // Forward query string to PostgREST (select, order, limit, filters, etc.)
-          const qs = incoming.search || '?select=*';
-          const target = `${EXTERNAL_URL}/rest/v1/assets${qs}`;
+          const params = new URLSearchParams(incoming.search);
+          // Transformar broker=nkis → broker=eq.nkis (PostgREST)
+          const broker = params.get('broker');
+          if (broker && !broker.includes('.')) {
+            params.set('broker', `eq.${broker}`);
+          }
+          if (!params.has('select')) params.set('select', '*');
+          const target = `${EXTERNAL_URL}/rest/v1/assets?${params.toString()}`;
 
           const res = await fetch(target, {
             headers: {

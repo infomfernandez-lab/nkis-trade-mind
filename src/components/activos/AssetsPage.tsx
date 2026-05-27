@@ -31,7 +31,7 @@ export default function AssetsPage() {
   const [familiaF, setFamiliaF] = useState<string>('all');
   const [sectorF, setSectorF] = useState<string>('all');
   const [dirF, setDirF] = useState<DirFilter>('all');
-  const [activeF, setActiveF] = useState<ActiveFilter>('active');
+  const [activeF, setActiveF] = useState<ActiveFilter>('all');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
