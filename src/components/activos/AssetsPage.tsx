@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { useBrokerFilter } from '@/components/layout/AppLayout';
 
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,15 +23,15 @@ type Asset = {
   last_seen_scanner: string | null;
 };
 
-type BrokerFilter = 'all' | 'nkis' | 'octx';
 type DirFilter = 'all' | 'ALCISTA' | 'BAJISTA';
 type ActiveFilter = 'active' | 'all';
 
 export default function AssetsPage() {
-  const [brokerF, setBrokerF] = useState<BrokerFilter>('all');
+  const { broker: globalBroker } = useBrokerFilter();
   const [familiaF, setFamiliaF] = useState<string>('all');
+  const [sectorF, setSectorF] = useState<string>('all');
   const [dirF, setDirF] = useState<DirFilter>('all');
-  const [activeF, setActiveF] = useState<ActiveFilter>('all');
+  const [activeF, setActiveF] = useState<ActiveFilter>('active');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
@@ -48,17 +49,36 @@ export default function AssetsPage() {
 
   if (queryError) console.error('[Activos] queryError:', queryError);
 
+  // Map global broker filter (darwinex/octx/all) → DB broker value (nkis/octx/all)
+  const brokerDb = globalBroker === 'darwinex' ? 'nkis' : globalBroker === 'octx' ? 'octx' : 'all';
+
   const familias = useMemo(() => {
     const s = new Set<string>();
     assets.forEach(a => { if (a.familia) s.add(a.familia); });
     return Array.from(s).sort();
   }, [assets]);
 
+  // Sectores dependen de la familia seleccionada
+  const sectores = useMemo(() => {
+    const s = new Set<string>();
+    assets.forEach(a => {
+      if (familiaF !== 'all' && a.familia !== familiaF) return;
+      if (a.sector) s.add(a.sector);
+    });
+    return Array.from(s).sort();
+  }, [assets, familiaF]);
+
+  // Reset sector cuando cambia familia y el sector actual ya no aplica
+  useEffect(() => {
+    if (sectorF !== 'all' && !sectores.includes(sectorF)) setSectorF('all');
+  }, [sectores, sectorF]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toUpperCase();
     const out = assets.filter(a => {
-      if (brokerF !== 'all' && (a.broker ?? '').toLowerCase() !== brokerF) return false;
+      if (brokerDb !== 'all' && (a.broker ?? '').toLowerCase() !== brokerDb) return false;
       if (familiaF !== 'all' && a.familia !== familiaF) return false;
+      if (sectorF !== 'all' && a.sector !== sectorF) return false;
       if (dirF !== 'all' && (a.last_direction ?? '').toUpperCase() !== dirF) return false;
       if (activeF === 'active' && !a.is_active_scanner) return false;
       if (q && !a.symbol.toUpperCase().includes(q)) return false;
@@ -66,7 +86,7 @@ export default function AssetsPage() {
     });
     out.sort((a, b) => (Number(b.last_score ?? -Infinity)) - (Number(a.last_score ?? -Infinity)));
     return out;
-  }, [assets, brokerF, familiaF, dirF, activeF, search]);
+  }, [assets, brokerDb, familiaF, sectorF, dirF, activeF, search]);
 
   const activeCount = assets.filter(a => a.is_active_scanner).length;
 
@@ -82,10 +102,6 @@ export default function AssetsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 p-3 rounded-md border border-border bg-card">
-        <Toggle label="Todos" active={brokerF === 'all'} onClick={() => setBrokerF('all')} />
-        <Toggle label="NKIS" active={brokerF === 'nkis'} onClick={() => setBrokerF('nkis')} />
-        <Toggle label="OCTX" active={brokerF === 'octx'} onClick={() => setBrokerF('octx')} />
-        <Sep />
         <select
           value={familiaF}
           onChange={e => setFamiliaF(e.target.value)}
@@ -93,6 +109,14 @@ export default function AssetsPage() {
         >
           <option value="all">Todas las familias</option>
           {familias.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <select
+          value={sectorF}
+          onChange={e => setSectorF(e.target.value)}
+          className="h-8 px-2 rounded-md border border-border bg-background text-xs"
+        >
+          <option value="all">Todos los sectores</option>
+          {sectores.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <Sep />
         <Toggle label="Dir: Todas" active={dirF === 'all'} onClick={() => setDirF('all')} />
