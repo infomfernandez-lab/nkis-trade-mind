@@ -28,6 +28,7 @@ import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
 import { Route as ApiSyncEaWatchlistRouteImport } from './routes/api/sync-ea-watchlist'
 import { Route as ApiSyncBalanceRouteImport } from './routes/api/sync-balance'
+import { Route as ApiAssetsProxyRouteImport } from './routes/api/assets-proxy'
 import { Route as ActivosBrokerSymbolRouteImport } from './routes/activos.$broker.$symbol'
 
 const WatchlistRoute = WatchlistRouteImport.update({
@@ -125,6 +126,11 @@ const ApiSyncBalanceRoute = ApiSyncBalanceRouteImport.update({
   path: '/api/sync-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAssetsProxyRoute = ApiAssetsProxyRouteImport.update({
+  id: '/api/assets-proxy',
+  path: '/api/assets-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivosBrokerSymbolRoute = ActivosBrokerSymbolRouteImport.update({
   id: '/$broker/$symbol',
   path: '/$broker/$symbol',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
+  '/api/assets-proxy': typeof ApiAssetsProxyRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
+  '/api/assets-proxy': typeof ApiAssetsProxyRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/statistics': typeof StatisticsRoute
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
+  '/api/assets-proxy': typeof ApiAssetsProxyRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/trades'
     | '/watchlist'
+    | '/api/assets-proxy'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/trades'
     | '/watchlist'
+    | '/api/assets-proxy'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/statistics'
     | '/trades'
     | '/watchlist'
+    | '/api/assets-proxy'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -283,6 +295,7 @@ export interface RootRouteChildren {
   StatisticsRoute: typeof StatisticsRoute
   TradesRoute: typeof TradesRoute
   WatchlistRoute: typeof WatchlistRoute
+  ApiAssetsProxyRoute: typeof ApiAssetsProxyRoute
   ApiSyncBalanceRoute: typeof ApiSyncBalanceRoute
   ApiSyncEaWatchlistRoute: typeof ApiSyncEaWatchlistRoute
   ApiSyncScannerRoute: typeof ApiSyncScannerRoute
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/assets-proxy': {
+      id: '/api/assets-proxy'
+      path: '/api/assets-proxy'
+      fullPath: '/api/assets-proxy'
+      preLoaderRoute: typeof ApiAssetsProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activos/$broker/$symbol': {
       id: '/activos/$broker/$symbol'
       path: '/$broker/$symbol'
@@ -461,6 +481,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatisticsRoute: StatisticsRoute,
   TradesRoute: TradesRoute,
   WatchlistRoute: WatchlistRoute,
+  ApiAssetsProxyRoute: ApiAssetsProxyRoute,
   ApiSyncBalanceRoute: ApiSyncBalanceRoute,
   ApiSyncEaWatchlistRoute: ApiSyncEaWatchlistRoute,
   ApiSyncScannerRoute: ApiSyncScannerRoute,
