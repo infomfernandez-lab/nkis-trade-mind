@@ -47,7 +47,7 @@ interface Props {
   viewSwitcher?: React.ReactNode;
 }
 
-export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel }: Props) {
+export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel, viewSwitcher }: Props) {
   const set = (patch: Partial<ScannerFilterState>) => onChange({ ...state, ...patch });
 
   return (
