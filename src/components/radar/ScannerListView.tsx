@@ -75,7 +75,6 @@ export function ScannerListView({ brokerFilter }: Props) {
   const collapsed = useRadarCollapsed();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<ScannerFilterState>(EMPTY_SCANNER_FILTERS);
-  const navigate = useNavigate();
 
   const assetMap = useAssetMap();
   const { openTrades, closedTrades } = useAllTrades();
@@ -83,7 +82,7 @@ export function ScannerListView({ brokerFilter }: Props) {
     () => aggregateTradesByKey([...openTrades, ...closedTrades]),
     [openTrades, closedTrades],
   );
-  const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
+
 
   // Anota cada instrumento con mercado/sector compartido con Activos.
   const annotated = useMemo(() => {
