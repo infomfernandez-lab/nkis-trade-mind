@@ -356,6 +356,7 @@ function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => vo
 }
 
 function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+  const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const meta = classifyInstrument(inst.symbol);
   const div = inst.divergencia;
@@ -364,7 +365,10 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
     ? 'bg-success/15 hover:bg-success/25'
     : 'bg-destructive/15 hover:bg-destructive/25';
   return (
-    <tr className={`border-b border-border transition-colors ${rowBg}`}>
+    <tr
+      className={`border-b border-border transition-colors cursor-pointer ${rowBg}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+    >
       <td className="px-3 py-3 font-data text-center text-muted-foreground font-bold">#{rank}</td>
       <td className="px-3 py-3 text-center"><ScoreBadge score={inst.score} /></td>
       <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{inst.symbol}</td>
