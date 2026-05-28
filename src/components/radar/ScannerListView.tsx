@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { TrendingUp, TrendingDown, Eye, EyeOff, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
 
@@ -27,9 +27,8 @@ import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
 import { SortHeader, useSort } from './TableControls';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
-import { useWatchlist, useAddToWatchlist, useDeleteWatchlistItem } from '@/hooks/use-watchlist';
+import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
-import { toast } from 'sonner';
 
 const TIER_META: Record<Tier, { label: string; accent: string }> = {
   elite:    { label: 'ÉLITE',    accent: 'border-l-primary text-primary' },
