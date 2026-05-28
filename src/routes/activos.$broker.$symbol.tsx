@@ -390,7 +390,7 @@ function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getContr
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Familia" value={asset.familia} />
+        <Stat label="Mercado" value={asset.familia} />
         <Stat label="Sector" value={asset.sector} />
         <Stat label="ADX" value={asset.last_adx != null ? Number(asset.last_adx).toFixed(2) : null} />
         <Stat label="Stoch" value={asset.last_stoch != null ? Number(asset.last_stoch).toFixed(2) : null} />

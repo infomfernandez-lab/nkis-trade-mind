@@ -493,7 +493,7 @@ function StatisticsPage() {
         {/* Calendario de PnL */}
         <PnlCalendarSection closedTrades={closedTrades} broker={broker} />
 
-        {/* Estadísticas por Familia */}
+        {/* Estadísticas por Mercado */}
         <FamilyStatsSection closedTrades={closedTrades} />
       </div>
     </TooltipProvider>

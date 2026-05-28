@@ -63,7 +63,7 @@ export function RadarFiltersBar({
         suggestions={suggestions}
       />
 
-      {/* Familias */}
+      {/* Mercados */}
       <div className="flex flex-wrap gap-1.5">
         <Chip
           active={state.family === null}
@@ -84,7 +84,7 @@ export function RadarFiltersBar({
         })}
       </div>
 
-      {/* Subfamilias */}
+      {/* Sectores */}
       {state.family && availableSubs.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-border/50">
           <Chip active={state.subfamily === null} onClick={() => set({ subfamily: null })} label="Todas" size="sm" />
