@@ -170,36 +170,8 @@ export function ScannerListView({ brokerFilter }: Props) {
   const solidoRef = useRef<HTMLDivElement>(null);
   const observarRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleWatch = (inst: UnifiedInstrument) => {
-    const existing = (watchlist ?? []).find(
-      w => w.symbol === inst.symbol && (w.broker ?? 'darwinex') === inst.broker
-        && (w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase()
-    );
-    if (existing) {
-      delWatch.mutate(existing.id, {
-        onSuccess: () => toast.success(`${inst.symbol} retirado de Vigilancia`),
-        onError: (e) => toast.error(`Error: ${(e as Error).message}`),
-      });
-    } else {
-      addWatch.mutate({
-        symbol: inst.symbol,
-        broker: inst.broker,
-        direction: inst.direction,
-        watch_reason: null,
-        stochastic_level: inst.stoch_k,
-        scanner_score: inst.score,
-        adx_value: inst.adx_value,
-        adx_state: inst.adx_state,
-        distance_to_ma50: inst.distance_to_ma50,
-        status: VIG_STATUS,
-        added_from_scanner: true,
-        trade_id: null,
-      }, {
-        onSuccess: () => toast.success(`${inst.symbol} añadido a Vigilancia`),
-        onError: (e) => toast.error(`Error: ${(e as Error).message}`),
-      });
-    }
-  };
+  // (Toggle de vigilancia eliminado: la vigilancia la gestiona el EA.)
+
 
   if (all.length === 0) {
     return (
@@ -254,7 +226,6 @@ export function ScannerListView({ brokerFilter }: Props) {
                 <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="Div" sortKey="divergencia" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
-                <th className="text-center px-3 py-3 w-[50px]">👁</th>
               </tr>
             </thead>
             <tbody>
@@ -265,7 +236,7 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {showTiers && (
                       <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
                           className="bg-secondary/20 scroll-mt-40">
-                        <td colSpan={13} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
+                        <td colSpan={12} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
                           {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
                         </td>
                       </tr>
@@ -273,14 +244,11 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {g.items.map((inst) => {
                       const key = `${inst.symbol}::${inst.broker}`;
                       const rank = globalRanks.get(key) ?? 0;
-                      const watched = vigSet.has(key);
                       return (
                         <DesktopRow
                           key={key}
                           inst={inst}
                           rank={rank}
-                          watched={watched}
-                          onToggleWatch={() => handleToggleWatch(inst)}
                         />
                       );
                     })}
@@ -307,14 +275,11 @@ export function ScannerListView({ brokerFilter }: Props) {
                   {g.items.map((inst) => {
                     const key = `${inst.symbol}::${inst.broker}`;
                     const rank = globalRanks.get(key) ?? 0;
-                    const watched = vigSet.has(key);
                     return (
                       <MobileRow
                         key={key}
                         inst={inst}
                         rank={rank}
-                        watched={watched}
-                        onToggleWatch={() => handleToggleWatch(inst)}
                       />
                     );
                   })}
