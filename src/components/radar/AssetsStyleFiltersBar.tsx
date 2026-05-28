@@ -98,6 +98,10 @@ export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, cou
         </div>
       </div>
 
+      {viewSwitcher}
+
+
+
       {/* Fila 2: dirección / fuerza / volatilidad */}
       <div className="flex flex-wrap items-center gap-2">
         <Toggle label="Dir: Todas" active={state.dir === 'all'} onClick={() => set({ dir: 'all' })} />
