@@ -68,9 +68,9 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useEaWatchSet(brokerFilter).size;
 }
 
-interface Props { brokerFilter: BrokerFilter }
+interface Props { brokerFilter: BrokerFilter; viewSwitcher?: React.ReactNode }
 
-export function ScannerListView({ brokerFilter }: Props) {
+export function ScannerListView({ brokerFilter, viewSwitcher }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
