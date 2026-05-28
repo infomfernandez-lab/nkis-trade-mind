@@ -40,6 +40,8 @@ interface Props {
   suggestions: Suggestion[];
   /** ocultar tier (p. ej. si no aplica) */
   hideTier?: boolean;
+  /** Slot opcional debajo del buscador (p.ej. selector de vista). */
+  viewSwitcher?: React.ReactNode;
 }
 
 export function RadarFiltersBar({
