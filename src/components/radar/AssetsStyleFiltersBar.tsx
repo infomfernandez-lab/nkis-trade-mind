@@ -1,6 +1,7 @@
 // Filtro de tipo "Activos" reutilizable. Mismo estilo y mismos parámetros
 // que el filtro de la página /activos, pensado para reutilizarse en
 // el escáner para que la experiencia sea idéntica.
+import type { ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
