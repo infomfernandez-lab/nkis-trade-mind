@@ -388,42 +388,6 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
     </div>
   );
 }
-// ---- end DesktopRow/MobileRow ----
-// (legacy MobileRow code below to be removed) ----
-
-function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
-  const navigate = useNavigate();
-  const alcista = isAlcistaDir(inst.direction);
-  const est = estructuraMeta(inst.estructura);
-  return (
-    <div
-      className={`p-3 cursor-pointer ${watched ? 'bg-primary/5' : ''}`}
-      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
-    >
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
-        <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>
-        <ScoreBadge score={inst.score} />
-        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-          alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
-        }`}>
-          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-          {alcista ? 'BUY' : 'SELL'}
-        </span>
-        <PriceTag price={inst.current_price} compact />
-        <span className="ml-auto"><WatchToggle watched={watched} onClick={onToggleWatch} /></span>
-      </div>
-      <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
-      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-        <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
-        <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
-      </div>
-    </div>
-  );
-}
 
 /* ─────────────── Vigilancia view ─────────────── */
 
