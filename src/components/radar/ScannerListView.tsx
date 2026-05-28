@@ -204,6 +204,7 @@ export function ScannerListView({ brokerFilter, viewSwitcher }: Props) {
           mercados={mercados}
           sectores={sectores}
           countLabel={`${items.length} de ${annotated.length}`}
+          viewSwitcher={viewSwitcher}
         />
       </div>
 
