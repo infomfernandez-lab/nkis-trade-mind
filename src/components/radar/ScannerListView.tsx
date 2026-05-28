@@ -415,10 +415,14 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
 }
 
 function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+  const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   return (
-    <div className={`p-3 ${watched ? 'bg-primary/5' : ''}`}>
+    <div
+      className={`p-3 cursor-pointer ${watched ? 'bg-primary/5' : ''}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
         <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>
