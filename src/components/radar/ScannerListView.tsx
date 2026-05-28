@@ -492,6 +492,7 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
               availableSubs={availableSubs}
               tierCounts={tierCounts}
               suggestions={suggestions}
+              viewSwitcher={viewSwitcher}
             />
           </div>
         </>
