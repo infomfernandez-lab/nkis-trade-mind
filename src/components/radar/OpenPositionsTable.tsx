@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Props {
   brokerFilter: BrokerFilter;
   compact?: boolean;
+  viewSwitcher?: ReactNode;
 }
 
 function formatPrice(price: number): string {
@@ -60,7 +62,7 @@ function useScannerSessions() {
   });
 }
 
-export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
+export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher }: Props) {
   const { openTrades, isLoading } = useAllTrades();
   const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
@@ -127,9 +129,12 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
 
   if (filteredAll.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
+      <div className="space-y-3">
+        {viewSwitcher && <div className="rounded-md border border-border bg-card p-2">{viewSwitcher}</div>}
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
+        </div>
       </div>
     );
   }
@@ -150,6 +155,7 @@ export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
             availableSubs={availableSubs}
             tierCounts={tierCounts}
             suggestions={suggestions}
+            viewSwitcher={viewSwitcher}
           />
         </div>
       )}

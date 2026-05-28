@@ -1,6 +1,7 @@
 // Filtro de tipo "Activos" reutilizable. Mismo estilo y mismos parámetros
 // que el filtro de la página /activos, pensado para reutilizarse en
 // el escáner para que la experiencia sea idéntica.
+import type { ReactNode } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -42,9 +43,12 @@ interface Props {
   sectores: string[];
   /** mostrar contador opcional debajo (p.ej. "12 de 50"). */
   countLabel?: string;
+  /** Slot opcional que se renderiza justo debajo de la fila del buscador
+   *  (p.ej. selector de vista Escaneado / Vigilancia EA / Posiciones). */
+  viewSwitcher?: ReactNode;
 }
 
-export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel }: Props) {
+export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel, viewSwitcher }: Props) {
   const set = (patch: Partial<ScannerFilterState>) => onChange({ ...state, ...patch });
 
   return (
@@ -94,6 +98,10 @@ export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, cou
           />
         </div>
       </div>
+
+      {viewSwitcher}
+
+
 
       {/* Fila 2: dirección / fuerza / volatilidad */}
       <div className="flex flex-wrap items-center gap-2">

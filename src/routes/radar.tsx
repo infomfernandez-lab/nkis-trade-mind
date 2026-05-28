@@ -9,7 +9,7 @@ import { useEnTendenciaCount } from '@/components/radar/EnTendenciaBlock';
 import { useAllTrades } from '@/hooks/use-trades';
 import { filterByBroker } from '@/lib/trade-utils';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ViewSwitcher, type RadarView } from '@/components/radar/ViewSwitcher';
 
 export const Route = createFileRoute('/radar')({
   component: RadarPage,
@@ -29,6 +29,7 @@ function RadarPage() {
   const tendenciaCount = useEnTendenciaCount(broker);
   const vigCount = useVigilanciaCount(broker);
   const [collapsed, setCollapsed] = useState(false);
+  const [view, setView] = useState<RadarView>('escaneado');
 
   useEffect(() => {
     const main = document.querySelector('main');
@@ -46,6 +47,14 @@ function RadarPage() {
     return () => main.removeEventListener('scroll', onScroll);
   }, []);
 
+  const switcher = (
+    <ViewSwitcher
+      value={view}
+      onChange={setView}
+      counts={{ escaneado: tendenciaCount, vigilancia: vigCount, posiciones: filteredOpen.length }}
+    />
+  );
+
   return (
     <RadarCollapseContext.Provider value={collapsed}>
       <div className="space-y-4">
@@ -58,34 +67,9 @@ function RadarPage() {
           </div>
         </div>
 
-
-        <Tabs defaultValue="escaneado" className="w-full">
-          <div className={`sticky top-0 z-30 -mx-4 lg:-mx-6 px-4 lg:px-6 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0' : 'max-h-20 opacity-100 py-2'}`}>
-            <TabsList className="w-full h-auto grid grid-cols-3 gap-1">
-              <TabsTrigger value="escaneado" className="w-full justify-center text-xs sm:text-sm">
-                📡 Escaneado <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{tendenciaCount}</span>
-              </TabsTrigger>
-              <TabsTrigger value="vigilancia" className="w-full justify-center text-xs sm:text-sm">
-                👁 Vigilancia EA <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{vigCount}</span>
-              </TabsTrigger>
-              <TabsTrigger value="posiciones" className="w-full justify-center text-xs sm:text-sm">
-                📈 Posiciones <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{filteredOpen.length}</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="escaneado" className="mt-4">
-            <ScannerListView brokerFilter={broker} />
-          </TabsContent>
-
-          <TabsContent value="vigilancia" className="mt-4">
-            <VigilanciaView brokerFilter={broker} />
-          </TabsContent>
-
-          <TabsContent value="posiciones" className="mt-4">
-            <OpenPositionsTable brokerFilter={broker} />
-          </TabsContent>
-        </Tabs>
+        {view === 'escaneado' && <ScannerListView brokerFilter={broker} viewSwitcher={switcher} />}
+        {view === 'vigilancia' && <VigilanciaView brokerFilter={broker} viewSwitcher={switcher} />}
+        {view === 'posiciones' && <OpenPositionsTable brokerFilter={broker} viewSwitcher={switcher} />}
       </div>
     </RadarCollapseContext.Provider>
   );

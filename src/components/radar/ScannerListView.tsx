@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
@@ -68,9 +69,9 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useEaWatchSet(brokerFilter).size;
 }
 
-interface Props { brokerFilter: BrokerFilter }
+interface Props { brokerFilter: BrokerFilter; viewSwitcher?: ReactNode }
 
-export function ScannerListView({ brokerFilter }: Props) {
+export function ScannerListView({ brokerFilter, viewSwitcher }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -177,8 +178,11 @@ export function ScannerListView({ brokerFilter }: Props) {
 
   if (all.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">Sin instrumentos en el escáner. Sincroniza desde MT5.</p>
+      <div className="space-y-3">
+        {viewSwitcher && <div className="rounded-md border border-border bg-card p-2">{viewSwitcher}</div>}
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">Sin instrumentos en el escáner. Sincroniza desde MT5.</p>
+        </div>
       </div>
     );
   }
@@ -204,6 +208,7 @@ export function ScannerListView({ brokerFilter }: Props) {
           mercados={mercados}
           sectores={sectores}
           countLabel={`${items.length} de ${annotated.length}`}
+          viewSwitcher={viewSwitcher}
         />
       </div>
 
@@ -353,9 +358,9 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
 
 /* ─────────────── Vigilancia view ─────────────── */
 
-interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number }
+interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number; viewSwitcher?: ReactNode }
 
-export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
+export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5, viewSwitcher }: VigProps) {
   const scanner = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const navigate = useNavigate();
@@ -491,6 +496,7 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
               availableSubs={availableSubs}
               tierCounts={tierCounts}
               suggestions={suggestions}
+              viewSwitcher={viewSwitcher}
             />
           </div>
         </>

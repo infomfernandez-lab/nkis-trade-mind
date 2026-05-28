@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
 
@@ -40,6 +41,8 @@ interface Props {
   suggestions: Suggestion[];
   /** ocultar tier (p. ej. si no aplica) */
   hideTier?: boolean;
+  /** Slot opcional debajo del buscador (p.ej. selector de vista). */
+  viewSwitcher?: ReactNode;
 }
 
 export function RadarFiltersBar({
@@ -51,6 +54,7 @@ export function RadarFiltersBar({
   tierCounts,
   suggestions,
   hideTier = false,
+  viewSwitcher,
 }: Props) {
   const set = (patch: Partial<RadarFilterState>) => onChange({ ...state, ...patch });
 
@@ -62,6 +66,10 @@ export function RadarFiltersBar({
         onChange={v => set({ search: v })}
         suggestions={suggestions}
       />
+
+      {viewSwitcher}
+
+
 
       {/* Mercados */}
       <div className="flex flex-wrap gap-1.5">
