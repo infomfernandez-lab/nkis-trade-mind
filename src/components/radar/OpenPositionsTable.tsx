@@ -61,7 +61,7 @@ function useScannerSessions() {
   });
 }
 
-export function OpenPositionsTable({ brokerFilter, compact = false }: Props) {
+export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher }: Props) {
   const { openTrades, isLoading } = useAllTrades();
   const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
