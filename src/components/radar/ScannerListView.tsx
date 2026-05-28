@@ -177,8 +177,11 @@ export function ScannerListView({ brokerFilter, viewSwitcher }: Props) {
 
   if (all.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">Sin instrumentos en el escáner. Sincroniza desde MT5.</p>
+      <div className="space-y-3">
+        {viewSwitcher && <div className="rounded-md border border-border bg-card p-2">{viewSwitcher}</div>}
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">Sin instrumentos en el escáner. Sincroniza desde MT5.</p>
+        </div>
       </div>
     );
   }
