@@ -25,10 +25,18 @@ import {
 } from './EnTendenciaBlock';
 import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
-import { SortHeader, useSort } from './TableControls';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
+import {
+  AssetsStyleFiltersBar,
+  EMPTY_SCANNER_FILTERS,
+  aggregateTradesByKey,
+  VOL_RANK,
+  type ScannerFilterState,
+} from './AssetsStyleFiltersBar';
+import { useAssetMap } from '@/hooks/use-asset-map';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
+
 
 const TIER_META: Record<Tier, { label: string; accent: string }> = {
   elite:    { label: 'ÉLITE',    accent: 'border-l-primary text-primary' },
