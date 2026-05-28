@@ -8,6 +8,7 @@ import { getContractSpec } from '@/lib/contract-specs';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { rowToTrade, formatCurrency, type Trade } from '@/lib/trade-utils';
+import { resolveSector } from '@/lib/asset-enrich';
 import type { Activity as Act } from '@/hooks/use-activities';
 
 export const Route = createFileRoute('/activos/$broker/$symbol')({
@@ -39,7 +40,9 @@ function AssetDetailPage() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return data;
+      // Override sector con mapa GICS para acciones USA
+      return { ...data, sector: resolveSector(data as any) };
     },
   });
 
@@ -390,7 +393,7 @@ function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getContr
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Familia" value={asset.familia} />
+        <Stat label="Mercado" value={asset.familia} />
         <Stat label="Sector" value={asset.sector} />
         <Stat label="ADX" value={asset.last_adx != null ? Number(asset.last_adx).toFixed(2) : null} />
         <Stat label="Stoch" value={asset.last_stoch != null ? Number(asset.last_stoch).toFixed(2) : null} />

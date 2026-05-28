@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
+import { resolveSector } from '@/lib/asset-enrich';
 
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -45,7 +46,9 @@ export default function AssetsPage() {
       if (brokerDb !== 'all') qs.set('broker', brokerDb);
       const res = await fetch(`/api/assets-proxy?${qs.toString()}`);
       if (!res.ok) throw new Error(`Proxy ${res.status}: ${await res.text()}`);
-      const rows = (await res.json()) as Asset[];
+      const raw = (await res.json()) as Asset[];
+      // Override sector for US stocks → split into GICS sectors
+      const rows = raw.map(a => ({ ...a, sector: resolveSector(a) }));
       console.log('[Activos] proxy →', { brokerDb, rows: rows.length, brokers: [...new Set(rows.map(r => r.broker))] });
       return rows;
     },
@@ -108,7 +111,7 @@ export default function AssetsPage() {
           onChange={e => setFamiliaF(e.target.value)}
           className="h-8 px-2 rounded-md border border-border bg-background text-xs"
         >
-          <option value="all">Todas las familias</option>
+          <option value="all">Todos los mercados</option>
           {familias.map(f => <option key={f} value={f}>{f}</option>)}
         </select>
         <select
@@ -143,7 +146,7 @@ export default function AssetsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Símbolo</TableHead>
-              <TableHead>Familia</TableHead>
+              <TableHead>Mercado</TableHead>
               <TableHead>Sector</TableHead>
               <TableHead className="text-right">Score</TableHead>
               <TableHead>Dirección</TableHead>
