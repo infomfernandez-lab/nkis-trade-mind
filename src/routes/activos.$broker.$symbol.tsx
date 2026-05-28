@@ -8,6 +8,7 @@ import { getContractSpec } from '@/lib/contract-specs';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { rowToTrade, formatCurrency, type Trade } from '@/lib/trade-utils';
+import { resolveSector } from '@/lib/asset-enrich';
 import type { Activity as Act } from '@/hooks/use-activities';
 
 export const Route = createFileRoute('/activos/$broker/$symbol')({
@@ -39,7 +40,9 @@ function AssetDetailPage() {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      if (!data) return data;
+      // Override sector con mapa GICS para acciones USA
+      return { ...data, sector: resolveSector(data as any) };
     },
   });
 
