@@ -6,7 +6,7 @@ import { rowToTrade } from '@/lib/trade-utils';
 import { classifyInstrument } from '@/lib/instrument-classify';
 import { TradeDetail } from './trades';
 
-export const Route = createFileRoute('/trades/$tradeId')({
+export const Route = createFileRoute('/trade/$tradeId')({
   component: TradeDetailPage,
   head: ({ params }) => ({
     meta: [{ title: `Trade ${params.tradeId.slice(0, 8)} — CAP Trading` }],
