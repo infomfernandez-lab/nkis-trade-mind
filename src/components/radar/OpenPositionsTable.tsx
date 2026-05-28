@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
