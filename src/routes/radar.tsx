@@ -15,8 +15,8 @@ export const Route = createFileRoute('/radar')({
   component: RadarPage,
   head: () => ({
     meta: [
-      { title: 'Radar — CAP Trading' },
-      { name: 'description', content: 'Centro de mando: escáner, vigilancia y posiciones abiertas.' },
+      { title: 'Escáner — CAP Trading' },
+      { name: 'description', content: 'Escáner de tendencias, vigilancia EA y posiciones abiertas.' },
     ],
   }),
 });
@@ -54,7 +54,7 @@ function RadarPage() {
 
           <div className="flex items-center gap-2 mt-4">
             <Radar className="w-5 h-5 text-primary" />
-            <h1 className="font-display text-xl font-bold">Centro de mando</h1>
+            <h1 className="font-display text-xl font-bold">Escáner</h1>
           </div>
         </div>
 
@@ -66,7 +66,7 @@ function RadarPage() {
                 📡 Escaneado <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{tendenciaCount}</span>
               </TabsTrigger>
               <TabsTrigger value="vigilancia" className="w-full justify-center text-xs sm:text-sm">
-                👁 Vigilancia <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{vigCount}</span>
+                👁 Vigilancia EA <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{vigCount}</span>
               </TabsTrigger>
               <TabsTrigger value="posiciones" className="w-full justify-center text-xs sm:text-sm">
                 📈 Posiciones <span className="ml-1.5 px-1.5 py-0.5 rounded bg-secondary text-[10px] font-data">{filteredOpen.length}</span>
