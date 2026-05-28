@@ -1,9 +1,8 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useDeleteActivity, useToggleActivityDone, type Activity } from '@/hooks/use-activities';
 import { TYPE_ICON, TYPE_COLOR, PRIORITY_BADGE, isOverdue } from './activity-utils';
-import { useRightPanel } from '@/contexts/RightPanelContext';
-import { AssetInfoPanel } from './AssetInfoPanel';
 
 interface Props {
   activity: Activity;
@@ -13,7 +12,7 @@ interface Props {
 export function ActivityRow({ activity, onEdit }: Props) {
   const toggle = useToggleActivityDone();
   const del = useDeleteActivity();
-  const { openPanel } = useRightPanel();
+  const navigate = useNavigate();
   const Icon = TYPE_ICON[activity.type];
   const overdue = isOverdue(activity.due_date, activity.status);
   const done = activity.status === 'HECHO';
@@ -21,10 +20,8 @@ export function ActivityRow({ activity, onEdit }: Props) {
 
   const onSymbolClick = () => {
     if (!activity.symbol) return;
-    openPanel(
-      <AssetInfoPanel symbol={activity.symbol} broker={activity.broker} />,
-      activity.symbol,
-    );
+    const broker = activity.broker === 'darwinex' ? 'nkis' : (activity.broker || 'octx');
+    navigate({ to: '/activos/$broker/$symbol', params: { broker, symbol: activity.symbol } });
   };
 
   const due = activity.due_date ? new Date(activity.due_date) : null;
