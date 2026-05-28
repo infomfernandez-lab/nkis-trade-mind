@@ -331,20 +331,23 @@ function InfoField({ label, value, mono, pnl }: { label: string; value: string; 
   );
 }
 
-function MobileRow({ trade: t, expanded, onToggle, scannerSessions }: {
+function MobileRow({ trade: t, scannerSessions: _ }: {
   trade: Trade;
-  expanded: boolean;
-  onToggle: () => void;
+  expanded?: boolean;
+  onToggle?: () => void;
   scannerSessions: ScannerSessionLite[];
 }) {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const journalDone = hasJournal(t);
-  const scanner = lookupScannerRank(t, scannerSessions);
   const alcista = t.direction === 'BUY';
+  const assetBroker = t.broker === 'darwinex' || t.broker === 'nkis' ? 'nkis' : 'octx';
 
   return (
-    <div className={`p-3 ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}>
-      <button onClick={onToggle} className="w-full flex items-center gap-2 flex-wrap text-left">
+    <div
+      className={`p-3 cursor-pointer ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: assetBroker, symbol: t.symbol } })}
+    >
+      <div className="w-full flex items-center gap-2 flex-wrap text-left">
         {journalDone
           ? <BookCheck className="w-4 h-4 text-success shrink-0" />
           : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
@@ -358,29 +361,9 @@ function MobileRow({ trade: t, expanded, onToggle, scannerSessions }: {
         <span className={`ml-auto font-data font-bold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
           {formatCurrency(t.netPnl)}
         </span>
-        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-      </button>
+      </div>
       <div className="mt-1 text-xs text-muted-foreground">{tradeStatus(t)}</div>
       <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
-
-      {expanded && (
-        <div className="mt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-            <InfoField label="Apertura" value={new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} />
-            <InfoField label="Entrada" value={formatPrice(t.entryPrice)} mono />
-            <InfoField label="Lote" value={String(t.lotSize)} mono />
-            <InfoField label="SL" value={formatPrice(t.slPrice)} mono />
-            <InfoField label="TP" value={formatPrice(t.tpPrice)} mono />
-            <InfoField label="ADX" value={t.adxValue ? t.adxValue.toFixed(1) : '—'} mono />
-          </div>
-          <TradeJournal
-            trade={t}
-            scannerInfo={scanner}
-            vixValue={t.vixAtEntry}
-            onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
-          />
-        </div>
-      )}
     </div>
   );
 }
