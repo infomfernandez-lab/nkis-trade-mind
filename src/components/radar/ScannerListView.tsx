@@ -586,7 +586,11 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
                 ? 'bg-success/15 hover:bg-success/25'
                 : 'bg-destructive/15 hover:bg-destructive/25';
               return (
-                <tr key={key} className={`border-b border-border transition-colors ${rowBg}`}>
+                <tr
+                  key={key}
+                  onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+                  className={`border-b border-border transition-colors cursor-pointer ${rowBg}`}
+                >
                   <td className="px-3 py-3 font-data text-center text-muted-foreground font-bold">#{rank}</td>
                   <td className="px-3 py-3 text-center"><ScoreBadge score={inst.score} /></td>
                   <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{inst.symbol}</td>
