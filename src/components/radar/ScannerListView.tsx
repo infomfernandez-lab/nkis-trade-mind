@@ -68,25 +68,34 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useEaWatchSet(brokerFilter).size;
 }
 
-type SortKey = 'symbol' | 'name' | 'score' | 'direction' | 'broker' | 'price' | 'adx' | 'pend50' | 'stoch' | 'atr' | 'divergencia';
-
 interface Props { brokerFilter: BrokerFilter }
 
 export function ScannerListView({ brokerFilter }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
-  const sortApi = useSort<SortKey>({ key: null, dir: 'desc' });
+  const [filters, setFilters] = useState<ScannerFilterState>(EMPTY_SCANNER_FILTERS);
+  const navigate = useNavigate();
 
+  const assetMap = useAssetMap();
+  const { openTrades, closedTrades } = useAllTrades();
+  const tradeAgg = useMemo(
+    () => aggregateTradesByKey([...openTrades, ...closedTrades]),
+    [openTrades, closedTrades],
+  );
+  const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
+
+  // Anota cada instrumento con mercado/sector compartido con Activos.
   const annotated = useMemo(() => {
     return all.map(it => {
-      const cls = classifyFamily(it.symbol);
-      return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
+      const c = assetMap.classify(it.symbol);
+      return { ...it, _mercado: c.mercado, _sector: c.sector };
     });
-  }, [all]);
+  }, [all, assetMap]);
 
-  // Global ranking by score (over ALL annotated, before any filter)
+  type Row = (typeof annotated)[number];
+
+  // Ranking global por score (sobre todo el escáner, antes de filtrar).
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
     [...annotated]
@@ -95,91 +104,77 @@ export function ScannerListView({ brokerFilter }: Props) {
     return m;
   }, [annotated]);
 
-  type Row = (typeof annotated)[number];
+  const mercados = useMemo(() => {
+    const s = new Set<string>();
+    annotated.forEach(a => { if (a._mercado) s.add(a._mercado); });
+    return Array.from(s).sort();
+  }, [annotated]);
 
-  const familyFiltered = useMemo(() => {
-    return annotated.filter(a => {
-      if (filters.family && a._family !== filters.family) return false;
-      if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
-      return true;
+  const sectores = useMemo(() => {
+    const s = new Set<string>();
+    annotated.forEach(a => {
+      if (filters.mercado !== 'all' && a._mercado !== filters.mercado) return;
+      if (a._sector) s.add(a._sector);
     });
-  }, [annotated, filters.family, filters.subfamily]);
+    return Array.from(s).sort();
+  }, [annotated, filters.mercado]);
 
-  const tierCounts = useMemo(() => {
-    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
-    for (const it of familyFiltered) c[tierOfScore(it.score)]++;
-    return c;
-  }, [familyFiltered]);
+  const aggFor = (r: Row) => tradeAgg.get(`${r.symbol}|${r.broker}`);
 
   const items = useMemo(() => {
-    let arr = familyFiltered;
-    if (filters.tier) arr = arr.filter(it => tierOfScore(it.score) === filters.tier);
-    if (filters.search.trim()) {
-      arr = arr.filter(it => matchSearch(filters.search, [it.symbol, classifyInstrument(it.symbol).description]));
-    }
-    const sort = sortApi.sort;
-    if (sort.key) {
-      const getters: Record<SortKey, (t: Row) => string | number | null | undefined> = {
-        symbol: it => it.symbol,
-        name: it => classifyInstrument(it.symbol).description,
-        score: it => it.score,
-        direction: it => it.direction,
-        broker: it => it.broker,
-        price: it => it.current_price,
-        adx: it => it.adx_value,
-        pend50: it => it.pend50_pct,
-        stoch: it => it.stoch_k,
-        atr: it => it.atr,
-        divergencia: it => it.divergencia,
-      };
-      const g = getters[sort.key];
-      const mult = sort.dir === 'asc' ? 1 : -1;
-      arr = [...arr].sort((a, b) => {
-        const va = g(a); const vb = g(b);
-        if (va == null && vb == null) return 0;
-        if (va == null) return 1;
-        if (vb == null) return -1;
-        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * mult;
-        return String(va).localeCompare(String(vb)) * mult;
-      });
-    }
-    return arr;
-  }, [familyFiltered, filters.tier, filters.search, sortApi.sort]);
+    const q = filters.search.trim().toUpperCase();
+    const filtered = annotated.filter(a => {
+      if (filters.mercado !== 'all' && a._mercado !== filters.mercado) return false;
+      if (filters.sector !== 'all' && a._sector !== filters.sector) return false;
 
-  const familyCounts = useMemo(() => {
-    const c: Partial<Record<Family, number>> = {};
-    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
-    return c;
-  }, [annotated]);
+      const dir = (a.direction ?? '').toLowerCase();
+      const isAlc = dir === 'alcista' || dir === 'buy';
+      const isBaj = dir === 'bajista' || dir === 'sell';
+      if (filters.dir === 'ALCISTA' && !isAlc) return false;
+      if (filters.dir === 'BAJISTA' && !isBaj) return false;
 
-  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
+      if (q && !a.symbol.toUpperCase().includes(q)
+            && !classifyInstrument(a.symbol).description.toUpperCase().includes(q)) return false;
 
-  const suggestions: Suggestion[] = useMemo(() => {
-    return annotated.map(it => ({
-      value: it.symbol,
-      label: it.symbol,
-      description: classifyInstrument(it.symbol).description,
-    }));
-  }, [annotated]);
+      if (filters.strongTrend && !(Number(a.adx_value ?? 0) >= 25)) return false;
 
-  const showTiers = sortApi.sort.key === null && !filters.tier;
-  const sortedByScore = useMemo(() => [...items].sort((a, b) => b.score - a.score), [items]);
+      if (filters.vol !== 'all') {
+        const v = (a.atr_estado ?? '').toString().toUpperCase();
+        if (filters.vol === 'high' && !(v === 'ELEVADA' || v === 'ANORMAL')) return false;
+        if (filters.vol === 'normal' && !(v === 'BAJA' || v === 'COHERENTE')) return false;
+      }
 
-  const groups: { tier: Tier; items: Row[] }[] = useMemo(() => {
-    if (!showTiers) return [{ tier: (filters.tier ?? 'elite') as Tier, items }];
-    const map: Record<Tier, Row[]> = { elite: [], solido: [], observar: [] };
-    for (const it of sortedByScore) map[tierOfScore(it.score)].push(it);
-    return (['elite', 'solido', 'observar'] as Tier[])
-      .filter(t => map[t].length > 0)
-      .map(t => ({ tier: t, items: map[t] }));
-  }, [showTiers, items, sortedByScore, filters.tier]);
+      if (filters.trade !== 'all') {
+        const agg = aggFor(a);
+        if (!agg) return false;
+        if (filters.trade === 'open' && agg.openCount === 0) return false;
+        if (filters.trade === 'recent_closed' && agg.recentClosedCount === 0) return false;
+        if (filters.trade === 'winners' && !(agg.closedPnl > 0)) return false;
+        if (filters.trade === 'losers' && !(agg.closedPnl < 0)) return false;
+      }
+      return true;
+    });
 
-  const eliteRef = useRef<HTMLDivElement>(null);
-  const solidoRef = useRef<HTMLDivElement>(null);
-  const observarRef = useRef<HTMLDivElement>(null);
-
-  // (Toggle de vigilancia eliminado: la vigilancia la gestiona el EA.)
-
+    const num = (x: number | null | undefined) => (x == null ? -Infinity : Number(x));
+    const cmp = (a: Row, b: Row): number => {
+      const aAgg = aggFor(a);
+      const bAgg = aggFor(b);
+      switch (filters.sort) {
+        case 'score_desc': return num(b.score) - num(a.score);
+        case 'score_asc':  return num(a.score) - num(b.score);
+        case 'adx_desc':   return num(b.adx_value) - num(a.adx_value);
+        case 'vol_desc': {
+          const av = VOL_RANK[(a.atr_estado ?? '').toString().toUpperCase()] ?? 0;
+          const bv = VOL_RANK[(b.atr_estado ?? '').toString().toUpperCase()] ?? 0;
+          return bv - av;
+        }
+        case 'pnl_desc':   return (bAgg?.closedPnl ?? -Infinity) - (aAgg?.closedPnl ?? -Infinity);
+        case 'pnl_asc':    return (aAgg?.closedPnl ?? Infinity) - (bAgg?.closedPnl ?? Infinity);
+        case 'recent_close': return (bAgg?.lastExit ?? 0) - (aAgg?.lastExit ?? 0);
+      }
+    };
+    return [...filtered].sort(cmp);
+  }, [annotated, filters, tradeAgg]);
 
   if (all.length === 0) {
     return (
@@ -204,106 +199,66 @@ export function ScannerListView({ brokerFilter }: Props) {
 
       {/* Filtros — sticky para mantener acceso al hacer scroll. Oculto en móvil hasta tocar el botón. */}
       <div className={`${mobileFiltersOpen ? 'block' : 'hidden'} md:block sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
-        <RadarFiltersBar
+        <AssetsStyleFiltersBar
           state={filters}
           onChange={setFilters}
-          totalCount={annotated.length}
-          familyCounts={familyCounts}
-          availableSubs={availableSubs}
-          tierCounts={tierCounts}
-          suggestions={suggestions}
+          mercados={mercados}
+          sectores={sectores}
+          countLabel={`${items.length} de ${annotated.length}`}
         />
       </div>
 
       {/* Tabla */}
       <div className="rounded-lg border border-border bg-card overflow-hidden">
-        {/* Desktop */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-base">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                <th className="text-center px-3 py-3 w-[50px]">#</th>
-                <SortHeader label="Score" sortKey="score" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[80px]" />
-                <SortHeader label="Ticker" sortKey="symbol" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[120px]" />
-                <SortHeader label="Nombre" sortKey="name" state={sortApi.sort} onToggle={sortApi.toggle} />
-                <SortHeader label="Dir" sortKey="direction" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
-                <SortHeader label="Cuenta" sortKey="broker" state={sortApi.sort} onToggle={sortApi.toggle} align="center" className="w-[70px]" />
-                <SortHeader label="Precio" sortKey="price" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[90px]" />
-                <SortHeader label="ATR" sortKey="atr" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[80px]" />
-                <SortHeader label="Pend50" sortKey="pend50" state={sortApi.sort} onToggle={sortApi.toggle} align="right" className="w-[80px]" />
-                <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
-                <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
-                <SortHeader label="Div" sortKey="divergencia" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g, gi) => {
-                const meta = TIER_META[g.tier];
-                return (
-                  <FragmentRows key={`g-${gi}-${g.tier}`}>
-                    {showTiers && (
-                      <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
-                          className="bg-secondary/20 scroll-mt-40">
-                        <td colSpan={12} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
-                          {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
-                        </td>
-                      </tr>
-                    )}
-                    {g.items.map((inst) => {
-                      const key = `${inst.symbol}::${inst.broker}`;
-                      const rank = globalRanks.get(key) ?? 0;
-                      return (
-                        <DesktopRow
-                          key={key}
-                          inst={inst}
-                          rank={rank}
-                        />
-                      );
-                    })}
-                  </FragmentRows>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile */}
-        <div className="md:hidden">
-          {groups.map((g, gi) => {
-            const meta = TIER_META[g.tier];
-            return (
-              <div key={`m-${gi}-${g.tier}`}>
-                {showTiers && (
-                  <div ref={g.tier === 'elite' ? eliteRef : g.tier === 'solido' ? solidoRef : observarRef}
-                       className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 bg-secondary/30 border-border scroll-mt-40 ${meta.accent}`}>
-                    {meta.label} — {g.items.length}
-                  </div>
-                )}
-                <div className="divide-y divide-border">
-                  {g.items.map((inst) => {
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">Ningún instrumento coincide con los filtros.</div>
+        ) : (
+          <>
+            {/* Desktop */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-base">
+                <thead className="bg-muted/40 border-b border-border">
+                  <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    <th className="text-center px-3 py-3 w-[50px]">#</th>
+                    <th className="text-center px-3 py-3 w-[80px]">Score</th>
+                    <th className="text-left px-3 py-3 w-[120px]">Ticker</th>
+                    <th className="text-left px-3 py-3">Nombre</th>
+                    <th className="text-left px-3 py-3 w-[70px]">Dir</th>
+                    <th className="text-center px-3 py-3 w-[70px]">Cuenta</th>
+                    <th className="text-right px-3 py-3 w-[90px]">Precio</th>
+                    <th className="text-left px-3 py-3 w-[80px]">ATR</th>
+                    <th className="text-right px-3 py-3 w-[80px]">Pend50</th>
+                    <th className="text-left px-3 py-3 w-[90px]">Stoch</th>
+                    <th className="text-left px-3 py-3 w-[90px]">ADX</th>
+                    <th className="text-left px-3 py-3 w-[70px]">Div</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((inst) => {
                     const key = `${inst.symbol}::${inst.broker}`;
                     const rank = globalRanks.get(key) ?? 0;
-                    return (
-                      <MobileRow
-                        key={key}
-                        inst={inst}
-                        rank={rank}
-                      />
-                    );
+                    return <DesktopRow key={key} inst={inst} rank={rank} />;
                   })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile */}
+            <div className="md:hidden divide-y divide-border">
+              {items.map((inst) => {
+                const key = `${inst.symbol}::${inst.broker}`;
+                const rank = globalRanks.get(key) ?? 0;
+                return <MobileRow key={key} inst={inst} rank={rank} />;
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function FragmentRows({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
+
 
 
 function DesktopRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
