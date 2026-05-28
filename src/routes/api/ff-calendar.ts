@@ -11,7 +11,6 @@ export const Route = createFileRoute('/api/ff-calendar')({
         try {
           const res = await fetch(FF_URL, {
             headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' },
-            cf: { cacheTtl: 1800, cacheEverything: true } as any,
           });
           const body = await res.text();
           return new Response(body, {
