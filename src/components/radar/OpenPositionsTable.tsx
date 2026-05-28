@@ -151,6 +151,7 @@ export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher
             availableSubs={availableSubs}
             tierCounts={tierCounts}
             suggestions={suggestions}
+            viewSwitcher={viewSwitcher}
           />
         </div>
       )}
