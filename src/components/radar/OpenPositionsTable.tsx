@@ -128,9 +128,12 @@ export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher
 
   if (filteredAll.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center">
-        <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
+      <div className="space-y-3">
+        {viewSwitcher && <div className="rounded-md border border-border bg-card p-2">{viewSwitcher}</div>}
+        <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
+        </div>
       </div>
     );
   }
