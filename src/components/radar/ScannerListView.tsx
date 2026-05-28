@@ -455,6 +455,7 @@ interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialL
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
+  const navigate = useNavigate();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
