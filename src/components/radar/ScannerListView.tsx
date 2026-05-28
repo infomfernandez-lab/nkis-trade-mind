@@ -1,7 +1,14 @@
 import { useMemo, useState, useRef } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, Eye, EyeOff, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
+
+function brokerToAssetBroker(b: string | null | undefined): string {
+  const v = (b ?? '').toLowerCase();
+  if (v === 'darwinex' || v === 'nkis') return 'nkis';
+  return 'octx';
+}
 import {
   useUnifiedInstruments,
   type UnifiedInstrument,
@@ -335,7 +342,7 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
 function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       title={watched ? 'Quitar de Vigilancia' : 'Añadir a Vigilancia'}
       className={`inline-flex items-center justify-center w-7 h-7 rounded border transition-colors ${
         watched
@@ -349,6 +356,7 @@ function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => vo
 }
 
 function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+  const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const meta = classifyInstrument(inst.symbol);
   const div = inst.divergencia;
@@ -357,7 +365,10 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
     ? 'bg-success/15 hover:bg-success/25'
     : 'bg-destructive/15 hover:bg-destructive/25';
   return (
-    <tr className={`border-b border-border transition-colors ${rowBg}`}>
+    <tr
+      className={`border-b border-border transition-colors cursor-pointer ${rowBg}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+    >
       <td className="px-3 py-3 font-data text-center text-muted-foreground font-bold">#{rank}</td>
       <td className="px-3 py-3 text-center"><ScoreBadge score={inst.score} /></td>
       <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{inst.symbol}</td>
@@ -404,10 +415,14 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
 }
 
 function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+  const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   return (
-    <div className={`p-3 ${watched ? 'bg-primary/5' : ''}`}>
+    <div
+      className={`p-3 cursor-pointer ${watched ? 'bg-primary/5' : ''}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
         <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>

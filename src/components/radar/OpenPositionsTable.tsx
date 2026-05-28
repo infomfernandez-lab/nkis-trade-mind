@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
@@ -267,101 +268,56 @@ function BrokerSubsection({
   );
 }
 
-function PositionRow({ trade: t, expanded, onToggle, scannerSessions }: {
+function PositionRow({ trade: t, scannerSessions: _ }: {
   trade: Trade;
-  expanded: boolean;
-  onToggle: () => void;
+  expanded?: boolean;
+  onToggle?: () => void;
   scannerSessions: ScannerSessionLite[];
 }) {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const journalDone = hasJournal(t);
-  const scanner = lookupScannerRank(t, scannerSessions);
   const alcista = t.direction === 'BUY';
   const rowBg = alcista
     ? 'bg-success/15 hover:bg-success/25'
     : 'bg-destructive/15 hover:bg-destructive/25';
   const meta = classifyInstrument(t.symbol);
+  const assetBroker = t.broker === 'darwinex' || t.broker === 'nkis' ? 'nkis' : 'octx';
 
   return (
-    <>
-      <tr className={`border-b border-border transition-colors cursor-pointer ${rowBg}`} onClick={onToggle}>
-        <td className="px-3 py-3 text-center">
-          {journalDone
-            ? <BookCheck className="w-4 h-4 text-success inline" />
-            : <Circle className="w-4 h-4 text-muted-foreground inline" />}
-        </td>
-        <td className="px-3 py-3">
-          <div className="flex flex-col leading-tight">
-            <span className="font-bold text-foreground">{t.symbol}</span>
-            <span className="text-xs text-muted-foreground truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
-          </div>
-        </td>
-        <td className="px-3 py-3">
-          <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
-            alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
-          }`}>
-            {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {t.direction}
-          </span>
-        </td>
-        <td className="px-3 py-3 text-sm text-muted-foreground whitespace-nowrap">
-          {new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
-        </td>
-        <td className="px-3 py-3 text-right font-data">{formatPrice(t.entryPrice)}</td>
-        <td className="px-3 py-3 text-right font-data text-destructive/80">{formatPrice(t.slPrice)}</td>
-        <td className="px-3 py-3 text-right font-data text-success/80">{formatPrice(t.tpPrice)}</td>
-        <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-          {formatCurrency(t.netPnl)}
-        </td>
-        <td className="px-3 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">{tradeStatus(t)}</span>
-            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-          </div>
-        </td>
-      </tr>
-
-      {expanded && (
-        <tr className="bg-background/40">
-          <td colSpan={9} className="p-0 border-b border-border">
-            <div className="p-4 space-y-4">
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Datos del Trade</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <InfoField label="Ticket" value={String(t.ticket)} mono />
-                  <InfoField label="Lote" value={String(t.lotSize)} mono />
-                  <InfoField label="Apertura" value={new Date(t.entryDate).toLocaleString('es-ES')} />
-                  <InfoField label="Cuenta" value={t.broker === 'darwinex' ? 'NK' : 'OX'} />
-                  <InfoField label="Entrada" value={formatPrice(t.entryPrice)} mono />
-                  <InfoField label="SL" value={formatPrice(t.slPrice)} mono />
-                  <InfoField label="TP" value={formatPrice(t.tpPrice)} mono />
-                  <InfoField label="P&L" value={formatCurrency(t.netPnl)} mono pnl={t.netPnl} />
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Indicadores al Momento de Entrada</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <InfoField label="ADX" value={t.adxValue ? t.adxValue.toFixed(1) : '—'} mono />
-                  <InfoField label="Stoch K" value={t.stochasticK ? t.stochasticK.toFixed(1) : '—'} mono />
-                  <InfoField label="Momentum 20d" value={t.momentum20d ? t.momentum20d.toFixed(2) : '—'} mono />
-                  <InfoField label="Dist MA50" value={t.distanceToMA50Label || '—'} />
-                  <InfoField label="Scanner rank" value={scanner.rank != null ? `#${scanner.rank}${scanner.total ? `/${scanner.total}` : ''}` : '—'} />
-                  <InfoField label="Score" value={scanner.score != null ? scanner.score.toFixed(0) : '—'} mono />
-                </div>
-              </div>
-
-              <TradeJournal
-                trade={t}
-                scannerInfo={scanner}
-                vixValue={t.vixAtEntry}
-                onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
-              />
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+    <tr
+      className={`border-b border-border transition-colors cursor-pointer ${rowBg}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: assetBroker, symbol: t.symbol } })}
+    >
+      <td className="px-3 py-3 text-center">
+        {journalDone
+          ? <BookCheck className="w-4 h-4 text-success inline" />
+          : <Circle className="w-4 h-4 text-muted-foreground inline" />}
+      </td>
+      <td className="px-3 py-3">
+        <div className="flex flex-col leading-tight">
+          <span className="font-bold text-foreground">{t.symbol}</span>
+          <span className="text-xs text-muted-foreground truncate max-w-[260px]" title={meta.description}>{meta.description}</span>
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-bold ${
+          alcista ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive'
+        }`}>
+          {alcista ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          {t.direction}
+        </span>
+      </td>
+      <td className="px-3 py-3 text-sm text-muted-foreground whitespace-nowrap">
+        {new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+      </td>
+      <td className="px-3 py-3 text-right font-data">{formatPrice(t.entryPrice)}</td>
+      <td className="px-3 py-3 text-right font-data text-destructive/80">{formatPrice(t.slPrice)}</td>
+      <td className="px-3 py-3 text-right font-data text-success/80">{formatPrice(t.tpPrice)}</td>
+      <td className={`px-3 py-3 text-right font-data font-bold ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
+        {formatCurrency(t.netPnl)}
+      </td>
+      <td className="px-3 py-3 text-sm text-muted-foreground">{tradeStatus(t)}</td>
+    </tr>
   );
 }
 
@@ -375,20 +331,23 @@ function InfoField({ label, value, mono, pnl }: { label: string; value: string; 
   );
 }
 
-function MobileRow({ trade: t, expanded, onToggle, scannerSessions }: {
+function MobileRow({ trade: t, scannerSessions: _ }: {
   trade: Trade;
-  expanded: boolean;
-  onToggle: () => void;
+  expanded?: boolean;
+  onToggle?: () => void;
   scannerSessions: ScannerSessionLite[];
 }) {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const journalDone = hasJournal(t);
-  const scanner = lookupScannerRank(t, scannerSessions);
   const alcista = t.direction === 'BUY';
+  const assetBroker = t.broker === 'darwinex' || t.broker === 'nkis' ? 'nkis' : 'octx';
 
   return (
-    <div className={`p-3 ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}>
-      <button onClick={onToggle} className="w-full flex items-center gap-2 flex-wrap text-left">
+    <div
+      className={`p-3 cursor-pointer ${alcista ? 'bg-success/10' : 'bg-destructive/10'}`}
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: assetBroker, symbol: t.symbol } })}
+    >
+      <div className="w-full flex items-center gap-2 flex-wrap text-left">
         {journalDone
           ? <BookCheck className="w-4 h-4 text-success shrink-0" />
           : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
@@ -402,29 +361,9 @@ function MobileRow({ trade: t, expanded, onToggle, scannerSessions }: {
         <span className={`ml-auto font-data font-bold text-sm ${t.netPnl >= 0 ? 'text-success' : 'text-destructive'}`}>
           {formatCurrency(t.netPnl)}
         </span>
-        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-      </button>
+      </div>
       <div className="mt-1 text-xs text-muted-foreground">{tradeStatus(t)}</div>
       <div className="mt-1"><SymbolMeta symbol={t.symbol} compact /></div>
-
-      {expanded && (
-        <div className="mt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-            <InfoField label="Apertura" value={new Date(t.entryDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} />
-            <InfoField label="Entrada" value={formatPrice(t.entryPrice)} mono />
-            <InfoField label="Lote" value={String(t.lotSize)} mono />
-            <InfoField label="SL" value={formatPrice(t.slPrice)} mono />
-            <InfoField label="TP" value={formatPrice(t.tpPrice)} mono />
-            <InfoField label="ADX" value={t.adxValue ? t.adxValue.toFixed(1) : '—'} mono />
-          </div>
-          <TradeJournal
-            trade={t}
-            scannerInfo={scanner}
-            vixValue={t.vixAtEntry}
-            onSaved={() => queryClient.invalidateQueries({ queryKey: ['trades'] })}
-          />
-        </div>
-      )}
     </div>
   );
 }
