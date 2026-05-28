@@ -61,12 +61,22 @@ function useScannerSessions() {
   });
 }
 
-export function OpenPositionsTable({ brokerFilter, filters, tradeAgg, assetMap }: Props) {
-  const { openTrades, isLoading } = useAllTrades();
+export function OpenPositionsTable({ brokerFilter, filters: filtersProp, tradeAgg: tradeAggProp, assetMap: assetMapProp }: Props) {
+  const { openTrades, closedTrades, isLoading } = useAllTrades();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: scannerSessions } = useScannerSessions();
   const scannerAll = useUnifiedInstruments(brokerFilter);
+
+  // Fallbacks para uso en dashboard (modo compact, sin filtros aportados).
+  const localAssetMap = useAssetMap();
+  const assetMap = assetMapProp ?? localAssetMap;
+  const localTradeAgg = useMemo(
+    () => (tradeAggProp ? null : aggregateTradesByKey([...openTrades, ...closedTrades])),
+    [tradeAggProp, openTrades, closedTrades],
+  );
+  const tradeAgg = tradeAggProp ?? (localTradeAgg ?? new Map<string, TradeAgg>());
+  const filters = filtersProp ?? EMPTY_SCANNER_FILTERS;
 
   // Indexar el escáner por símbolo+broker para fusionar métricas (ADX, ATR…)
   // con los trades abiertos y poder aplicar los mismos filtros del escáner.
