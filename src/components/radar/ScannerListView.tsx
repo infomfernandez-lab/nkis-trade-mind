@@ -651,7 +651,11 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
           const isOpen = openSymbols.has(inst.symbol);
           const alcista = isAlcistaDir(inst.direction);
           return (
-            <div key={key} className={`p-3 ${isOpen ? 'bg-success/5' : ''}`}>
+            <div
+              key={key}
+              onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+              className={`p-3 cursor-pointer hover:bg-accent/30 ${isOpen ? 'bg-success/5' : ''}`}
+            >
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
                 <ScoreBadge score={inst.score} />
