@@ -354,9 +354,9 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
 
 /* ─────────────── Vigilancia view ─────────────── */
 
-interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number }
+interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number; viewSwitcher?: React.ReactNode }
 
-export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
+export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5, viewSwitcher }: VigProps) {
   const scanner = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const navigate = useNavigate();
