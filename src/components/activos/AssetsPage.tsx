@@ -297,10 +297,10 @@ export default function AssetsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="text-right w-[80px]">Score</TableHead>
               <TableHead>Símbolo</TableHead>
               <TableHead>Mercado</TableHead>
               <TableHead>Sector</TableHead>
-              <TableHead className="text-right">Score</TableHead>
               <TableHead>Dirección</TableHead>
               <TableHead className="text-right">ADX</TableHead>
               <TableHead className="text-right">Stoch</TableHead>
@@ -329,6 +329,7 @@ export default function AssetsPage() {
                   className={`cursor-pointer ${rowTint}`}
                   onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: a.broker, symbol: a.symbol } })}
                 >
+                  <TableCell className="text-right"><ScoreBadge score={a.last_score} /></TableCell>
                   <TableCell className="font-data font-bold">
                     {a.symbol}
                     <span className="ml-1.5 text-[9px] uppercase text-muted-foreground">{a.broker}</span>
@@ -340,7 +341,6 @@ export default function AssetsPage() {
                   </TableCell>
                   <TableCell className="text-xs">{a.familia ?? '—'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{a.sector ?? '—'}</TableCell>
-                  <TableCell className="text-right"><ScoreBadge score={a.last_score} /></TableCell>
                   <TableCell><DirectionCell value={a.last_direction} /></TableCell>
                   <TableCell className="text-right font-data text-xs">{a.last_adx != null ? Number(a.last_adx).toFixed(1) : '—'}</TableCell>
                   <TableCell className="text-right font-data text-xs">{a.last_stoch != null ? Number(a.last_stoch).toFixed(1) : '—'}</TableCell>

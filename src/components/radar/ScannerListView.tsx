@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { TrendingUp, TrendingDown, Eye, EyeOff, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
 
@@ -27,9 +27,8 @@ import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
 import { SortHeader, useSort } from './TableControls';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from './RadarFiltersBar';
-import { useWatchlist, useAddToWatchlist, useDeleteWatchlistItem } from '@/hooks/use-watchlist';
+import { useWatchlist } from '@/hooks/use-watchlist';
 import { useAllTrades } from '@/hooks/use-trades';
-import { toast } from 'sonner';
 
 const TIER_META: Record<Tier, { label: string; accent: string }> = {
   elite:    { label: 'ÉLITE',    accent: 'border-l-primary text-primary' },
@@ -42,24 +41,23 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
-const VIG_STATUS = 'Vigilancia';
-
-export function useVigilanciaSet() {
+/** Watchlist EA = lista CAP elite que el EA realmente vigila (sync-ea-watchlist). */
+export function useEaWatchSet(brokerFilter: BrokerFilter = 'all') {
   const { data } = useWatchlist();
   return useMemo(() => {
     const s = new Set<string>();
     (data ?? []).forEach(w => {
-      if ((w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase()) {
-        s.add(`${w.symbol}::${w.broker ?? 'darwinex'}`);
-      }
+      if ((w.watch_reason ?? '') !== 'EA') return;
+      const b = (w.broker ?? 'darwinex').toLowerCase();
+      if (brokerFilter !== 'all' && b !== brokerFilter) return;
+      s.add(`${w.symbol}::${b}`);
     });
     return s;
-  }, [data]);
+  }, [data, brokerFilter]);
 }
 
 export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
-  const all = useUnifiedInstruments(brokerFilter);
-  return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
+  return useEaWatchSet(brokerFilter).size;
 }
 
 type SortKey = 'symbol' | 'name' | 'score' | 'direction' | 'broker' | 'price' | 'adx' | 'pend50' | 'stoch' | 'atr' | 'divergencia';
@@ -72,10 +70,6 @@ export function ScannerListView({ brokerFilter }: Props) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
   const sortApi = useSort<SortKey>({ key: null, dir: 'desc' });
-  const vigSet = useVigilanciaSet();
-  const { data: watchlist } = useWatchlist();
-  const addWatch = useAddToWatchlist();
-  const delWatch = useDeleteWatchlistItem();
 
   const annotated = useMemo(() => {
     return all.map(it => {
@@ -176,36 +170,8 @@ export function ScannerListView({ brokerFilter }: Props) {
   const solidoRef = useRef<HTMLDivElement>(null);
   const observarRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleWatch = (inst: UnifiedInstrument) => {
-    const existing = (watchlist ?? []).find(
-      w => w.symbol === inst.symbol && (w.broker ?? 'darwinex') === inst.broker
-        && (w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase()
-    );
-    if (existing) {
-      delWatch.mutate(existing.id, {
-        onSuccess: () => toast.success(`${inst.symbol} retirado de Vigilancia`),
-        onError: (e) => toast.error(`Error: ${(e as Error).message}`),
-      });
-    } else {
-      addWatch.mutate({
-        symbol: inst.symbol,
-        broker: inst.broker,
-        direction: inst.direction,
-        watch_reason: null,
-        stochastic_level: inst.stoch_k,
-        scanner_score: inst.score,
-        adx_value: inst.adx_value,
-        adx_state: inst.adx_state,
-        distance_to_ma50: inst.distance_to_ma50,
-        status: VIG_STATUS,
-        added_from_scanner: true,
-        trade_id: null,
-      }, {
-        onSuccess: () => toast.success(`${inst.symbol} añadido a Vigilancia`),
-        onError: (e) => toast.error(`Error: ${(e as Error).message}`),
-      });
-    }
-  };
+  // (Toggle de vigilancia eliminado: la vigilancia la gestiona el EA.)
+
 
   if (all.length === 0) {
     return (
@@ -260,7 +226,6 @@ export function ScannerListView({ brokerFilter }: Props) {
                 <SortHeader label="Stoch" sortKey="stoch" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="ADX" sortKey="adx" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[90px]" />
                 <SortHeader label="Div" sortKey="divergencia" state={sortApi.sort} onToggle={sortApi.toggle} className="w-[70px]" />
-                <th className="text-center px-3 py-3 w-[50px]">👁</th>
               </tr>
             </thead>
             <tbody>
@@ -271,7 +236,7 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {showTiers && (
                       <tr ref={g.tier === 'elite' ? (eliteRef as unknown as React.Ref<HTMLTableRowElement>) : g.tier === 'solido' ? (solidoRef as unknown as React.Ref<HTMLTableRowElement>) : (observarRef as unknown as React.Ref<HTMLTableRowElement>)}
                           className="bg-secondary/20 scroll-mt-40">
-                        <td colSpan={13} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
+                        <td colSpan={12} className={`px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold border-t border-l-4 border-border ${meta.accent}`}>
                           {meta.label} — {g.items.length} instrumento{g.items.length === 1 ? '' : 's'}
                         </td>
                       </tr>
@@ -279,14 +244,11 @@ export function ScannerListView({ brokerFilter }: Props) {
                     {g.items.map((inst) => {
                       const key = `${inst.symbol}::${inst.broker}`;
                       const rank = globalRanks.get(key) ?? 0;
-                      const watched = vigSet.has(key);
                       return (
                         <DesktopRow
                           key={key}
                           inst={inst}
                           rank={rank}
-                          watched={watched}
-                          onToggleWatch={() => handleToggleWatch(inst)}
                         />
                       );
                     })}
@@ -313,14 +275,11 @@ export function ScannerListView({ brokerFilter }: Props) {
                   {g.items.map((inst) => {
                     const key = `${inst.symbol}::${inst.broker}`;
                     const rank = globalRanks.get(key) ?? 0;
-                    const watched = vigSet.has(key);
                     return (
                       <MobileRow
                         key={key}
                         inst={inst}
                         rank={rank}
-                        watched={watched}
-                        onToggleWatch={() => handleToggleWatch(inst)}
                       />
                     );
                   })}
@@ -339,23 +298,7 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
 }
 
 
-function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      title={watched ? 'Quitar de Vigilancia' : 'Añadir a Vigilancia'}
-      className={`inline-flex items-center justify-center w-7 h-7 rounded border transition-colors ${
-        watched
-          ? 'bg-primary/20 text-primary border-primary/40 hover:bg-primary/30'
-          : 'bg-secondary text-muted-foreground border-border hover:text-primary hover:border-primary/40'
-      }`}
-    >
-      {watched ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-    </button>
-  );
-}
-
-function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+function DesktopRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
   const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const meta = classifyInstrument(inst.symbol);
@@ -409,18 +352,17 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
           </span>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
-      <td className="px-3 py-3 text-center"><WatchToggle watched={watched} onClick={onToggleWatch} /></td>
     </tr>
   );
 }
 
-function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
   const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const est = estructuraMeta(inst.estructura);
   return (
     <div
-      className={`p-3 cursor-pointer ${watched ? 'bg-primary/5' : ''}`}
+      className="p-3 cursor-pointer hover:bg-accent/30"
       onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
     >
       <div className="flex items-center gap-2 flex-wrap">
@@ -434,7 +376,6 @@ function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstru
           {alcista ? 'BUY' : 'SELL'}
         </span>
         <PriceTag price={inst.current_price} compact />
-        <span className="ml-auto"><WatchToggle watched={watched} onClick={onToggleWatch} /></span>
       </div>
       <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
@@ -453,7 +394,7 @@ function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstru
 interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number }
 
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
-  const all = useUnifiedInstruments(brokerFilter);
+  const scanner = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const navigate = useNavigate();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -462,20 +403,70 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
   const [expanded, setExpanded] = useState(false);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
 
+  // Fuente real de Vigilancia EA: watchlist con watch_reason='EA' (sincronizado
+  // desde el EA — archivo CAP_ELITE.csv). No mostrar nada que el EA no vigile.
+  const { data: watchRows = [] } = useWatchlist();
+
+  const eaList = useMemo(() => {
+    const scannerMap = new Map<string, UnifiedInstrument>();
+    for (const i of scanner) scannerMap.set(`${i.symbol}::${i.broker}`, i);
+
+    const seen = new Set<string>();
+    const out: UnifiedInstrument[] = [];
+    for (const w of watchRows) {
+      if ((w.watch_reason ?? '') !== 'EA') continue;
+      const broker = ((w.broker ?? 'darwinex').toLowerCase() === 'octx' ? 'octx' : 'darwinex') as 'darwinex' | 'octx';
+      if (brokerFilter !== 'all' && broker !== brokerFilter) continue;
+      const key = `${w.symbol}::${broker}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const hit = scannerMap.get(key);
+      if (hit) {
+        out.push(hit);
+      } else {
+        // Activo vigilado por el EA pero sin datos del último escáner.
+        out.push({
+          symbol: w.symbol,
+          direction: w.direction || 'alcista',
+          score: w.scanner_score ?? 0,
+          adx_value: w.adx_value,
+          adx_state: w.adx_state,
+          distance_to_ma50: w.distance_to_ma50,
+          pend50_pct: null,
+          estructura: null,
+          divergencia: null,
+          atr_estado: null,
+          stoch_subiendo: null,
+          pullback_active: false,
+          pullback_bars: null,
+          stoch_k: w.stochastic_level,
+          stoch_estado: null,
+          atr: null,
+          structure: null,
+          breakout: null,
+          volume: null,
+          current_price: null,
+          broker,
+        });
+      }
+    }
+    return out;
+  }, [watchRows, scanner, brokerFilter]);
+
   const annotated = useMemo(() => {
-    return all.filter(i => (i.score ?? 0) >= 60).map(it => {
+    return eaList.map(it => {
       const cls = classifyFamily(it.symbol);
       return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
     });
-  }, [all]);
+  }, [eaList]);
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
-    [...all]
+    [...scanner]
       .sort((a, b) => b.score - a.score)
       .forEach((it, idx) => m.set(`${it.symbol}::${it.broker}`, idx + 1));
     return m;
-  }, [all]);
+  }, [scanner]);
 
   const familyFiltered = useMemo(() => annotated.filter(a => {
     if (filters.family && a._family !== filters.family) return false;
