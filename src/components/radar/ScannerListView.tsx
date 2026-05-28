@@ -394,7 +394,7 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
 interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number }
 
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
-  const all = useUnifiedInstruments(brokerFilter);
+  const scanner = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
   const navigate = useNavigate();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -403,20 +403,70 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
   const [expanded, setExpanded] = useState(false);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
 
+  // Fuente real de Vigilancia EA: watchlist con watch_reason='EA' (sincronizado
+  // desde el EA — archivo CAP_ELITE.csv). No mostrar nada que el EA no vigile.
+  const { data: watchRows = [] } = useWatchlist();
+
+  const eaList = useMemo(() => {
+    const scannerMap = new Map<string, UnifiedInstrument>();
+    for (const i of scanner) scannerMap.set(`${i.symbol}::${i.broker}`, i);
+
+    const seen = new Set<string>();
+    const out: UnifiedInstrument[] = [];
+    for (const w of watchRows) {
+      if ((w.watch_reason ?? '') !== 'EA') continue;
+      const broker = ((w.broker ?? 'darwinex').toLowerCase() === 'octx' ? 'octx' : 'darwinex') as 'darwinex' | 'octx';
+      if (brokerFilter !== 'all' && broker !== brokerFilter) continue;
+      const key = `${w.symbol}::${broker}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const hit = scannerMap.get(key);
+      if (hit) {
+        out.push(hit);
+      } else {
+        // Activo vigilado por el EA pero sin datos del último escáner.
+        out.push({
+          symbol: w.symbol,
+          direction: w.direction || 'alcista',
+          score: w.scanner_score ?? 0,
+          adx_value: w.adx_value,
+          adx_state: w.adx_state,
+          distance_to_ma50: w.distance_to_ma50,
+          pend50_pct: null,
+          estructura: null,
+          divergencia: null,
+          atr_estado: null,
+          stoch_subiendo: null,
+          pullback_active: false,
+          pullback_bars: null,
+          stoch_k: w.stochastic_level,
+          stoch_estado: null,
+          atr: null,
+          structure: null,
+          breakout: null,
+          volume: null,
+          current_price: null,
+          broker,
+        });
+      }
+    }
+    return out;
+  }, [watchRows, scanner, brokerFilter]);
+
   const annotated = useMemo(() => {
-    return all.filter(i => (i.score ?? 0) >= 60).map(it => {
+    return eaList.map(it => {
       const cls = classifyFamily(it.symbol);
       return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
     });
-  }, [all]);
+  }, [eaList]);
 
   const globalRanks = useMemo(() => {
     const m = new Map<string, number>();
-    [...all]
+    [...scanner]
       .sort((a, b) => b.score - a.score)
       .forEach((it, idx) => m.set(`${it.symbol}::${it.broker}`, idx + 1));
     return m;
-  }, [all]);
+  }, [scanner]);
 
   const familyFiltered = useMemo(() => annotated.filter(a => {
     if (filters.family && a._family !== filters.family) return false;
