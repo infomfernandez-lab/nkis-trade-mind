@@ -298,23 +298,7 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
 }
 
 
-function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      title={watched ? 'Quitar de Vigilancia' : 'Añadir a Vigilancia'}
-      className={`inline-flex items-center justify-center w-7 h-7 rounded border transition-colors ${
-        watched
-          ? 'bg-primary/20 text-primary border-primary/40 hover:bg-primary/30'
-          : 'bg-secondary text-muted-foreground border-border hover:text-primary hover:border-primary/40'
-      }`}
-    >
-      {watched ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-    </button>
-  );
-}
-
-function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
+function DesktopRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
   const navigate = useNavigate();
   const alcista = isAlcistaDir(inst.direction);
   const meta = classifyInstrument(inst.symbol);
@@ -368,10 +352,44 @@ function DesktopRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstr
           </span>
         ) : <span className="text-xs text-muted-foreground">—</span>}
       </td>
-      <td className="px-3 py-3 text-center"><WatchToggle watched={watched} onClick={onToggleWatch} /></td>
     </tr>
   );
 }
+
+function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
+  const navigate = useNavigate();
+  const alcista = isAlcistaDir(inst.direction);
+  const est = estructuraMeta(inst.estructura);
+  return (
+    <div
+      className="p-3 cursor-pointer hover:bg-accent/30"
+      onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+    >
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
+        <span className="font-bold text-sm text-foreground inline-flex items-center gap-1.5"><SymbolName symbol={inst.symbol} /></span>
+        <ScoreBadge score={inst.score} />
+        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+          alcista ? 'bg-success/20 text-success border-success/40' : 'bg-destructive/20 text-destructive border-destructive/40'
+        }`}>
+          {alcista ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+          {alcista ? 'BUY' : 'SELL'}
+        </span>
+        <PriceTag price={inst.current_price} compact />
+      </div>
+      <div className="mt-1"><SymbolMeta symbol={inst.symbol} compact /></div>
+      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+        <div className="flex justify-between"><span className="text-muted-foreground">ADX</span><span><AdxCell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Pend50</span><span><Pend50Cell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Estruct</span><span className={`font-bold ${est.color}`}>{est.icon} {est.label}</span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">Stoch</span><span><StochCell inst={inst} /></span></div>
+        <div className="flex justify-between"><span className="text-muted-foreground">ATR</span><span><AtrValueCell inst={inst} /></span></div>
+      </div>
+    </div>
+  );
+}
+// ---- end DesktopRow/MobileRow ----
+// (legacy MobileRow code below to be removed) ----
 
 function MobileRow({ inst, rank, watched, onToggleWatch }: { inst: UnifiedInstrument; rank: number; watched: boolean; onToggleWatch: () => void }) {
   const navigate = useNavigate();
