@@ -42,6 +42,9 @@ interface Props {
   sectores: string[];
   /** mostrar contador opcional debajo (p.ej. "12 de 50"). */
   countLabel?: string;
+  /** Slot opcional que se renderiza justo debajo de la fila del buscador
+   *  (p.ej. selector de vista Escaneado / Vigilancia EA / Posiciones). */
+  viewSwitcher?: React.ReactNode;
 }
 
 export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel }: Props) {
