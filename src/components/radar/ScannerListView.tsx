@@ -1,7 +1,14 @@
 import { useMemo, useState, useRef } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, Eye, EyeOff, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
 import type { BrokerFilter } from '@/lib/trade-utils';
+
+function brokerToAssetBroker(b: string | null | undefined): string {
+  const v = (b ?? '').toLowerCase();
+  if (v === 'darwinex' || v === 'nkis') return 'nkis';
+  return 'octx';
+}
 import {
   useUnifiedInstruments,
   type UnifiedInstrument,
