@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Props {
   brokerFilter: BrokerFilter;
   compact?: boolean;
+  viewSwitcher?: React.ReactNode;
 }
 
 function formatPrice(price: number): string {
