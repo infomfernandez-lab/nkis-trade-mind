@@ -11,7 +11,7 @@ import { useWatchlist } from '@/hooks/use-watchlist';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { useTheme } from '@/hooks/use-theme';
 import { BrokerSelector } from '@/components/BrokerSelector';
-import { RightPanel } from '@/contexts/RightPanelContext';
+
 
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
   broker: 'all',
@@ -24,12 +24,12 @@ export function useBrokerFilter() {
 
 const navItems = [
   { to: '/' as const, label: 'Panel', icon: LayoutDashboard },
-  { to: '/radar' as const, label: 'Radar', icon: Radar },
   { to: '/activos' as const, label: 'Activos', icon: Database },
+  { to: '/radar' as const, label: 'Escáner', icon: Radar },
   { to: '/trades' as const, label: 'Registro de Trades', icon: BookOpen },
-  { to: '/backtester' as const, label: 'Backtester', icon: FlaskConical },
   { to: '/agenda' as const, label: 'Agenda', icon: CalendarDays },
   { to: '/calculator' as const, label: 'Calculadora', icon: Calculator },
+  { to: '/backtester' as const, label: 'Backtester', icon: FlaskConical },
   { to: '/statistics' as const, label: 'Estadísticas', icon: BarChart3 },
   { to: '/patterns' as const, label: 'Patrones', icon: Brain },
   { to: '/reports' as const, label: 'Informes', icon: FileText },
@@ -184,8 +184,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
 
         </div>
-
-        <RightPanel />
       </div>
     </BrokerContext.Provider>
   );

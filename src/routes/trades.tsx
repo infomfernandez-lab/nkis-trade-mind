@@ -12,7 +12,7 @@ import { classifyInstrument } from '@/lib/instrument-classify';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useRightPanel } from '@/contexts/RightPanelContext';
+import { useNavigate } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -399,7 +399,7 @@ interface TradeRowProps {
 }
 
 function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
-  const { openPanel } = useRightPanel();
+  const navigate = useNavigate();
   const close = detectCloseType(trade);
   const journalDone = hasJournal(trade);
 
@@ -412,10 +412,7 @@ function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
   const dirBg = trade.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive';
 
   const handleOpen = () => {
-    openPanel(
-      <TradeDetail trade={trade} scannerSessions={scannerSessions} />,
-      `${trade.symbol} — ${fullName}`
-    );
+    navigate({ to: '/trade/$tradeId', params: { tradeId: trade.id } });
   };
 
   return (
@@ -446,7 +443,7 @@ function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
   );
 }
 
-function TradeDetail({ trade, scannerSessions }: { trade: Trade; scannerSessions: any[] }) {
+export function TradeDetail({ trade, scannerSessions }: { trade: Trade; scannerSessions: any[] }) {
   const queryClient = useQueryClient();
   const close = detectCloseType(trade);
   const rr = computeRR(trade);

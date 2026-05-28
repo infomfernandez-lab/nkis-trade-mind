@@ -1,7 +1,7 @@
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { RightPanelProvider } from "@/contexts/RightPanelContext";
+
 import AppLayout from "@/components/layout/AppLayout";
 import appCss from "../styles.css?url";
 import { useEffect } from "react";
@@ -68,9 +68,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RightPanelProvider>
-          <AuthGate />
-        </RightPanelProvider>
+        <AuthGate />
       </AuthProvider>
     </QueryClientProvider>
   );
