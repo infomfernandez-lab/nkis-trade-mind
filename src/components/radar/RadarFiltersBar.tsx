@@ -53,6 +53,7 @@ export function RadarFiltersBar({
   tierCounts,
   suggestions,
   hideTier = false,
+  viewSwitcher,
 }: Props) {
   const set = (patch: Partial<RadarFilterState>) => onChange({ ...state, ...patch });
 
@@ -64,6 +65,10 @@ export function RadarFiltersBar({
         onChange={v => set({ search: v })}
         suggestions={suggestions}
       />
+
+      {viewSwitcher}
+
+
 
       {/* Mercados */}
       <div className="flex flex-wrap gap-1.5">
