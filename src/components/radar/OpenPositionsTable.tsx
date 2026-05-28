@@ -6,8 +6,14 @@ import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
 import { SymbolMeta, useUnifiedInstruments, type UnifiedInstrument } from './EnTendenciaBlock';
 import { classifyInstrument } from '@/lib/instrument-classify';
-import { type ScannerFilterState, type TradeAgg, VOL_RANK } from './AssetsStyleFiltersBar';
-import type { useAssetMap } from '@/hooks/use-asset-map';
+import {
+  type ScannerFilterState,
+  type TradeAgg,
+  VOL_RANK,
+  EMPTY_SCANNER_FILTERS,
+  aggregateTradesByKey,
+} from './AssetsStyleFiltersBar';
+import { useAssetMap } from '@/hooks/use-asset-map';
 import { hasJournal } from '@/lib/trade-derived';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,9 +21,11 @@ type AssetMap = ReturnType<typeof useAssetMap>;
 
 interface Props {
   brokerFilter: BrokerFilter;
-  filters: ScannerFilterState;
-  tradeAgg: Map<string, TradeAgg>;
-  assetMap: AssetMap;
+  filters?: ScannerFilterState;
+  tradeAgg?: Map<string, TradeAgg>;
+  assetMap?: AssetMap;
+  /** Modo compacto para dashboard: sin filtros, solo tabla. */
+  compact?: boolean;
 }
 
 function formatPrice(price: number): string {
