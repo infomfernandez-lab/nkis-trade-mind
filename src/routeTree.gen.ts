@@ -30,6 +30,7 @@ import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
 import { Route as ApiSyncEaWatchlistRouteImport } from './routes/api/sync-ea-watchlist'
 import { Route as ApiSyncBalanceRouteImport } from './routes/api/sync-balance'
+import { Route as ApiFfCalendarRouteImport } from './routes/api/ff-calendar'
 import { Route as ApiAssetsProxyRouteImport } from './routes/api/assets-proxy'
 import { Route as ActivosBrokerSymbolRouteImport } from './routes/activos.$broker.$symbol'
 
@@ -138,6 +139,11 @@ const ApiSyncBalanceRoute = ApiSyncBalanceRouteImport.update({
   path: '/api/sync-balance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFfCalendarRoute = ApiFfCalendarRouteImport.update({
+  id: '/api/ff-calendar',
+  path: '/api/ff-calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAssetsProxyRoute = ApiAssetsProxyRouteImport.update({
   id: '/api/assets-proxy',
   path: '/api/assets-proxy',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/assets-proxy': typeof ApiAssetsProxyRoute
+  '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/assets-proxy': typeof ApiAssetsProxyRoute
+  '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/trades': typeof TradesRoute
   '/watchlist': typeof WatchlistRoute
   '/api/assets-proxy': typeof ApiAssetsProxyRoute
+  '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/watchlist'
     | '/api/assets-proxy'
+    | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/watchlist'
     | '/api/assets-proxy'
+    | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/watchlist'
     | '/api/assets-proxy'
+    | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
     | '/api/sync-scanner'
@@ -318,6 +330,7 @@ export interface RootRouteChildren {
   TradesRoute: typeof TradesRoute
   WatchlistRoute: typeof WatchlistRoute
   ApiAssetsProxyRoute: typeof ApiAssetsProxyRoute
+  ApiFfCalendarRoute: typeof ApiFfCalendarRoute
   ApiSyncBalanceRoute: typeof ApiSyncBalanceRoute
   ApiSyncEaWatchlistRoute: typeof ApiSyncEaWatchlistRoute
   ApiSyncScannerRoute: typeof ApiSyncScannerRoute
@@ -474,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncBalanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ff-calendar': {
+      id: '/api/ff-calendar'
+      path: '/api/ff-calendar'
+      fullPath: '/api/ff-calendar'
+      preLoaderRoute: typeof ApiFfCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/assets-proxy': {
       id: '/api/assets-proxy'
       path: '/api/assets-proxy'
@@ -521,6 +541,7 @@ const rootRouteChildren: RootRouteChildren = {
   TradesRoute: TradesRoute,
   WatchlistRoute: WatchlistRoute,
   ApiAssetsProxyRoute: ApiAssetsProxyRoute,
+  ApiFfCalendarRoute: ApiFfCalendarRoute,
   ApiSyncBalanceRoute: ApiSyncBalanceRoute,
   ApiSyncEaWatchlistRoute: ApiSyncEaWatchlistRoute,
   ApiSyncScannerRoute: ApiSyncScannerRoute,
