@@ -41,24 +41,23 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
-const VIG_STATUS = 'Vigilancia';
-
-export function useVigilanciaSet() {
+/** Watchlist EA = lista CAP elite que el EA realmente vigila (sync-ea-watchlist). */
+export function useEaWatchSet(brokerFilter: BrokerFilter = 'all') {
   const { data } = useWatchlist();
   return useMemo(() => {
     const s = new Set<string>();
     (data ?? []).forEach(w => {
-      if ((w.status ?? '').toLowerCase() === VIG_STATUS.toLowerCase()) {
-        s.add(`${w.symbol}::${w.broker ?? 'darwinex'}`);
-      }
+      if ((w.watch_reason ?? '') !== 'EA') return;
+      const b = (w.broker ?? 'darwinex').toLowerCase();
+      if (brokerFilter !== 'all' && b !== brokerFilter) return;
+      s.add(`${w.symbol}::${b}`);
     });
     return s;
-  }, [data]);
+  }, [data, brokerFilter]);
 }
 
 export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
-  const all = useUnifiedInstruments(brokerFilter);
-  return useMemo(() => all.filter(i => (i.score ?? 0) >= 60).length, [all]);
+  return useEaWatchSet(brokerFilter).size;
 }
 
 type SortKey = 'symbol' | 'name' | 'score' | 'direction' | 'broker' | 'price' | 'adx' | 'pend50' | 'stoch' | 'atr' | 'divergencia';
@@ -71,10 +70,6 @@ export function ScannerListView({ brokerFilter }: Props) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
   const sortApi = useSort<SortKey>({ key: null, dir: 'desc' });
-  const vigSet = useVigilanciaSet();
-  const { data: watchlist } = useWatchlist();
-  const addWatch = useAddToWatchlist();
-  const delWatch = useDeleteWatchlistItem();
 
   const annotated = useMemo(() => {
     return all.map(it => {
