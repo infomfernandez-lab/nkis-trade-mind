@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,7 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface Props {
   brokerFilter: BrokerFilter;
   compact?: boolean;
-  viewSwitcher?: React.ReactNode;
+  viewSwitcher?: ReactNode;
 }
 
 function formatPrice(price: number): string {

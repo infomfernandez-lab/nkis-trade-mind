@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { FAMILIES, SUBFAMILIES, type Family } from '@/lib/instrument-family';
 
@@ -41,7 +42,7 @@ interface Props {
   /** ocultar tier (p. ej. si no aplica) */
   hideTier?: boolean;
   /** Slot opcional debajo del buscador (p.ej. selector de vista). */
-  viewSwitcher?: React.ReactNode;
+  viewSwitcher?: ReactNode;
 }
 
 export function RadarFiltersBar({

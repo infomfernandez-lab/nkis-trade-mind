@@ -44,7 +44,7 @@ interface Props {
   countLabel?: string;
   /** Slot opcional que se renderiza justo debajo de la fila del buscador
    *  (p.ej. selector de vista Escaneado / Vigilancia EA / Posiciones). */
-  viewSwitcher?: React.ReactNode;
+  viewSwitcher?: ReactNode;
 }
 
 export function AssetsStyleFiltersBar({ state, onChange, mercados, sectores, countLabel, viewSwitcher }: Props) {

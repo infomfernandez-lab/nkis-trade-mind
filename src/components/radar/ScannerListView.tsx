@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRadarCollapsed } from './radar-collapse-context';
@@ -68,7 +69,7 @@ export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
   return useEaWatchSet(brokerFilter).size;
 }
 
-interface Props { brokerFilter: BrokerFilter; viewSwitcher?: React.ReactNode }
+interface Props { brokerFilter: BrokerFilter; viewSwitcher?: ReactNode }
 
 export function ScannerListView({ brokerFilter, viewSwitcher }: Props) {
   const all = useUnifiedInstruments(brokerFilter);
@@ -357,7 +358,7 @@ function MobileRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
 
 /* ─────────────── Vigilancia view ─────────────── */
 
-interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number; viewSwitcher?: React.ReactNode }
+interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialLimit?: number; viewSwitcher?: ReactNode }
 
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5, viewSwitcher }: VigProps) {
   const scanner = useUnifiedInstruments(brokerFilter);
