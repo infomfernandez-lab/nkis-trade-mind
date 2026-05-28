@@ -412,7 +412,7 @@ function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
   const dirBg = trade.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive';
 
   const handleOpen = () => {
-    navigate({ to: '/trades/$tradeId', params: { tradeId: trade.id } });
+    navigate({ to: '/trade/$tradeId', params: { tradeId: trade.id } });
   };
 
   return (
