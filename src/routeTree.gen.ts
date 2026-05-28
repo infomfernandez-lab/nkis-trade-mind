@@ -24,6 +24,7 @@ import { Route as BacktesterRouteImport } from './routes/backtester'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as ActivosRouteImport } from './routes/activos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivosIndexRouteImport } from './routes/activos.index'
 import { Route as TradeTradeIdRouteImport } from './routes/trade.$tradeId'
 import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
@@ -107,6 +108,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActivosIndexRoute = ActivosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ActivosRoute,
+} as any)
 const TradeTradeIdRoute = TradeTradeIdRouteImport.update({
   id: '/trade/$tradeId',
   path: '/trade/$tradeId',
@@ -165,11 +171,11 @@ export interface FileRoutesByFullPath {
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
+  '/activos/': typeof ActivosIndexRoute
   '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/activos': typeof ActivosRouteWithChildren
   '/agenda': typeof AgendaRoute
   '/backtester': typeof BacktesterRoute
   '/calculator': typeof CalculatorRoute
@@ -189,6 +195,7 @@ export interface FileRoutesByTo {
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
+  '/activos': typeof ActivosIndexRoute
   '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRoutesById {
@@ -214,6 +221,7 @@ export interface FileRoutesById {
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
+  '/activos/': typeof ActivosIndexRoute
   '/activos/$broker/$symbol': typeof ActivosBrokerSymbolRoute
 }
 export interface FileRouteTypes {
@@ -240,11 +248,11 @@ export interface FileRouteTypes {
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
+    | '/activos/'
     | '/activos/$broker/$symbol'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/activos'
     | '/agenda'
     | '/backtester'
     | '/calculator'
@@ -264,6 +272,7 @@ export interface FileRouteTypes {
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
+    | '/activos'
     | '/activos/$broker/$symbol'
   id:
     | '__root__'
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
+    | '/activos/'
     | '/activos/$broker/$symbol'
   fileRoutesById: FileRoutesById
 }
@@ -422,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activos/': {
+      id: '/activos/'
+      path: '/'
+      fullPath: '/activos/'
+      preLoaderRoute: typeof ActivosIndexRouteImport
+      parentRoute: typeof ActivosRoute
+    }
     '/trade/$tradeId': {
       id: '/trade/$tradeId'
       path: '/trade/$tradeId'
@@ -475,10 +492,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ActivosRouteChildren {
+  ActivosIndexRoute: typeof ActivosIndexRoute
   ActivosBrokerSymbolRoute: typeof ActivosBrokerSymbolRoute
 }
 
 const ActivosRouteChildren: ActivosRouteChildren = {
+  ActivosIndexRoute: ActivosIndexRoute,
   ActivosBrokerSymbolRoute: ActivosBrokerSymbolRoute,
 }
 
