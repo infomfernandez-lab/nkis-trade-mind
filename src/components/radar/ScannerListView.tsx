@@ -455,6 +455,7 @@ interface VigProps { brokerFilter: BrokerFilter; collapsible?: boolean; initialL
 export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit = 5 }: VigProps) {
   const all = useUnifiedInstruments(brokerFilter);
   const collapsed = useRadarCollapsed();
+  const navigate = useNavigate();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { openTrades } = useAllTrades();
   const openSymbols = useMemo(() => new Set(openTrades.map(t => t.symbol)), [openTrades]);
@@ -585,7 +586,11 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
                 ? 'bg-success/15 hover:bg-success/25'
                 : 'bg-destructive/15 hover:bg-destructive/25';
               return (
-                <tr key={key} className={`border-b border-border transition-colors ${rowBg}`}>
+                <tr
+                  key={key}
+                  onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+                  className={`border-b border-border transition-colors cursor-pointer ${rowBg}`}
+                >
                   <td className="px-3 py-3 font-data text-center text-muted-foreground font-bold">#{rank}</td>
                   <td className="px-3 py-3 text-center"><ScoreBadge score={inst.score} /></td>
                   <td className="px-3 py-3 font-bold text-foreground whitespace-nowrap">{inst.symbol}</td>
@@ -646,7 +651,11 @@ export function VigilanciaView({ brokerFilter, collapsible = false, initialLimit
           const isOpen = openSymbols.has(inst.symbol);
           const alcista = isAlcistaDir(inst.direction);
           return (
-            <div key={key} className={`p-3 ${isOpen ? 'bg-success/5' : ''}`}>
+            <div
+              key={key}
+              onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: brokerToAssetBroker(inst.broker), symbol: inst.symbol } })}
+              className={`p-3 cursor-pointer hover:bg-accent/30 ${isOpen ? 'bg-success/5' : ''}`}
+            >
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-data font-bold text-sm text-muted-foreground">#{rank}</span>
                 <ScoreBadge score={inst.score} />
