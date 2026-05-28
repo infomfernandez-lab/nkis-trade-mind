@@ -1,32 +1,23 @@
 import { useState, useMemo } from 'react';
-import type { ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { TrendingUp, TrendingDown, BookCheck, Circle } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAllTrades } from '@/hooks/use-trades';
 import { formatCurrency, filterByBroker, type Trade, type BrokerFilter } from '@/lib/trade-utils';
-import { SymbolMeta, useUnifiedInstruments } from './EnTendenciaBlock';
+import { SymbolMeta, useUnifiedInstruments, type UnifiedInstrument } from './EnTendenciaBlock';
 import { classifyInstrument } from '@/lib/instrument-classify';
-import { classifyFamily, type Family } from '@/lib/instrument-family';
-import {
-  RadarFiltersBar,
-  EMPTY_FILTERS,
-  tierOfScore,
-  matchSearch,
-  buildSubsList,
-  type RadarFilterState,
-  type Tier,
-  type Suggestion,
-} from './RadarFiltersBar';
-import { useRadarCollapsed } from './radar-collapse-context';
-import { TradeJournal } from '@/components/TradeJournal';
-import { lookupScannerRank, hasJournal } from '@/lib/trade-derived';
+import { type ScannerFilterState, type TradeAgg, VOL_RANK } from './AssetsStyleFiltersBar';
+import type { useAssetMap } from '@/hooks/use-asset-map';
+import { hasJournal } from '@/lib/trade-derived';
 import { supabase } from '@/integrations/supabase/client';
+
+type AssetMap = ReturnType<typeof useAssetMap>;
 
 interface Props {
   brokerFilter: BrokerFilter;
-  compact?: boolean;
-  viewSwitcher?: ReactNode;
+  filters: ScannerFilterState;
+  tradeAgg: Map<string, TradeAgg>;
+  assetMap: AssetMap;
 }
 
 function formatPrice(price: number): string {
@@ -43,7 +34,7 @@ function tradeStatus(t: Trade): string {
 interface ScannerSessionLite {
   session_date: string;
   broker: string;
-  top_instruments: any;
+  top_instruments: unknown;
 }
 
 function useScannerSessions() {
@@ -62,66 +53,80 @@ function useScannerSessions() {
   });
 }
 
-export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher }: Props) {
+export function OpenPositionsTable({ brokerFilter, filters, tradeAgg, assetMap }: Props) {
   const { openTrades, isLoading } = useAllTrades();
-  const collapsed = useRadarCollapsed();
   const filteredAll = filterByBroker(openTrades, brokerFilter);
-  const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: scannerSessions } = useScannerSessions();
-
   const scannerAll = useUnifiedInstruments(brokerFilter);
-  const scoreMap = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it.score ?? 0);
+
+  // Indexar el escáner por símbolo+broker para fusionar métricas (ADX, ATR…)
+  // con los trades abiertos y poder aplicar los mismos filtros del escáner.
+  const scannerByKey = useMemo(() => {
+    const m = new Map<string, UnifiedInstrument>();
+    for (const it of scannerAll) m.set(`${it.symbol}::${it.broker}`, it);
     return m;
   }, [scannerAll]);
 
-  const annotated = useMemo(() => filteredAll.map(t => {
-    const cls = classifyFamily(t.symbol);
-    const score = scoreMap.get(`${t.symbol}::${t.broker}`);
-    return {
-      trade: t,
-      _family: cls?.family ?? null,
-      _subfamily: cls?.subfamily ?? null,
-      _score: score,
-      _tier: score != null ? tierOfScore(score) : null,
-    };
-  }), [filteredAll, scoreMap]);
-
-  const familyFiltered = useMemo(() => annotated.filter(a => {
-    if (filters.family && a._family !== filters.family) return false;
-    if (filters.subfamily && a._subfamily !== filters.subfamily) return false;
-    return true;
-  }), [annotated, filters.family, filters.subfamily]);
-
-  const tierCounts = useMemo(() => {
-    const c: Record<Tier, number> = { elite: 0, solido: 0, observar: 0 };
-    for (const it of familyFiltered) if (it._tier) c[it._tier]++;
-    return c;
-  }, [familyFiltered]);
-
-  const familyCounts = useMemo(() => {
-    const c: Partial<Record<Family, number>> = {};
-    for (const a of annotated) if (a._family) c[a._family] = (c[a._family] ?? 0) + 1;
-    return c;
-  }, [annotated]);
-
-  const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
-
-  const suggestions: Suggestion[] = useMemo(
-    () => annotated.map(a => ({ value: a.trade.symbol, label: a.trade.symbol, description: classifyInstrument(a.trade.symbol).description })),
-    [annotated],
-  );
-
   const filtered = useMemo(() => {
-    let arr = familyFiltered;
-    if (filters.tier) arr = arr.filter(a => a._tier === filters.tier);
-    if (filters.search.trim()) {
-      arr = arr.filter(a => matchSearch(filters.search, [a.trade.symbol, classifyInstrument(a.trade.symbol).description]));
-    }
-    return arr.map(a => a.trade);
-  }, [familyFiltered, filters.tier, filters.search]);
+    const q = filters.search.trim().toUpperCase();
+    const aggFor = (t: Trade) => tradeAgg.get(`${t.symbol}|${t.broker}`);
+
+    const matched = filteredAll.filter(t => {
+      const c = assetMap.classify(t.symbol);
+      if (filters.mercado !== 'all' && c.mercado !== filters.mercado) return false;
+      if (filters.sector !== 'all' && c.sector !== filters.sector) return false;
+
+      const isAlc = t.direction === 'BUY';
+      const isBaj = t.direction === 'SELL';
+      if (filters.dir === 'ALCISTA' && !isAlc) return false;
+      if (filters.dir === 'BAJISTA' && !isBaj) return false;
+
+      if (q && !t.symbol.toUpperCase().includes(q)
+            && !classifyInstrument(t.symbol).description.toUpperCase().includes(q)) return false;
+
+      const scan = scannerByKey.get(`${t.symbol}::${t.broker}`);
+      if (filters.strongTrend && !(Number(scan?.adx_value ?? 0) >= 25)) return false;
+      if (filters.vol !== 'all') {
+        const v = (scan?.atr_estado ?? '').toString().toUpperCase();
+        if (filters.vol === 'high' && !(v === 'ELEVADA' || v === 'ANORMAL')) return false;
+        if (filters.vol === 'normal' && !(v === 'BAJA' || v === 'COHERENTE')) return false;
+      }
+      if (filters.trade !== 'all') {
+        const agg = aggFor(t);
+        if (filters.trade === 'open') { /* todas las filas ya son abiertas */ }
+        else if (!agg) return false;
+        else {
+          if (filters.trade === 'recent_closed' && agg.recentClosedCount === 0) return false;
+          if (filters.trade === 'winners' && !(agg.closedPnl > 0)) return false;
+          if (filters.trade === 'losers' && !(agg.closedPnl < 0)) return false;
+        }
+      }
+      return true;
+    });
+
+    const num = (x: number | null | undefined) => (x == null ? -Infinity : Number(x));
+    const cmp = (a: Trade, b: Trade): number => {
+      const aScan = scannerByKey.get(`${a.symbol}::${a.broker}`);
+      const bScan = scannerByKey.get(`${b.symbol}::${b.broker}`);
+      const aAgg = aggFor(a);
+      const bAgg = aggFor(b);
+      switch (filters.sort) {
+        case 'score_desc': return num(bScan?.score) - num(aScan?.score);
+        case 'score_asc':  return num(aScan?.score) - num(bScan?.score);
+        case 'adx_desc':   return num(bScan?.adx_value) - num(aScan?.adx_value);
+        case 'vol_desc': {
+          const av = VOL_RANK[(aScan?.atr_estado ?? '').toString().toUpperCase()] ?? 0;
+          const bv = VOL_RANK[(bScan?.atr_estado ?? '').toString().toUpperCase()] ?? 0;
+          return bv - av;
+        }
+        case 'pnl_desc':   return (bAgg?.closedPnl ?? -Infinity) - (aAgg?.closedPnl ?? -Infinity);
+        case 'pnl_asc':    return (aAgg?.closedPnl ?? Infinity) - (bAgg?.closedPnl ?? Infinity);
+        case 'recent_close': return (bAgg?.lastExit ?? 0) - (aAgg?.lastExit ?? 0);
+      }
+    };
+    return [...matched].sort(cmp);
+  }, [filteredAll, filters, tradeAgg, scannerByKey, assetMap]);
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground text-center py-6">Cargando posiciones...</div>;
@@ -129,12 +134,9 @@ export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher
 
   if (filteredAll.length === 0) {
     return (
-      <div className="space-y-3">
-        {viewSwitcher && <div className="rounded-md border border-border bg-card p-2">{viewSwitcher}</div>}
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
-        </div>
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <p className="text-sm text-muted-foreground">No hay posiciones abiertas</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">El EA abrirá posiciones automáticamente cuando se cumplan las condiciones del sistema.</p>
       </div>
     );
   }
@@ -143,47 +145,33 @@ export function OpenPositionsTable({ brokerFilter, compact = false, viewSwitcher
   const fxTrades = filtered.filter(t => t.broker === 'octx');
   const toggle = (id: string) => setExpandedId(prev => prev === id ? null : id);
 
+  if (filtered.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <p className="text-sm text-muted-foreground">Ninguna posición coincide con los filtros.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {!compact && (
-        <div className={`sticky top-[44px] lg:top-[52px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/95 backdrop-blur border-b border-border overflow-hidden transition-[max-height,opacity,padding] duration-300 ease-out lg:!max-h-none lg:!opacity-100 lg:!py-2 ${collapsed ? 'max-h-0 opacity-0 py-0 border-transparent' : 'max-h-[500px] opacity-100'}`}>
-          <RadarFiltersBar
-            state={filters}
-            onChange={setFilters}
-            totalCount={annotated.length}
-            familyCounts={familyCounts}
-            availableSubs={availableSubs}
-            tierCounts={tierCounts}
-            suggestions={suggestions}
-            viewSwitcher={viewSwitcher}
-          />
-        </div>
+      {dwTrades.length > 0 && (
+        <BrokerSubsection
+          broker="darwinex"
+          trades={dwTrades}
+          expandedId={expandedId}
+          onToggleExpand={toggle}
+          scannerSessions={scannerSessions ?? []}
+        />
       )}
-      {filtered.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
-          <p className="text-sm text-muted-foreground">Ninguna posición coincide con los filtros.</p>
-        </div>
-      ) : (
-        <>
-          {dwTrades.length > 0 && (
-            <BrokerSubsection
-              broker="darwinex"
-              trades={dwTrades}
-              expandedId={expandedId}
-              onToggleExpand={toggle}
-              scannerSessions={scannerSessions ?? []}
-            />
-          )}
-          {fxTrades.length > 0 && (
-            <BrokerSubsection
-              broker="octx"
-              trades={fxTrades}
-              expandedId={expandedId}
-              onToggleExpand={toggle}
-              scannerSessions={scannerSessions ?? []}
-            />
-          )}
-        </>
+      {fxTrades.length > 0 && (
+        <BrokerSubsection
+          broker="octx"
+          trades={fxTrades}
+          expandedId={expandedId}
+          onToggleExpand={toggle}
+          scannerSessions={scannerSessions ?? []}
+        />
       )}
       <p className="text-[11px] italic text-muted-foreground/70 leading-snug px-1">
         Las posiciones abiertas solo las cierra el SL. El scanner no tiene autoridad sobre trades ya abiertos.
@@ -274,7 +262,7 @@ function BrokerSubsection({
   );
 }
 
-function PositionRow({ trade: t, scannerSessions: _ }: {
+function PositionRow({ trade: t }: {
   trade: Trade;
   expanded?: boolean;
   onToggle?: () => void;
@@ -327,17 +315,7 @@ function PositionRow({ trade: t, scannerSessions: _ }: {
   );
 }
 
-function InfoField({ label, value, mono, pnl }: { label: string; value: string; mono?: boolean; pnl?: number }) {
-  const color = pnl !== undefined ? (pnl >= 0 ? 'text-success' : 'text-destructive') : 'text-foreground';
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${color} ${mono ? 'font-data' : ''}`}>{value}</span>
-    </div>
-  );
-}
-
-function MobileRow({ trade: t, scannerSessions: _ }: {
+function MobileRow({ trade: t }: {
   trade: Trade;
   expanded?: boolean;
   onToggle?: () => void;
