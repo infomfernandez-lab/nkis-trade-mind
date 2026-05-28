@@ -342,7 +342,7 @@ function FragmentRows({ children }: { children: React.ReactNode }) {
 function WatchToggle({ watched, onClick }: { watched: boolean; onClick: () => void }) {
   return (
     <button
-      onClick={onClick}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       title={watched ? 'Quitar de Vigilancia' : 'Añadir a Vigilancia'}
       className={`inline-flex items-center justify-center w-7 h-7 rounded border transition-colors ${
         watched
