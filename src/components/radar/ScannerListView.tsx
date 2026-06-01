@@ -39,19 +39,16 @@ function isAlcistaDir(d: string) {
   return v === 'alcista' || v === 'buy';
 }
 
-/** Watchlist EA = lista CAP elite que el EA realmente vigila (sync-ea-watchlist). */
+/** Vigilancia EA = aproximación CAP elite (heurística: score ≥ 75 en último escaneo). */
 export function useEaWatchSet(brokerFilter: BrokerFilter = 'all') {
-  const { data } = useWatchlist();
+  const all = useUnifiedInstruments(brokerFilter);
   return useMemo(() => {
     const s = new Set<string>();
-    (data ?? []).forEach(w => {
-      if ((w.watch_reason ?? '') !== 'EA') return;
-      const b = (w.broker ?? 'darwinex').toLowerCase();
-      if (brokerFilter !== 'all' && b !== brokerFilter) return;
-      s.add(`${w.symbol}::${b}`);
-    });
+    for (const it of all) {
+      if (Number(it.score ?? 0) >= 75) s.add(`${it.symbol}::${it.broker}`);
+    }
     return s;
-  }, [data, brokerFilter]);
+  }, [all]);
 }
 
 export function useVigilanciaCount(brokerFilter: BrokerFilter = 'all') {
