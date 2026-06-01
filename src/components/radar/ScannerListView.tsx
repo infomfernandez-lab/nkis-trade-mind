@@ -167,53 +167,13 @@ export function ScannerListView({ brokerFilter, filters, tradeAgg, assetMap }: C
 
 export function VigilanciaView({ brokerFilter, filters, tradeAgg, assetMap }: CommonProps) {
   const scanner = useUnifiedInstruments(brokerFilter);
-  const { data: watchRows = [] } = useWatchlist();
 
-  // Fuente: watchlist con watch_reason='EA' (sincronizado por el EA — CAP_ELITE.csv).
-  const eaList = useMemo<UnifiedInstrument[]>(() => {
-    const scannerMap = new Map<string, UnifiedInstrument>();
-    for (const i of scanner) scannerMap.set(`${i.symbol}::${i.broker}`, i);
-
-    const seen = new Set<string>();
-    const out: UnifiedInstrument[] = [];
-    for (const w of watchRows) {
-      if ((w.watch_reason ?? '') !== 'EA') continue;
-      const broker = ((w.broker ?? 'darwinex').toLowerCase() === 'octx' ? 'octx' : 'darwinex') as 'darwinex' | 'octx';
-      if (brokerFilter !== 'all' && broker !== brokerFilter) continue;
-      const key = `${w.symbol}::${broker}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const hit = scannerMap.get(key);
-      if (hit) {
-        out.push(hit);
-      } else {
-        out.push({
-          symbol: w.symbol,
-          direction: w.direction || 'alcista',
-          score: w.scanner_score ?? 0,
-          adx_value: w.adx_value,
-          adx_state: w.adx_state,
-          distance_to_ma50: w.distance_to_ma50,
-          pend50_pct: null,
-          estructura: null,
-          divergencia: null,
-          atr_estado: null,
-          stoch_subiendo: null,
-          pullback_active: false,
-          pullback_bars: null,
-          stoch_k: w.stochastic_level,
-          stoch_estado: null,
-          atr: null,
-          structure: null,
-          breakout: null,
-          volume: null,
-          current_price: null,
-          broker,
-        });
-      }
-    }
-    return out;
-  }, [watchRows, scanner, brokerFilter]);
+  // Heurística CAP elite: score ≥ 75 en el último escaneo (aproximación al
+  // archivo CAP_ELITE.csv mientras el EA no sincroniza la lista real).
+  const eaList = useMemo<UnifiedInstrument[]>(
+    () => scanner.filter(it => Number(it.score ?? 0) >= 75),
+    [scanner],
+  );
 
   const annotated = useMemo<AnnotatedRow[]>(() => {
     return eaList.map(it => {
@@ -237,9 +197,8 @@ export function VigilanciaView({ brokerFilter, filters, tradeAgg, assetMap }: Co
 
   if (eaList.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center space-y-1">
-        <p className="text-sm text-muted-foreground">El EA aún no ha sincronizado su lista de vigilancia.</p>
-        <p className="text-xs text-muted-foreground/70">El EA envía CAP_ELITE.csv vía <code className="font-mono">/api/sync-ea-watchlist</code>. Cuando lo haga, los instrumentos aparecerán aquí.</p>
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <p className="text-sm text-muted-foreground">No hay instrumentos en vigilancia EA (score ≥ 75).</p>
       </div>
     );
   }
