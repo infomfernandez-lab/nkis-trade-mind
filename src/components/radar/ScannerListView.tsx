@@ -23,8 +23,6 @@ import {
   VOL_RANK,
 } from './AssetsStyleFiltersBar';
 import type { useAssetMap } from '@/hooks/use-asset-map';
-import { useWatchlist } from '@/hooks/use-watchlist';
-import { useAllTrades } from '@/hooks/use-trades';
 
 type AssetMap = ReturnType<typeof useAssetMap>;
 
