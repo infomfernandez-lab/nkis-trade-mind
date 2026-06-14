@@ -221,10 +221,10 @@ body {
       font-weight: 500;
       -webkit-text-size-adjust: 100%;
     }
-    .text-[10px] {
+    .text-\[10px\] {
       font-size: 0.8125rem !important;
     }
-    .text-[11px] {
+    .text-\[11px\] {
       font-size: 0.875rem !important;
     }
     .text-xs {
