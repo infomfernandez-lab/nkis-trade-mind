@@ -217,19 +217,19 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
         />
         <ChipField
           label="Razón de Entrada"
-          options={['Scanner + señal estocástico', 'Solo el scanner', 'Solo el estocástico', 'Intuición', 'Otra razón']}
+          options={['Stoch EA', 'Intuición', 'Entrada discrecional', 'Otro']}
           value={data.reasonForEntry}
           onChange={v => set('reasonForEntry', v)}
         />
         <ChipField
           label="Cumplimiento del Sistema"
-          options={['Sí al 100%', 'Casi', 'No del todo', 'No']}
+          options={['Sí al 100%', 'No del todo', 'No']}
           value={data.systemCompliance}
           onChange={v => set('systemCompliance', v)}
         />
         <ChipField
           label="Dudas sobre el setup"
-          options={['Ninguna todo claro', 'Sí pero entro igual', 'Sí tengo dudas serias']}
+          options={['Sí', 'No']}
           value={data.setupDoubts}
           onChange={v => set('setupDoubts', v)}
         />
@@ -248,7 +248,7 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
       <Section title="Durante el Trade">
         <ChipField
           label="Gestión de la Espera"
-          options={['Tranquilo sin mirar', 'Mirando bastante', 'Mirando demasiado', 'Con ganas de cerrar']}
+          options={['Tranquilo', 'Tranquilo pero mirando bastante', 'Con ganas de cerrar', 'Con dudas']}
           value={data.managingWait}
           onChange={v => set('managingWait', v)}
         />
@@ -281,7 +281,7 @@ export function TradeJournal({ trade, scannerInfo, vixValue, onSaved }: TradeJou
       <Section title="Después del Cierre">
         <ChipField
           label="Sensación"
-          options={['Bien proceso correcto', 'Bien proceso correcto aunque perdi', 'Mal aunque gané', 'Mal no seguí el sistema']}
+          options={['Buena proceso correcto', 'Buena proceso correcto aunque perdi', 'Mala aunque gané', 'Mala no seguí el sistema']}
           value={data.feelingResult}
           onChange={v => set('feelingResult', v)}
         />
