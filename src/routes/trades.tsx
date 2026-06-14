@@ -1,18 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
-import { Loader2, BookCheck, Circle, Search, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Loader2, BookCheck, Circle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useClosedTrades } from '@/hooks/use-trades';
+import { useClosedTrades, useAllTrades } from '@/hooks/use-trades';
 import { filterByBroker, type Trade } from '@/lib/trade-utils';
 import { detectCloseType, computeRR, hasJournal, lookupScannerRank } from '@/lib/trade-derived';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { TradeJournal } from '@/components/TradeJournal';
 import { supabase } from '@/integrations/supabase/client';
 import { classifyInstrument } from '@/lib/instrument-classify';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNavigate } from '@tanstack/react-router';
+import {
+  AssetsStyleFiltersBar,
+  EMPTY_SCANNER_FILTERS,
+  aggregateTradesByKey,
+  type ScannerFilterState,
+} from '@/components/radar/AssetsStyleFiltersBar';
+import { useAssetMap } from '@/hooks/use-asset-map';
 
 export const Route = createFileRoute('/trades')({
   component: TradeLog,
@@ -51,94 +55,163 @@ function useScannerSessions() {
 
 type SortKey = 'num' | 'symbol' | 'name' | 'direction' | 'broker' | 'entryDate' | 'entryPrice' | 'exitPrice' | 'slPrice' | 'tpPrice' | 'lotSize' | 'durationHours' | 'netPnl';
 type SortDir = 'asc' | 'desc';
-type DirFilter = 'all' | 'BUY' | 'SELL';
-type AccFilter = 'all' | 'darwinex' | 'octx';
-type PnlFilter = 'all' | 'win' | 'loss';
+
+interface EnrichedTrade {
+  trade: Trade;
+  num: number;
+  name: string;
+  mercado: string | null;
+  sector: string | null;
+  score: number | null;
+}
 
 function TradeLog() {
   const { broker } = useBrokerFilter();
   const { data: closedTrades, isLoading, error } = useClosedTrades();
   const { data: scannerSessions } = useScannerSessions();
+  const { closedTrades: allClosed, openTrades: allOpen } = useAllTrades();
+  const assetMap = useAssetMap();
 
-  // Filter / search / sort state
-  const [search, setSearch] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [dirFilter, setDirFilter] = useState<DirFilter>('all');
-  const [accFilter, setAccFilter] = useState<AccFilter>('all');
-  const [pnlFilter, setPnlFilter] = useState<PnlFilter>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [filters, setFilters] = useState<ScannerFilterState>(EMPTY_SCANNER_FILTERS);
   const [sortKey, setSortKey] = useState<SortKey>('num');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const baseFiltered = useMemo(() => filterByBroker(closedTrades ?? [], broker), [closedTrades, broker]);
 
-  // Number trades by chronological order (oldest = 1)
-  const numbered = useMemo(
-    () => baseFiltered.map((t, i) => ({ trade: t, num: i + 1, name: classifyInstrument(t.symbol).description })),
-    [baseFiltered]
+  const tradeAgg = useMemo(
+    () => aggregateTradesByKey([...allClosed, ...allOpen]),
+    [allClosed, allOpen],
   );
 
-  // Predictive suggestions (top 8 unique)
-  const suggestions = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.toLowerCase();
-    const seen = new Set<string>();
-    const out: { symbol: string; name: string }[] = [];
-    for (const { trade, name } of numbered) {
-      const key = trade.symbol;
-      if (seen.has(key)) continue;
-      if (trade.symbol.toLowerCase().includes(q) || name.toLowerCase().includes(q)) {
-        seen.add(key);
-        out.push({ symbol: trade.symbol, name });
-        if (out.length >= 8) break;
-      }
-    }
-    return out;
-  }, [search, numbered]);
+  // Enrich each trade with mercado/sector/score (lookup once)
+  const enriched = useMemo<EnrichedTrade[]>(() => {
+    return baseFiltered.map((t, i) => {
+      const c = assetMap.classify(t.symbol);
+      const lk = lookupScannerRank(t, scannerSessions ?? []);
+      return {
+        trade: t,
+        num: i + 1,
+        name: classifyInstrument(t.symbol).description,
+        mercado: c.mercado,
+        sector: c.sector,
+        score: lk.score,
+      };
+    });
+  }, [baseFiltered, assetMap, scannerSessions]);
 
-  // Apply filters
+  const mercados = useMemo(() => {
+    const s = new Set<string>();
+    enriched.forEach(e => { if (e.mercado) s.add(e.mercado); });
+    return Array.from(s).sort();
+  }, [enriched]);
+
+  const sectores = useMemo(() => {
+    const s = new Set<string>();
+    enriched.forEach(e => {
+      if (filters.mercado !== 'all' && e.mercado !== filters.mercado) return;
+      if (e.sector) s.add(e.sector);
+    });
+    return Array.from(s).sort();
+  }, [enriched, filters.mercado]);
+
+  // Apply scanner-style filters
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return numbered.filter(({ trade, name }) => {
-      if (q && !(trade.symbol.toLowerCase().includes(q) || name.toLowerCase().includes(q))) return false;
-      if (dirFilter !== 'all' && trade.direction !== dirFilter) return false;
-      if (accFilter !== 'all' && trade.broker !== accFilter) return false;
-      if (pnlFilter === 'win' && trade.netPnl < 0) return false;
-      if (pnlFilter === 'loss' && trade.netPnl >= 0) return false;
-      if (dateFrom && trade.entryDate.slice(0, 10) < dateFrom) return false;
-      if (dateTo && trade.entryDate.slice(0, 10) > dateTo) return false;
+    const q = filters.search.trim().toUpperCase();
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return enriched.filter(e => {
+      const t = e.trade;
+      if (filters.mercado !== 'all' && e.mercado !== filters.mercado) return false;
+      if (filters.sector !== 'all' && e.sector !== filters.sector) return false;
+      if (filters.dir === 'ALCISTA' && t.direction !== 'BUY') return false;
+      if (filters.dir === 'BAJISTA' && t.direction !== 'SELL') return false;
+      if (q && !t.symbol.toUpperCase().includes(q) && !e.name.toUpperCase().includes(q)) return false;
+      if (filters.strongTrend && !(Number(t.adxValue ?? 0) >= 25)) return false;
+      if (filters.trade === 'open' && t.status !== 'open') return false;
+      if (filters.trade === 'recent_closed') {
+        const ts = t.exitDate ? new Date(t.exitDate).getTime() : 0;
+        if (ts < weekAgo) return false;
+      }
+      if (filters.trade === 'winners' && !(t.netPnl > 0)) return false;
+      if (filters.trade === 'losers' && !(t.netPnl < 0)) return false;
       return true;
     });
-  }, [numbered, search, dirFilter, accFilter, pnlFilter, dateFrom, dateTo]);
+  }, [enriched, filters]);
 
-  // Apply sorting
+  // Sort: respect column sort if user clicked a column, otherwise filter sort
   const display = useMemo(() => {
     const arr = [...filtered];
-    const mul = sortDir === 'asc' ? 1 : -1;
+    if (sortKey !== 'num' || sortDir !== 'desc') {
+      const mul = sortDir === 'asc' ? 1 : -1;
+      arr.sort((a, b) => {
+        const ta = a.trade, tb = b.trade;
+        let va: any, vb: any;
+        switch (sortKey) {
+          case 'num': va = a.num; vb = b.num; break;
+          case 'name': va = a.name; vb = b.name; break;
+          case 'symbol': va = ta.symbol; vb = tb.symbol; break;
+          case 'direction': va = ta.direction; vb = tb.direction; break;
+          case 'broker': va = ta.broker; vb = tb.broker; break;
+          case 'entryDate': va = ta.entryDate; vb = tb.entryDate; break;
+          case 'entryPrice': va = ta.entryPrice; vb = tb.entryPrice; break;
+          case 'exitPrice': va = ta.exitPrice ?? 0; vb = tb.exitPrice ?? 0; break;
+          case 'slPrice': va = ta.slPrice; vb = tb.slPrice; break;
+          case 'tpPrice': va = ta.tpPrice; vb = tb.tpPrice; break;
+          case 'lotSize': va = ta.lotSize; vb = tb.lotSize; break;
+          case 'durationHours': va = ta.durationHours; vb = tb.durationHours; break;
+          case 'netPnl': va = ta.netPnl; vb = tb.netPnl; break;
+        }
+        if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * mul;
+        return (va < vb ? -1 : va > vb ? 1 : 0) * mul;
+      });
+      return arr;
+    }
+    // Use scanner-style sort
+    const num = (x: number | null | undefined) => (x == null ? -Infinity : Number(x));
     arr.sort((a, b) => {
-      const ta = a.trade, tb = b.trade;
-      let va: any, vb: any;
-      switch (sortKey) {
-        case 'num': va = a.num; vb = b.num; break;
-        case 'name': va = a.name; vb = b.name; break;
-        case 'symbol': va = ta.symbol; vb = tb.symbol; break;
-        case 'direction': va = ta.direction; vb = tb.direction; break;
-        case 'broker': va = ta.broker; vb = tb.broker; break;
-        case 'entryDate': va = ta.entryDate; vb = tb.entryDate; break;
-        case 'entryPrice': va = ta.entryPrice; vb = tb.entryPrice; break;
-        case 'exitPrice': va = ta.exitPrice ?? 0; vb = tb.exitPrice ?? 0; break;
-        case 'slPrice': va = ta.slPrice; vb = tb.slPrice; break;
-        case 'tpPrice': va = ta.tpPrice; vb = tb.tpPrice; break;
-        case 'lotSize': va = ta.lotSize; vb = tb.lotSize; break;
-        case 'durationHours': va = ta.durationHours; vb = tb.durationHours; break;
-        case 'netPnl': va = ta.netPnl; vb = tb.netPnl; break;
+      switch (filters.sort) {
+        case 'score_desc': return num(b.score) - num(a.score);
+        case 'score_asc':  return num(a.score) - num(b.score);
+        case 'adx_desc':   return num(b.trade.adxValue) - num(a.trade.adxValue);
+        case 'vol_desc':   return 0;
+        case 'pnl_desc':   return b.trade.netPnl - a.trade.netPnl;
+        case 'pnl_asc':    return a.trade.netPnl - b.trade.netPnl;
+        case 'recent_close': {
+          const at = a.trade.exitDate ? new Date(a.trade.exitDate).getTime() : 0;
+          const bt = b.trade.exitDate ? new Date(b.trade.exitDate).getTime() : 0;
+          return bt - at;
+        }
+        default: return b.num - a.num;
       }
-      if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb) * mul;
-      return (va < vb ? -1 : va > vb ? 1 : 0) * mul;
     });
     return arr;
-  }, [filtered, sortKey, sortDir]);
+  }, [filtered, sortKey, sortDir, filters.sort]);
+
+  // ── Stats over the currently filtered set ─────────────────────────────
+  const stats = useMemo(() => {
+    const list = display.map(d => d.trade);
+    const n = list.length;
+    const winsArr = list.filter(t => t.netPnl > 0);
+    const lossArr = list.filter(t => t.netPnl < 0);
+    const wins = winsArr.length;
+    const losses = lossArr.length;
+    const totalPnl = list.reduce((s, t) => s + t.netPnl, 0);
+    const grossWin = winsArr.reduce((s, t) => s + t.netPnl, 0);
+    const grossLoss = Math.abs(lossArr.reduce((s, t) => s + t.netPnl, 0));
+    const winRate = n > 0 ? (wins / n) * 100 : 0;
+    const avgWin = wins > 0 ? grossWin / wins : 0;
+    const avgLoss = losses > 0 ? grossLoss / losses : 0;
+    const pf = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0;
+    const expectancy = n > 0 ? totalPnl / n : 0;
+    const best = list.reduce((m, t) => t.netPnl > m ? t.netPnl : m, -Infinity);
+    const worst = list.reduce((m, t) => t.netPnl < m ? t.netPnl : m, Infinity);
+    const avgDuration = n > 0 ? list.reduce((s, t) => s + (t.durationHours ?? 0), 0) / n : 0;
+    return {
+      n, wins, losses, winRate, totalPnl, avgWin, avgLoss, pf, expectancy,
+      best: n > 0 ? best : 0,
+      worst: n > 0 ? worst : 0,
+      avgDuration,
+    };
+  }, [display]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -148,17 +221,6 @@ function TradeLog() {
       setSortDir(key === 'num' || key === 'entryDate' || key === 'netPnl' ? 'desc' : 'asc');
     }
   }
-
-  function clearFilters() {
-    setSearch('');
-    setDirFilter('all');
-    setAccFilter('all');
-    setPnlFilter('all');
-    setDateFrom('');
-    setDateTo('');
-  }
-
-  const hasActiveFilters = search || dirFilter !== 'all' || accFilter !== 'all' || pnlFilter !== 'all' || dateFrom || dateTo;
 
   if (isLoading) {
     return (
@@ -195,105 +257,23 @@ function TradeLog() {
   const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Registro de Trades{brokerLabel}</h1>
         <p className="text-base text-muted-foreground mt-1">
-          {display.length} de {numbered.length} trades — click en una fila para ver el detalle
+          {display.length} de {enriched.length} trades — click en una fila para ver el detalle
         </p>
       </div>
 
-      {/* Filter bar */}
-      <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Predictive search */}
-          <Popover open={searchOpen && suggestions.length > 0} onOpenChange={setSearchOpen}>
-            <PopoverTrigger asChild>
-              <div className="relative flex-1 min-w-[240px]">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por ticker o nombre…"
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
-                  onFocus={() => setSearchOpen(true)}
-                  className="pl-8 pr-8 h-9"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label="Limpiar búsqueda"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-1" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-              <div className="max-h-64 overflow-y-auto">
-                {suggestions.map((s) => (
-                  <button
-                    key={s.symbol}
-                    onClick={() => { setSearch(s.symbol); setSearchOpen(false); }}
-                    className="w-full text-left px-2 py-1.5 rounded hover:bg-accent text-sm flex items-center justify-between gap-2"
-                  >
-                    <span className="font-semibold font-data">{s.symbol}</span>
-                    <span className="text-xs text-muted-foreground truncate">{s.name}</span>
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+      <AssetsStyleFiltersBar
+        state={filters}
+        onChange={setFilters}
+        mercados={mercados}
+        sectores={sectores}
+        countLabel={`${display.length} de ${enriched.length}`}
+      />
 
-          {/* Direction */}
-          <FilterGroup
-            label="Dir"
-            value={dirFilter}
-            options={[{ v: 'all', l: 'Todas' }, { v: 'BUY', l: 'BUY' }, { v: 'SELL', l: 'SELL' }]}
-            onChange={(v) => setDirFilter(v as DirFilter)}
-          />
-
-          {/* Account */}
-          <FilterGroup
-            label="Cuenta"
-            value={accFilter}
-            options={[{ v: 'all', l: 'Todas' }, { v: 'darwinex', l: 'NK' }, { v: 'octx', l: 'OX' }]}
-            onChange={(v) => setAccFilter(v as AccFilter)}
-          />
-
-          {/* P&L */}
-          <FilterGroup
-            label="P&L"
-            value={pnlFilter}
-            options={[{ v: 'all', l: 'Todos' }, { v: 'win', l: 'Ganadores' }, { v: 'loss', l: 'Perdedores' }]}
-            onChange={(v) => setPnlFilter(v as PnlFilter)}
-          />
-
-          {/* Date range */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-medium">Desde</span>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 w-[140px] text-sm"
-            />
-            <span className="text-xs text-muted-foreground font-medium">Hasta</span>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 w-[140px] text-sm"
-            />
-          </div>
-
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">
-              <X className="w-3.5 h-3.5 mr-1" /> Limpiar
-            </Button>
-          )}
-        </div>
-      </div>
+      <StatsPanel stats={stats} />
 
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <table className="w-full text-base">
@@ -322,7 +302,6 @@ function TradeLog() {
                 trade={trade}
                 num={num}
                 fullName={name}
-                scannerSessions={scannerSessions ?? []}
               />
             ))}
             {display.length === 0 && (
@@ -335,30 +314,44 @@ function TradeLog() {
   );
 }
 
-function FilterGroup<T extends string>({
-  label, value, options, onChange,
-}: {
-  label: string;
-  value: T;
-  options: { v: T; l: string }[];
-  onChange: (v: T) => void;
-}) {
+function StatsPanel({ stats }: { stats: {
+  n: number; wins: number; losses: number; winRate: number; totalPnl: number;
+  avgWin: number; avgLoss: number; pf: number; expectancy: number;
+  best: number; worst: number; avgDuration: number;
+} }) {
+  const pnlColor = stats.totalPnl >= 0 ? 'text-success' : 'text-destructive';
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-muted-foreground font-medium">{label}</span>
-      <div className="inline-flex rounded-md border border-border overflow-hidden">
-        {options.map((o) => (
-          <button
-            key={o.v}
-            onClick={() => onChange(o.v)}
-            className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-              value === o.v ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:bg-accent'
-            }`}
-          >
-            {o.l}
-          </button>
-        ))}
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
+        Estadísticas del filtro actual
       </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-12 gap-3">
+        <Stat label="Trades" value={String(stats.n)} />
+        <Stat label="Ganadores" value={String(stats.wins)} valueClass="text-success" />
+        <Stat label="Perdedores" value={String(stats.losses)} valueClass="text-destructive" />
+        <Stat label="Win rate" value={`${stats.winRate.toFixed(1)}%`} />
+        <Stat label="P&L neto" value={formatEur(stats.totalPnl)} valueClass={pnlColor} />
+        <Stat label="Expectativa" value={formatEur(stats.expectancy)} />
+        <Stat label="Avg win" value={formatEur(stats.avgWin)} valueClass="text-success" />
+        <Stat label="Avg loss" value={formatEur(-stats.avgLoss)} valueClass="text-destructive" />
+        <Stat
+          label="Profit factor"
+          value={stats.pf === Infinity ? '∞' : stats.pf.toFixed(2)}
+          valueClass={stats.pf >= 1 ? 'text-success' : 'text-destructive'}
+        />
+        <Stat label="Mejor" value={formatEur(stats.best)} valueClass="text-success" />
+        <Stat label="Peor" value={formatEur(stats.worst)} valueClass="text-destructive" />
+        <Stat label="Duración media" value={`${stats.avgDuration.toFixed(1)}h`} />
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide truncate">{label}</div>
+      <div className={`text-sm font-data font-semibold truncate ${valueClass ?? 'text-foreground'}`}>{value}</div>
     </div>
   );
 }
@@ -395,12 +388,10 @@ interface TradeRowProps {
   trade: Trade;
   num: number;
   fullName: string;
-  scannerSessions: any[];
 }
 
-function TradeRow({ trade, num, fullName, scannerSessions }: TradeRowProps) {
+function TradeRow({ trade, num, fullName }: TradeRowProps) {
   const navigate = useNavigate();
-  const close = detectCloseType(trade);
   const journalDone = hasJournal(trade);
 
   const rowBg = trade.netPnl >= 0
