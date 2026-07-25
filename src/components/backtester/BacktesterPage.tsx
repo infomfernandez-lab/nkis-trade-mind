@@ -923,11 +923,12 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 <th className="px-3 py-3">Salida</th>
                 <th className="px-3 py-3 text-right">Precio</th>
                 <th className="px-3 py-3 text-right">SL</th>
+                <th className="px-3 py-3 text-right">TP</th>
                 <th className="px-3 py-3 text-right">Lotes</th>
                 <th className="px-3 py-3 text-right">Días</th>
                 <th className="px-3 py-3 text-right">MFE</th>
                 <th className="px-3 py-3 text-right">P&L</th>
-                <th className="px-3 py-3">Razón</th>
+                <th className="px-3 py-3>Razón</th>
               </tr>
             </thead>
             <tbody>
