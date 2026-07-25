@@ -139,15 +139,15 @@ export default function BacktesterPage() {
   type BrokerState = {
     symbol: string; symbolQuery: string; direction: Direction;
     dateFrom: string; dateTo: string;
-    adxMin: number; atrSl: number; stochBuy: number; stochSell: number;
+    adxMin: number; atrSl: number; tpMult: number; stochBuy: number; stochSell: number;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
     result: BacktestResult | null;
   };
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, stochBuy: 70, stochSell: 30,
-    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 2.0,
+    adxMin: 23, atrSl: 1.5, tpMult: 3.0, stochBuy: 70, stochSell: 30,
+    beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 2.0,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
@@ -163,9 +163,10 @@ export default function BacktesterPage() {
   const [dateTo, setDateTo] = useState('');
   const [adxMin, setAdxMin] = useState(23);
   const [atrSl, setAtrSl] = useState(1.5);
+  const [tpMult, setTpMult] = useState(3.0);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
-  const [beEnabled, setBeEnabled] = useState(false);
+  const [beEnabled, setBeEnabled] = useState(true);
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(2.0);
