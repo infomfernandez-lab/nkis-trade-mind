@@ -56,6 +56,7 @@ interface BacktestParams {
   date_to?: string;
   adx_min: number;
   atr_sl: number;
+  tp_mult: number;
   stoch_buy: number;
   stoch_sell: number;
   breakeven_enabled: boolean;
@@ -70,6 +71,7 @@ interface BacktestTrade {
   entry_price: number;
   exit_price?: number;
   sl_price?: number;
+  tp_price?: number | null;
   lot_size?: number;
   days?: number;
   mfe?: number;
