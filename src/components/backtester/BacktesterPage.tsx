@@ -56,6 +56,7 @@ interface BacktestParams {
   date_to?: string;
   adx_min: number;
   atr_sl: number;
+  tp_mult: number;
   stoch_buy: number;
   stoch_sell: number;
   breakeven_enabled: boolean;
@@ -70,6 +71,7 @@ interface BacktestTrade {
   entry_price: number;
   exit_price?: number;
   sl_price?: number;
+  tp_price?: number | null;
   lot_size?: number;
   days?: number;
   mfe?: number;
@@ -102,6 +104,7 @@ function normalizeBacktestResult(raw: any): BacktestResult {
     entry_price: Number(t.entry_price ?? t.entryPrice ?? 0),
     exit_price: t.exit_price ?? t.exitPrice ?? undefined,
     sl_price: Number(t.sl_price ?? t.sl ?? t.stop_loss ?? 0) || undefined,
+    tp_price: t.tp == null && t.tp_price == null ? null : Number(t.tp ?? t.tp_price) || null,
     lot_size: Number(t.lot_size ?? t.lots ?? t.size ?? 0) || undefined,
     days: t.days ?? t.duration_days ?? undefined,
     mfe: t.mfe ?? t.max_favorable ?? undefined,
@@ -136,15 +139,15 @@ export default function BacktesterPage() {
   type BrokerState = {
     symbol: string; symbolQuery: string; direction: Direction;
     dateFrom: string; dateTo: string;
-    adxMin: number; atrSl: number; stochBuy: number; stochSell: number;
+    adxMin: number; atrSl: number; tpMult: number; stochBuy: number; stochSell: number;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
     result: BacktestResult | null;
   };
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, stochBuy: 70, stochSell: 30,
-    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 2.0,
+    adxMin: 23, atrSl: 1.5, tpMult: 3.0, stochBuy: 70, stochSell: 30,
+    beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 2.0,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
@@ -160,9 +163,10 @@ export default function BacktesterPage() {
   const [dateTo, setDateTo] = useState('');
   const [adxMin, setAdxMin] = useState(23);
   const [atrSl, setAtrSl] = useState(1.5);
+  const [tpMult, setTpMult] = useState(3.0);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
-  const [beEnabled, setBeEnabled] = useState(false);
+  const [beEnabled, setBeEnabled] = useState(true);
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(2.0);
@@ -177,18 +181,18 @@ export default function BacktesterPage() {
     // save current
     brokerStatesRef.current[broker] = {
       symbol, symbolQuery, direction, dateFrom, dateTo,
-      adxMin, atrSl, stochBuy, stochSell,
+      adxMin, atrSl, tpMult, stochBuy, stochSell,
       beEnabled, beMult, trEnabled, trMult, result,
     };
     // restore next
     const s = brokerStatesRef.current[next];
     setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
     setDateFrom(s.dateFrom); setDateTo(s.dateTo);
-    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
+    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
     setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
     setResult(s.result); setError(null);
     setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
@@ -220,7 +224,18 @@ export default function BacktesterPage() {
   const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
 
   const symbolsForBroker = useMemo(
-    () => CONTRACT_SPECS.filter(s => s.broker === broker).map(s => s.symbol),
+    () => {
+      const specs = CONTRACT_SPECS.filter(s => s.broker === broker);
+      if (broker !== 'octx') return specs.map(s => s.symbol);
+      // OCTX operativo: solo Forex, Índices y Metales/Energía (XAU, XAG, XTI, XNG).
+      // Excluye acciones y ETFs.
+      return specs
+        .filter(s => {
+          const t = classifyInstrument(s.symbol).type;
+          return t === 'forex' || t === 'index' || t === 'metal' || t === 'energy';
+        })
+        .map(s => s.symbol);
+    },
     [broker]
   );
   const symbolSuggestions = useMemo(() => {
@@ -264,6 +279,7 @@ export default function BacktesterPage() {
       date_to: dateTo || undefined,
       adx_min: adxMin,
       atr_sl: atrSl,
+      tp_mult: tpMult,
       stoch_buy: stochBuy,
       stoch_sell: stochSell,
       breakeven_enabled: beEnabled,
@@ -279,6 +295,7 @@ export default function BacktesterPage() {
       date_to: dateTo ? dateTo : null,
       adx_min: Number(adxMin),
       atr_mult: Number(atrSl),
+      tp_mult: Number(tpMult),
       stoch_buy: Number(stochBuy),
       stoch_sell: Number(stochSell),
       use_be: Boolean(beEnabled),
@@ -445,6 +462,7 @@ export default function BacktesterPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             <SliderRow label="ADX mínimo" value={adxMin} min={15} max={35} step={1} onChange={setAdxMin} />
             <SliderRow label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl} />
+            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={1.0} max={6.0} step={0.1} decimals={1} onChange={setTpMult} />
             <SliderRow label="Stoch BUY nivel" value={stochBuy} min={60} max={85} step={1} onChange={setStochBuy} />
             <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
           </div>
@@ -905,6 +923,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 <th className="px-3 py-3">Salida</th>
                 <th className="px-3 py-3 text-right">Precio</th>
                 <th className="px-3 py-3 text-right">SL</th>
+                <th className="px-3 py-3 text-right">TP</th>
                 <th className="px-3 py-3 text-right">Lotes</th>
                 <th className="px-3 py-3 text-right">Días</th>
                 <th className="px-3 py-3 text-right">MFE</th>
@@ -935,6 +954,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                     <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{t.tp_price == null ? '—' : fmtNum(t.tp_price, 4)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
                     <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
@@ -946,7 +966,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 );
               })}
               {chunk.length === 0 && (
-                <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
+                <tr><td colSpan={11} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
               )}
             </tbody>
           </table>
