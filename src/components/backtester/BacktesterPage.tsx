@@ -104,6 +104,7 @@ function normalizeBacktestResult(raw: any): BacktestResult {
     entry_price: Number(t.entry_price ?? t.entryPrice ?? 0),
     exit_price: t.exit_price ?? t.exitPrice ?? undefined,
     sl_price: Number(t.sl_price ?? t.sl ?? t.stop_loss ?? 0) || undefined,
+    tp_price: t.tp == null && t.tp_price == null ? null : Number(t.tp ?? t.tp_price) || null,
     lot_size: Number(t.lot_size ?? t.lots ?? t.size ?? 0) || undefined,
     days: t.days ?? t.duration_days ?? undefined,
     mfe: t.mfe ?? t.max_favorable ?? undefined,
