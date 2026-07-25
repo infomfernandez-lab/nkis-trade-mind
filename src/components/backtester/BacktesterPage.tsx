@@ -954,6 +954,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                     <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
+                    <td className="px-3 py-3 font-data text-right">{t.tp_price == null ? '—' : fmtNum(t.tp_price, 4)}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
                     <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
                     <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
