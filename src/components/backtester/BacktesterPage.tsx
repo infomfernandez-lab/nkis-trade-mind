@@ -966,7 +966,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 );
               })}
               {chunk.length === 0 && (
-                <tr><td colSpan={10} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
+                <tr><td colSpan={11} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
               )}
             </tbody>
           </table>
