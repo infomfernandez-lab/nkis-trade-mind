@@ -462,9 +462,14 @@ export default function BacktesterPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             <SliderRow label="ADX mínimo" value={adxMin} min={15} max={35} step={1} onChange={setAdxMin} />
             <SliderRow label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl} />
-            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={1.0} max={6.0} step={0.1} decimals={1} onChange={setTpMult} />
+            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={1.0} max={10.0} step={0.1} decimals={1} onChange={setTpMult} />
             <SliderRow label="Stoch BUY nivel" value={stochBuy} min={60} max={85} step={1} onChange={setStochBuy} />
-            <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
+            <div>
+              <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
+              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                La salida usa un Stoch lento (14,3,3) interno, no este.
+              </p>
+            </div>
           </div>
 
           {/* Toggles */}
