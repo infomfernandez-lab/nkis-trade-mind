@@ -163,13 +163,13 @@ export default function BacktesterPage() {
   const [dateTo, setDateTo] = useState('');
   const [adxMin, setAdxMin] = useState(23);
   const [atrSl, setAtrSl] = useState(1.5);
-  const [tpMult, setTpMult] = useState(3.0);
+  const [tpMult, setTpMult] = useState(6.0);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
   const [beEnabled, setBeEnabled] = useState(true);
   const [beMult, setBeMult] = useState(1.0);
-  const [trEnabled, setTrEnabled] = useState(false);
-  const [trMult, setTrMult] = useState(2.0);
+  const [trEnabled, setTrEnabled] = useState(true);
+  const [trMult, setTrMult] = useState(1.5);
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
