@@ -146,8 +146,8 @@ export default function BacktesterPage() {
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, tpMult: 3.0, stochBuy: 70, stochSell: 30,
-    beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 2.0,
+    adxMin: 23, atrSl: 1.5, tpMult: 6.0, stochBuy: 70, stochSell: 30,
+    beEnabled: true, beMult: 1.0, trEnabled: true, trMult: 1.5,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
