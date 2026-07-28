@@ -146,8 +146,8 @@ export default function BacktesterPage() {
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, tpMult: 6.0, stochBuy: 70, stochSell: 30,
-    beEnabled: true, beMult: 1.0, trEnabled: true, trMult: 1.5,
+    adxMin: 23, atrSl: 1.5, tpMult: 0, stochBuy: 70, stochSell: 30,
+    beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 1.5,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
@@ -163,12 +163,12 @@ export default function BacktesterPage() {
   const [dateTo, setDateTo] = useState('');
   const [adxMin, setAdxMin] = useState(23);
   const [atrSl, setAtrSl] = useState(1.5);
-  const [tpMult, setTpMult] = useState(6.0);
+  const [tpMult, setTpMult] = useState(0);
   const [stochBuy, setStochBuy] = useState(70);
   const [stochSell, setStochSell] = useState(30);
   const [beEnabled, setBeEnabled] = useState(true);
   const [beMult, setBeMult] = useState(1.0);
-  const [trEnabled, setTrEnabled] = useState(true);
+  const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(1.5);
 
   const [running, setRunning] = useState(false);
@@ -462,14 +462,9 @@ export default function BacktesterPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             <SliderRow label="ADX mínimo" value={adxMin} min={15} max={35} step={1} onChange={setAdxMin} />
             <SliderRow label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl} />
-            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={1.0} max={10.0} step={0.1} decimals={1} onChange={setTpMult} />
+            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={0} max={10.0} step={0.1} decimals={1} onChange={setTpMult} />
             <SliderRow label="Stoch BUY nivel" value={stochBuy} min={60} max={85} step={1} onChange={setStochBuy} />
-            <div>
-              <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
-              <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
-                La salida usa un Stoch lento (14,3,3) interno, no este.
-              </p>
-            </div>
+            <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
           </div>
 
           {/* Toggles */}
@@ -794,16 +789,17 @@ function exitColor(reason: string) {
   if (r.includes('SL')) return COLORS.red;
   if (r.includes('BE')) return COLORS.yellow;
   if (r.includes('TRAIL')) return COLORS.purple;
+  if (r.includes('TP')) return COLORS.blue;
   return COLORS.gray;
 }
 
 function normalizeReason(raw: string | undefined): string {
   const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('TP') || r.includes('TAKE') || r.includes('TARGET')) return 'TP';
   if (r.includes('STOCH') || r.includes('SIGNAL') || r.includes('CROSS') || r.includes('EXIT')) return 'STOCH';
   if (r.includes('BREAKEVEN') || r === 'BE' || r.includes('_BE') || r.includes('BE_')) return 'BE';
   if (r.includes('TRAIL')) return 'TRAIL';
   if (r.includes('SL') || r.includes('STOP') || r.includes('LOSS')) return 'SL';
-  // El sistema solo sale por SL o STOCH: cualquier salida no clasificada se asume STOCH (take por señal)
   return 'STOCH';
 }
 
@@ -828,7 +824,7 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }
 
   // Distribución salidas
-  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0 };
+  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
   for (const t of trades) {
     const r = normalizeReason(t.reason);
     reasonCount[r] = (reasonCount[r] ?? 0) + 1;
@@ -839,6 +835,7 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
     SL: n ? reasonCount.SL / n : 0,
     BE: n ? reasonCount.BE / n : 0,
     TRAIL: n ? (reasonCount.TRAIL ?? 0) / n : 0,
+    TP: n ? (reasonCount.TP ?? 0) / n : 0,
   };
 
   // Trades revertidos: MFE > 0 favorable y cerraron en SL con pnl < 0
