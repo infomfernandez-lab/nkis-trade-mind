@@ -823,7 +823,7 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }
 
   // Distribución salidas
-  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0 };
+  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
   for (const t of trades) {
     const r = normalizeReason(t.reason);
     reasonCount[r] = (reasonCount[r] ?? 0) + 1;
@@ -834,6 +834,7 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
     SL: n ? reasonCount.SL / n : 0,
     BE: n ? reasonCount.BE / n : 0,
     TRAIL: n ? (reasonCount.TRAIL ?? 0) / n : 0,
+    TP: n ? (reasonCount.TP ?? 0) / n : 0,
   };
 
   // Trades revertidos: MFE > 0 favorable y cerraron en SL con pnl < 0
