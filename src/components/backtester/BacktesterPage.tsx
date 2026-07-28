@@ -176,6 +176,11 @@ export default function BacktesterPage() {
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(1.5);
+  const [filtEnabled, setFiltEnabled] = useState(false);
+  const [filtAdxMin, setFiltAdxMin] = useState(20);
+  const [filtMaSep, setFiltMaSep] = useState(1.0);
+  const [filtConsist, setFiltConsist] = useState(65);
+
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
