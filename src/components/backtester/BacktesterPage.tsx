@@ -794,11 +794,11 @@ function exitColor(reason: string) {
 
 function normalizeReason(raw: string | undefined): string {
   const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('TP') || r.includes('TAKE') || r.includes('TARGET')) return 'TP';
   if (r.includes('STOCH') || r.includes('SIGNAL') || r.includes('CROSS') || r.includes('EXIT')) return 'STOCH';
   if (r.includes('BREAKEVEN') || r === 'BE' || r.includes('_BE') || r.includes('BE_')) return 'BE';
   if (r.includes('TRAIL')) return 'TRAIL';
   if (r.includes('SL') || r.includes('STOP') || r.includes('LOSS')) return 'SL';
-  // El sistema solo sale por SL o STOCH: cualquier salida no clasificada se asume STOCH (take por señal)
   return 'STOCH';
 }
 
