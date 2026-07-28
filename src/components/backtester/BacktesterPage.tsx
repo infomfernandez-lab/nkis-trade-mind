@@ -63,6 +63,10 @@ interface BacktestParams {
   breakeven_mult: number;
   trailing_enabled: boolean;
   trailing_mult: number;
+  use_filtro_escaner: boolean;
+  escaner_adx_min: number;
+  escaner_ma_sep_min: number;
+  escaner_consistencia_min: number;
 }
 
 interface BacktestTrade {
@@ -141,6 +145,7 @@ export default function BacktesterPage() {
     dateFrom: string; dateTo: string;
     adxMin: number; atrSl: number; tpMult: number; stochBuy: number; stochSell: number;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
+    filtEnabled: boolean; filtAdxMin: number; filtMaSep: number; filtConsist: number;
     result: BacktestResult | null;
   };
   const defaultBrokerState = (): BrokerState => ({
@@ -148,6 +153,7 @@ export default function BacktesterPage() {
     dateFrom: '', dateTo: '',
     adxMin: 23, atrSl: 1.5, tpMult: 0, stochBuy: 70, stochSell: 30,
     beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 1.5,
+    filtEnabled: false, filtAdxMin: 20, filtMaSep: 1.0, filtConsist: 65,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
@@ -170,6 +176,11 @@ export default function BacktesterPage() {
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(1.5);
+  const [filtEnabled, setFiltEnabled] = useState(false);
+  const [filtAdxMin, setFiltAdxMin] = useState(20);
+  const [filtMaSep, setFiltMaSep] = useState(1.0);
+  const [filtConsist, setFiltConsist] = useState(65);
+
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +193,9 @@ export default function BacktesterPage() {
     brokerStatesRef.current[broker] = {
       symbol, symbolQuery, direction, dateFrom, dateTo,
       adxMin, atrSl, tpMult, stochBuy, stochSell,
-      beEnabled, beMult, trEnabled, trMult, result,
+      beEnabled, beMult, trEnabled, trMult,
+      filtEnabled, filtAdxMin, filtMaSep, filtConsist,
+      result,
     };
     // restore next
     const s = brokerStatesRef.current[next];
@@ -190,9 +203,10 @@ export default function BacktesterPage() {
     setDateFrom(s.dateFrom); setDateTo(s.dateTo);
     setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
     setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
+    setFiltEnabled(s.filtEnabled); setFiltAdxMin(s.filtAdxMin); setFiltMaSep(s.filtMaSep); setFiltConsist(s.filtConsist);
     setResult(s.result); setError(null);
     setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
@@ -286,6 +300,10 @@ export default function BacktesterPage() {
       breakeven_mult: beMult,
       trailing_enabled: trEnabled,
       trailing_mult: trMult,
+      use_filtro_escaner: filtEnabled,
+      escaner_adx_min: filtAdxMin,
+      escaner_ma_sep_min: filtMaSep,
+      escaner_consistencia_min: filtConsist,
     };
 
     const payload = {
@@ -302,6 +320,10 @@ export default function BacktesterPage() {
       be_mult: Number(beMult),
       use_trail: Boolean(trEnabled),
       trail_mult: Number(trMult),
+      use_filtro_escaner: Boolean(filtEnabled),
+      escaner_adx_min: Number(filtAdxMin),
+      escaner_ma_sep_min: Number(filtMaSep),
+      escaner_consistencia_min: Number(filtConsist),
     };
 
     setRunning(true);
@@ -477,6 +499,24 @@ export default function BacktesterPage() {
               label="Trailing ATR" enabled={trEnabled} onToggle={setTrEnabled}
               value={trMult} min={1.0} max={3.0} step={0.1} onChange={setTrMult} suffix="×"
             />
+          </div>
+
+          {/* Filtro por tendencia confirmada (aprox. escáner) */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-xs font-medium">Filtrar por tendencia confirmada (aprox. escáner)</Label>
+              <Switch checked={filtEnabled} onCheckedChange={setFiltEnabled} />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Aproximación del escáner real: comprueba medias alineadas, ADX, separación de medias y consistencia de los últimos 100 días, calculado día a día sin mirar el futuro. No reproduce el score completo del escáner (estructura, momentum, divergencias, edad) — es una aproximación razonable, no una copia exacta.
+            </p>
+            {filtEnabled && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+                <SliderRow label="ADX mínimo del filtro" value={filtAdxMin} min={15} max={30} step={1} onChange={setFiltAdxMin} />
+                <SliderRow label="Separación mínima de medias (%)" value={filtMaSep} min={0.5} max={5.0} step={0.1} decimals={1} onChange={setFiltMaSep} />
+                <SliderRow label="Consistencia mínima (%)" value={filtConsist} min={40} max={90} step={1} onChange={setFiltConsist} />
+              </div>
+            )}
           </div>
 
           {error && (
