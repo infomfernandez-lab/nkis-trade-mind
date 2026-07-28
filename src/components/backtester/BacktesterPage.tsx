@@ -145,6 +145,7 @@ export default function BacktesterPage() {
     dateFrom: string; dateTo: string;
     adxMin: number; atrSl: number; tpMult: number; stochBuy: number; stochSell: number;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
+    filtEnabled: boolean; filtAdxMin: number; filtMaSep: number; filtConsist: number;
     result: BacktestResult | null;
   };
   const defaultBrokerState = (): BrokerState => ({
@@ -152,6 +153,7 @@ export default function BacktesterPage() {
     dateFrom: '', dateTo: '',
     adxMin: 23, atrSl: 1.5, tpMult: 0, stochBuy: 70, stochSell: 30,
     beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 1.5,
+    filtEnabled: false, filtAdxMin: 20, filtMaSep: 1.0, filtConsist: 65,
     result: null,
   });
   const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
