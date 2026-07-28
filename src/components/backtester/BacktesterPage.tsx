@@ -193,7 +193,9 @@ export default function BacktesterPage() {
     brokerStatesRef.current[broker] = {
       symbol, symbolQuery, direction, dateFrom, dateTo,
       adxMin, atrSl, tpMult, stochBuy, stochSell,
-      beEnabled, beMult, trEnabled, trMult, result,
+      beEnabled, beMult, trEnabled, trMult,
+      filtEnabled, filtAdxMin, filtMaSep, filtConsist,
+      result,
     };
     // restore next
     const s = brokerStatesRef.current[next];
@@ -201,9 +203,10 @@ export default function BacktesterPage() {
     setDateFrom(s.dateFrom); setDateTo(s.dateTo);
     setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
     setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
+    setFiltEnabled(s.filtEnabled); setFiltAdxMin(s.filtAdxMin); setFiltMaSep(s.filtMaSep); setFiltConsist(s.filtConsist);
     setResult(s.result); setError(null);
     setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, result]);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
