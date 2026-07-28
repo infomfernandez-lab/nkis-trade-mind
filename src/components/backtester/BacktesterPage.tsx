@@ -501,6 +501,24 @@ export default function BacktesterPage() {
             />
           </div>
 
+          {/* Filtro por tendencia confirmada (aprox. escáner) */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-xs font-medium">Filtrar por tendencia confirmada (aprox. escáner)</Label>
+              <Switch checked={filtEnabled} onCheckedChange={setFiltEnabled} />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Aproximación del escáner real: comprueba medias alineadas, ADX, separación de medias y consistencia de los últimos 100 días, calculado día a día sin mirar el futuro. No reproduce el score completo del escáner (estructura, momentum, divergencias, edad) — es una aproximación razonable, no una copia exacta.
+            </p>
+            {filtEnabled && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+                <SliderRow label="ADX mínimo del filtro" value={filtAdxMin} min={15} max={30} step={1} onChange={setFiltAdxMin} />
+                <SliderRow label="Separación mínima de medias (%)" value={filtMaSep} min={0.5} max={5.0} step={0.1} decimals={1} onChange={setFiltMaSep} />
+                <SliderRow label="Consistencia mínima (%)" value={filtConsist} min={40} max={90} step={1} onChange={setFiltConsist} />
+              </div>
+            )}
+          </div>
+
           {error && (
             <div className="flex items-start gap-2 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-xs">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
