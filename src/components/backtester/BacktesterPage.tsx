@@ -63,6 +63,10 @@ interface BacktestParams {
   breakeven_mult: number;
   trailing_enabled: boolean;
   trailing_mult: number;
+  use_filtro_escaner: boolean;
+  escaner_adx_min: number;
+  escaner_ma_sep_min: number;
+  escaner_consistencia_min: number;
 }
 
 interface BacktestTrade {
