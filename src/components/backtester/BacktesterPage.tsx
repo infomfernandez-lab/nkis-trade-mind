@@ -300,6 +300,10 @@ export default function BacktesterPage() {
       breakeven_mult: beMult,
       trailing_enabled: trEnabled,
       trailing_mult: trMult,
+      use_filtro_escaner: filtEnabled,
+      escaner_adx_min: filtAdxMin,
+      escaner_ma_sep_min: filtMaSep,
+      escaner_consistencia_min: filtConsist,
     };
 
     const payload = {
@@ -316,6 +320,10 @@ export default function BacktesterPage() {
       be_mult: Number(beMult),
       use_trail: Boolean(trEnabled),
       trail_mult: Number(trMult),
+      use_filtro_escaner: Boolean(filtEnabled),
+      escaner_adx_min: Number(filtAdxMin),
+      escaner_ma_sep_min: Number(filtMaSep),
+      escaner_consistencia_min: Number(filtConsist),
     };
 
     setRunning(true);
