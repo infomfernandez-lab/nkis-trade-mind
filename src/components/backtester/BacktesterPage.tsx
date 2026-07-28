@@ -789,6 +789,7 @@ function exitColor(reason: string) {
   if (r.includes('SL')) return COLORS.red;
   if (r.includes('BE')) return COLORS.yellow;
   if (r.includes('TRAIL')) return COLORS.purple;
+  if (r.includes('TP')) return COLORS.blue;
   return COLORS.gray;
 }
 
