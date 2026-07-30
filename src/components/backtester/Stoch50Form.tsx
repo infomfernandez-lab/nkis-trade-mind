@@ -1,4 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { CONTRACT_SPECS } from '@/lib/contract-specs';
+
 import { useQuery } from '@tanstack/react-query';
 import { Play, AlertTriangle } from 'lucide-react';
 
