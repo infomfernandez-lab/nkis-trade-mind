@@ -41,6 +41,18 @@ export default function Stoch50Form({ onResult }: Props) {
     },
   });
 
+  // Todos los instrumentos disponibles: los que devuelve el servidor primero,
+  // y a continuación el resto del catálogo OCTX para poder probarlos igualmente.
+  const allSymbols = useMemo(() => {
+    const fromServer = symbolsQuery.data ?? [];
+    const seen = new Set(fromServer.map(s => s.toUpperCase()));
+    const extra = CONTRACT_SPECS
+      .filter(s => s.broker === 'octx' && !seen.has(s.symbol.toUpperCase()))
+      .map(s => s.symbol);
+    return [...fromServer, ...Array.from(new Set(extra))];
+  }, [symbolsQuery.data]);
+
+
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
     const to = new Date();
