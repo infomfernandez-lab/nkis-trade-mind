@@ -342,14 +342,43 @@ export default function BacktesterPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Backtester</h1>
-        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests del sistema CAP Trend Following</p>
+        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests de tus sistemas de trading</p>
       </div>
 
+      {/* Selector de sistema */}
+      <div>
+        <Label className="mb-2 block text-xs text-muted-foreground font-medium">Sistema</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            { k: 'cap' as const, t: 'CAP Trend Following v2.99', s: 'Sistema oficial (NK / OX)' },
+            { k: 'stoch50' as const, t: 'Stoch 50 Cruce', s: 'Experimental (solo OCTX)' },
+          ]).map(o => (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => setSystem(o.k)}
+              className={`text-left rounded-md border p-3 transition-colors ${
+                system === o.k
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-secondary/30 hover:bg-accent'
+              }`}
+            >
+              <div className="text-sm font-semibold text-foreground">{o.t}</div>
+              <div className="text-[11px] text-muted-foreground">{o.s}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {system === 'stoch50' ? (
+        <Stoch50Form onResult={(r, s) => { setStoch50Result(r); setStoch50Symbol(s); }} />
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuración</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+
           {/* Cuenta */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium">Cuenta</span>
