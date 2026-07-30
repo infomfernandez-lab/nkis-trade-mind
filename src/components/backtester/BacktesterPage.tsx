@@ -1076,7 +1076,7 @@ function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: ()
   );
 }
 
-function RadarSymbolPicker({ broker, selected, onSelect }: {
+export function RadarSymbolPicker({ broker, selected, onSelect }: {
   broker: BrokerKey;
   selected: string;
   onSelect: (s: string) => void;
