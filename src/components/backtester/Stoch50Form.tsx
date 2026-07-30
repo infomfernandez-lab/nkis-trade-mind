@@ -1,15 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
-import { CONTRACT_SPECS } from '@/lib/contract-specs';
+import { useCallback, useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
 import { Play, AlertTriangle } from 'lucide-react';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SliderRow, ToggleSliderRow } from './controls';
+import { RadarSymbolPicker } from './RadarSymbolPicker';
 import { SERVER_URL, normalizeBacktestResult, type BacktestResult } from './backtest-api';
 
 interface Props {
@@ -30,29 +28,8 @@ export default function Stoch50Form({ onResult }: Props) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const symbolsQuery = useQuery({
-    queryKey: ['stoch50_symbols'],
-    queryFn: async () => {
-      const res = await fetch(`${SERVER_URL}/symbols/stoch50`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw = await res.json();
-      const list: any[] = Array.isArray(raw) ? raw : (raw?.symbols ?? []);
-      return list.map((s) => (typeof s === 'string' ? s : String(s?.symbol ?? ''))).filter(Boolean);
-    },
-  });
 
-  // Todos los instrumentos disponibles: los que devuelve el servidor primero,
-  // y a continuación el resto del catálogo OCTX para poder probarlos igualmente.
-  const allSymbols = useMemo(() => {
-    const fromServer = symbolsQuery.data ?? [];
-    const seen = new Set(fromServer.map(s => s.toUpperCase()));
-    const extra = CONTRACT_SPECS
-      .filter(s => s.broker === 'octx' && !seen.has(s.symbol.toUpperCase()))
-      .map(s => s.symbol);
-    return [...fromServer, ...Array.from(new Set(extra))];
-  }, [symbolsQuery.data]);
+
 
 
   const setDatePreset = useCallback((years: number | 'all') => {
@@ -116,19 +93,7 @@ export default function Stoch50Form({ onResult }: Props) {
         {/* Símbolo */}
         <div>
           <Label className="mb-2 block text-xs text-muted-foreground font-medium">Símbolo</Label>
-          <Select value={symbol} onValueChange={setSymbol}>
-            <SelectTrigger className="w-full sm:max-w-xs">
-              <SelectValue placeholder={symbolsQuery.isLoading ? 'Cargando símbolos…' : 'Selecciona un símbolo'} />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              {allSymbols.map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {symbolsQuery.isError && (
-            <p className="mt-1.5 text-[11px] text-destructive">No se pudo cargar la lista de símbolos del servidor.</p>
-          )}
+          <RadarSymbolPicker broker="octx" selected={symbol} onSelect={setSymbol} />
         </div>
 
         {/* Fechas */}
