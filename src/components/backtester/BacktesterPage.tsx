@@ -199,18 +199,7 @@ export default function BacktesterPage() {
   const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
 
   const symbolsForBroker = useMemo(
-    () => {
-      const specs = CONTRACT_SPECS.filter(s => s.broker === broker);
-      if (broker !== 'octx') return specs.map(s => s.symbol);
-      // OCTX operativo: solo Forex, Índices y Metales/Energía (XAU, XAG, XTI, XNG).
-      // Excluye acciones y ETFs.
-      return specs
-        .filter(s => {
-          const t = classifyInstrument(s.symbol).type;
-          return t === 'forex' || t === 'index' || t === 'metal' || t === 'energy';
-        })
-        .map(s => s.symbol);
-    },
+    () => CONTRACT_SPECS.filter(s => s.broker === broker).map(s => s.symbol),
     [broker]
   );
   const symbolSuggestions = useMemo(() => {
