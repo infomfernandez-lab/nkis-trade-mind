@@ -27,7 +27,16 @@ import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList
 import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
 
-const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
+import Stoch50Form from './Stoch50Form';
+import { SliderRow, ToggleSliderRow } from './controls';
+import {
+  SERVER_URL,
+  normalizeBacktestResult,
+  type BacktestTrade,
+  type BacktestMetrics,
+  type BacktestResult,
+} from './backtest-api';
+
 
 const COLORS = {
   green: '#10b981',
