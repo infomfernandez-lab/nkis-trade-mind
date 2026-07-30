@@ -1093,8 +1093,32 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
   onSelect: (s: string) => void;
 }) {
   const brokerFilter = broker === 'nkis' ? 'darwinex' : 'octx';
-  const all = useUnifiedInstruments(brokerFilter);
+  const scanner = useUnifiedInstruments(brokerFilter);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+
+  // Todos los instrumentos del broker (no solo los del escáner).
+  // Los que están en el escáner conservan su score/dirección; el resto se añade
+  // al final con score 0 para que igualmente se puedan backtestear.
+  const all = useMemo(() => {
+    const bySymbol = new Map<string, (typeof scanner)[number]>();
+    for (const it of scanner) bySymbol.set(it.symbol.toUpperCase(), it);
+    const extra = CONTRACT_SPECS
+      .filter(s => s.broker === broker)
+      .filter(s => !bySymbol.has(s.symbol.toUpperCase()))
+      .map(s => ({
+        symbol: s.symbol,
+        broker: brokerFilter,
+        direction: null,
+        score: 0,
+      } as unknown as (typeof scanner)[number]));
+    const seen = new Set<string>();
+    return [...scanner, ...extra].filter(it => {
+      const k = it.symbol.toUpperCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [scanner, broker, brokerFilter]);
 
   const annotated = useMemo(() => all.map(it => {
     const cls = classifyFamily(it.symbol);
