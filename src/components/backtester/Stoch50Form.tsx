@@ -121,7 +121,7 @@ export default function Stoch50Form({ onResult }: Props) {
               <SelectValue placeholder={symbolsQuery.isLoading ? 'Cargando símbolos…' : 'Selecciona un símbolo'} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {(symbolsQuery.data ?? []).map(s => (
+              {allSymbols.map(s => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
