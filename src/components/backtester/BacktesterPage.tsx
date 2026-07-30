@@ -1205,12 +1205,16 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-xs">{it.symbol}</span>
-                        <span className={`text-[10px] font-bold ${
-                          (it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy'
-                            ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {(it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy' ? '▲ BUY' : '▼ SELL'}
-                        </span>
+                        {it.direction ? (
+                          <span className={`text-[10px] font-bold ${
+                            (it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy'
+                              ? 'text-success' : 'text-destructive'
+                          }`}>
+                            {(it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy' ? '▲ BUY' : '▼ SELL'}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">sin escáner</span>
+                        )}
                       </div>
                       {desc && <div className="text-[10px] text-muted-foreground truncate">{desc}</div>}
                     </div>
