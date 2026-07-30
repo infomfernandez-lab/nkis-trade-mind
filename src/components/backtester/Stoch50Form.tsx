@@ -116,19 +116,7 @@ export default function Stoch50Form({ onResult }: Props) {
         {/* Símbolo */}
         <div>
           <Label className="mb-2 block text-xs text-muted-foreground font-medium">Símbolo</Label>
-          <Select value={symbol} onValueChange={setSymbol}>
-            <SelectTrigger className="w-full sm:max-w-xs">
-              <SelectValue placeholder={symbolsQuery.isLoading ? 'Cargando símbolos…' : 'Selecciona un símbolo'} />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              {allSymbols.map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {symbolsQuery.isError && (
-            <p className="mt-1.5 text-[11px] text-destructive">No se pudo cargar la lista de símbolos del servidor.</p>
-          )}
+          <RadarSymbolPicker broker="octx" selected={symbol} onSelect={setSymbol} />
         </div>
 
         {/* Fechas */}
