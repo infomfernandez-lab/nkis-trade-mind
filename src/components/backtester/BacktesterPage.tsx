@@ -522,13 +522,27 @@ export default function BacktesterPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      {result && (
+      <div className="text-xs text-muted-foreground flex items-center gap-2">
+        <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+        {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
+      </div>
+
+      {system === 'cap' && result && (
         <ResultsView
           result={result}
           exportMeta={{ symbol, broker, direction }}
         />
       )}
+
+      {system === 'stoch50' && stoch50Result && (
+        <ResultsView
+          result={stoch50Result}
+          exportMeta={{ symbol: stoch50Symbol, broker: 'octx', direction: 'BOTH' }}
+        />
+      )}
+
 
       <Card>
         <CardHeader>
