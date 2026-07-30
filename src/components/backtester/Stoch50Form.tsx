@@ -1,15 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
-import { CONTRACT_SPECS } from '@/lib/contract-specs';
+import { useCallback, useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
 import { Play, AlertTriangle } from 'lucide-react';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SliderRow, ToggleSliderRow } from './controls';
+import { RadarSymbolPicker } from './RadarSymbolPicker';
 import { SERVER_URL, normalizeBacktestResult, type BacktestResult } from './backtest-api';
 
 interface Props {
