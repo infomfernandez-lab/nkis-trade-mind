@@ -1227,7 +1227,7 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
         )}
       </div>
       <div className="text-[10px] text-muted-foreground">
-        {items.length} de {annotated.length} instrumentos del radar
+        {items.length} de {annotated.length} instrumentos disponibles
       </div>
     </div>
   );
