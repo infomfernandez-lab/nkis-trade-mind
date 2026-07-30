@@ -884,7 +884,11 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }));
 
   // Scatter
-  const scatter = trades.map(t => ({ mfe: t.mfe ?? 0, pnl: t.pnl ?? 0 }));
+  // Los sistemas que no reportan MFE (viene null) simplemente no pintan puntos.
+  const scatter = trades
+    .filter(t => t.mfe != null && Number.isFinite(Number(t.mfe)))
+    .map(t => ({ mfe: Number(t.mfe), pnl: t.pnl ?? 0 }));
+
   const allVals = scatter.flatMap(p => [p.mfe, p.pnl]);
   const scatterMin = allVals.length ? Math.min(...allVals, 0) : 0;
   const scatterMax = allVals.length ? Math.max(...allVals, 0) : 0;
