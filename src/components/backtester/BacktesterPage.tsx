@@ -143,6 +143,10 @@ export default function BacktesterPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+  const [system, setSystem] = useState<'cap' | 'stoch50'>('cap');
+  const [stoch50Result, setStoch50Result] = useState<BacktestResult | null>(null);
+  const [stoch50Symbol, setStoch50Symbol] = useState('');
+
 
   const switchBroker = useCallback((next: BrokerKey) => {
     if (next === broker) return;
