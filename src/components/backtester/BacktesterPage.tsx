@@ -27,7 +27,16 @@ import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList
 import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
 
-const SERVER_URL = 'https://ointment-handcraft-payee.ngrok-free.dev';
+import Stoch50Form from './Stoch50Form';
+import { SliderRow, ToggleSliderRow } from './controls';
+import {
+  SERVER_URL,
+  normalizeBacktestResult,
+  type BacktestTrade,
+  type BacktestMetrics,
+  type BacktestResult,
+} from './backtest-api';
+
 
 const COLORS = {
   green: '#10b981',
@@ -69,58 +78,6 @@ interface BacktestParams {
   escaner_consistencia_min: number;
 }
 
-interface BacktestTrade {
-  entry_date: string;
-  exit_date: string;
-  entry_price: number;
-  exit_price?: number;
-  sl_price?: number;
-  tp_price?: number | null;
-  lot_size?: number;
-  days?: number;
-  mfe?: number;
-  pnl: number;
-  reason?: string;
-}
-
-interface BacktestMetrics {
-  win_rate?: number;
-  profit_factor?: number;
-  sharpe?: number;
-  pnl?: number;
-  drawdown?: number;
-  trades?: number;
-}
-
-interface BacktestResult {
-  metrics: BacktestMetrics;
-  equity_curve: Array<{ date?: string; equity: number }>;
-  trades: BacktestTrade[];
-}
-
-/** Normalize raw server response → BacktestResult.
- * The Python backend returns trades with fields like `sl`, `lots`, `exit_reason`;
- * we map them to our internal shape so charts and tables show the correct data. */
-function normalizeBacktestResult(raw: any): BacktestResult {
-  const trades: BacktestTrade[] = (raw?.trades ?? []).map((t: any) => ({
-    entry_date: t.entry_date ?? t.entryDate ?? '',
-    exit_date: t.exit_date ?? t.exitDate ?? '',
-    entry_price: Number(t.entry_price ?? t.entryPrice ?? 0),
-    exit_price: t.exit_price ?? t.exitPrice ?? undefined,
-    sl_price: Number(t.sl_price ?? t.sl ?? t.stop_loss ?? 0) || undefined,
-    tp_price: t.tp == null && t.tp_price == null ? null : Number(t.tp ?? t.tp_price) || null,
-    lot_size: Number(t.lot_size ?? t.lots ?? t.size ?? 0) || undefined,
-    days: t.days ?? t.duration_days ?? undefined,
-    mfe: t.mfe ?? t.max_favorable ?? undefined,
-    pnl: Number(t.pnl ?? t.profit ?? t.net_pnl ?? 0),
-    reason: t.reason ?? t.exit_reason ?? t.close_reason ?? undefined,
-  }));
-  return {
-    metrics: raw?.metrics ?? {},
-    equity_curve: raw?.equity_curve ?? [],
-    trades,
-  };
-}
 
 interface SavedSession {
   id: string;
@@ -186,6 +143,10 @@ export default function BacktesterPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+  const [system, setSystem] = useState<'cap' | 'stoch50'>('cap');
+  const [stoch50Result, setStoch50Result] = useState<BacktestResult | null>(null);
+  const [stoch50Symbol, setStoch50Symbol] = useState('');
+
 
   const switchBroker = useCallback((next: BrokerKey) => {
     if (next === broker) return;
@@ -385,14 +346,43 @@ export default function BacktesterPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Backtester</h1>
-        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests del sistema CAP Trend Following</p>
+        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests de tus sistemas de trading</p>
       </div>
 
+      {/* Selector de sistema */}
+      <div>
+        <Label className="mb-2 block text-xs text-muted-foreground font-medium">Sistema</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {([
+            { k: 'cap' as const, t: 'CAP Trend Following v2.99', s: 'Sistema oficial (NK / OX)' },
+            { k: 'stoch50' as const, t: 'Stoch 50 Cruce', s: 'Experimental (solo OCTX)' },
+          ]).map(o => (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => setSystem(o.k)}
+              className={`text-left rounded-md border p-3 transition-colors ${
+                system === o.k
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-secondary/30 hover:bg-accent'
+              }`}
+            >
+              <div className="text-sm font-semibold text-foreground">{o.t}</div>
+              <div className="text-[11px] text-muted-foreground">{o.s}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {system === 'stoch50' ? (
+        <Stoch50Form onResult={(r, s) => { setStoch50Result(r); setStoch50Symbol(s); }} />
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuración</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+
           {/* Cuenta */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground font-medium">Cuenta</span>
@@ -536,13 +526,27 @@ export default function BacktesterPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      {result && (
+      <div className="text-xs text-muted-foreground flex items-center gap-2">
+        <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
+        {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
+      </div>
+
+      {system === 'cap' && result && (
         <ResultsView
           result={result}
           exportMeta={{ symbol, broker, direction }}
         />
       )}
+
+      {system === 'stoch50' && stoch50Result && (
+        <ResultsView
+          result={stoch50Result}
+          exportMeta={{ symbol: stoch50Symbol, broker: 'octx', direction: 'BOTH' }}
+        />
+      )}
+
 
       <Card>
         <CardHeader>
@@ -588,39 +592,8 @@ export default function BacktesterPage() {
   );
 }
 
-function SliderRow({ label, value, min, max, step, onChange, decimals = 0 }: {
-  label: string; value: number; min: number; max: number; step: number; decimals?: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex justify-between mb-1.5">
-        <Label className="text-xs">{label}</Label>
-        <span className="text-xs font-mono font-semibold text-primary">{value.toFixed(decimals)}</span>
-      </div>
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={v => onChange(v[0])} />
-    </div>
-  );
-}
 
-function ToggleSliderRow({ label, enabled, onToggle, value, min, max, step, onChange, suffix = '' }: {
-  label: string; enabled: boolean; onToggle: (v: boolean) => void;
-  value: number; min: number; max: number; step: number; suffix?: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex justify-between mb-1.5 items-center">
-        <div className="flex items-center gap-2">
-          <Switch checked={enabled} onCheckedChange={onToggle} />
-          <Label className="text-xs">{label}</Label>
-        </div>
-        <span className="text-xs font-mono font-semibold text-primary">{value.toFixed(1)}{suffix}</span>
-      </div>
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={v => onChange(v[0])} disabled={!enabled} />
-    </div>
-  );
-}
+
 
 function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMeta?: { symbol: string; broker: string; direction: string } }) {
   const m = result.metrics ?? {};
@@ -911,7 +884,11 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }));
 
   // Scatter
-  const scatter = trades.map(t => ({ mfe: t.mfe ?? 0, pnl: t.pnl ?? 0 }));
+  // Los sistemas que no reportan MFE (viene null) simplemente no pintan puntos.
+  const scatter = trades
+    .filter(t => t.mfe != null && Number.isFinite(Number(t.mfe)))
+    .map(t => ({ mfe: Number(t.mfe), pnl: t.pnl ?? 0 }));
+
   const allVals = scatter.flatMap(p => [p.mfe, p.pnl]);
   const scatterMin = allVals.length ? Math.min(...allVals, 0) : 0;
   const scatterMax = allVals.length ? Math.max(...allVals, 0) : 0;
