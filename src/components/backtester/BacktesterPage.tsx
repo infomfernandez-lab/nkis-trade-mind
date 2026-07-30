@@ -199,18 +199,7 @@ export default function BacktesterPage() {
   const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
 
   const symbolsForBroker = useMemo(
-    () => {
-      const specs = CONTRACT_SPECS.filter(s => s.broker === broker);
-      if (broker !== 'octx') return specs.map(s => s.symbol);
-      // OCTX operativo: solo Forex, Índices y Metales/Energía (XAU, XAG, XTI, XNG).
-      // Excluye acciones y ETFs.
-      return specs
-        .filter(s => {
-          const t = classifyInstrument(s.symbol).type;
-          return t === 'forex' || t === 'index' || t === 'metal' || t === 'energy';
-        })
-        .map(s => s.symbol);
-    },
+    () => CONTRACT_SPECS.filter(s => s.broker === broker).map(s => s.symbol),
     [broker]
   );
   const symbolSuggestions = useMemo(() => {
@@ -1093,8 +1082,32 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
   onSelect: (s: string) => void;
 }) {
   const brokerFilter = broker === 'nkis' ? 'darwinex' : 'octx';
-  const all = useUnifiedInstruments(brokerFilter);
+  const scanner = useUnifiedInstruments(brokerFilter);
   const [filters, setFilters] = useState<RadarFilterState>(EMPTY_FILTERS);
+
+  // Todos los instrumentos del broker (no solo los del escáner).
+  // Los que están en el escáner conservan su score/dirección; el resto se añade
+  // al final con score 0 para que igualmente se puedan backtestear.
+  const all = useMemo(() => {
+    const bySymbol = new Map<string, (typeof scanner)[number]>();
+    for (const it of scanner) bySymbol.set(it.symbol.toUpperCase(), it);
+    const extra = CONTRACT_SPECS
+      .filter(s => s.broker === broker)
+      .filter(s => !bySymbol.has(s.symbol.toUpperCase()))
+      .map(s => ({
+        symbol: s.symbol,
+        broker: brokerFilter,
+        direction: null,
+        score: 0,
+      } as unknown as (typeof scanner)[number]));
+    const seen = new Set<string>();
+    return [...scanner, ...extra].filter(it => {
+      const k = it.symbol.toUpperCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [scanner, broker, brokerFilter]);
 
   const annotated = useMemo(() => all.map(it => {
     const cls = classifyFamily(it.symbol);
@@ -1181,12 +1194,16 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-xs">{it.symbol}</span>
-                        <span className={`text-[10px] font-bold ${
-                          (it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy'
-                            ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {(it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy' ? '▲ BUY' : '▼ SELL'}
-                        </span>
+                        {it.direction ? (
+                          <span className={`text-[10px] font-bold ${
+                            (it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy'
+                              ? 'text-success' : 'text-destructive'
+                          }`}>
+                            {(it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy' ? '▲ BUY' : '▼ SELL'}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">sin escáner</span>
+                        )}
                       </div>
                       {desc && <div className="text-[10px] text-muted-foreground truncate">{desc}</div>}
                     </div>
@@ -1199,7 +1216,7 @@ function RadarSymbolPicker({ broker, selected, onSelect }: {
         )}
       </div>
       <div className="text-[10px] text-muted-foreground">
-        {items.length} de {annotated.length} instrumentos del radar
+        {items.length} de {annotated.length} instrumentos disponibles
       </div>
     </div>
   );

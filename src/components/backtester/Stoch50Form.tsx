@@ -1,4 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { CONTRACT_SPECS } from '@/lib/contract-specs';
+
 import { useQuery } from '@tanstack/react-query';
 import { Play, AlertTriangle } from 'lucide-react';
 
@@ -40,6 +42,18 @@ export default function Stoch50Form({ onResult }: Props) {
       return list.map((s) => (typeof s === 'string' ? s : String(s?.symbol ?? ''))).filter(Boolean);
     },
   });
+
+  // Todos los instrumentos disponibles: los que devuelve el servidor primero,
+  // y a continuación el resto del catálogo OCTX para poder probarlos igualmente.
+  const allSymbols = useMemo(() => {
+    const fromServer = symbolsQuery.data ?? [];
+    const seen = new Set(fromServer.map(s => s.toUpperCase()));
+    const extra = CONTRACT_SPECS
+      .filter(s => s.broker === 'octx' && !seen.has(s.symbol.toUpperCase()))
+      .map(s => s.symbol);
+    return [...fromServer, ...Array.from(new Set(extra))];
+  }, [symbolsQuery.data]);
+
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
@@ -107,7 +121,7 @@ export default function Stoch50Form({ onResult }: Props) {
               <SelectValue placeholder={symbolsQuery.isLoading ? 'Cargando símbolos…' : 'Selecciona un símbolo'} />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {(symbolsQuery.data ?? []).map(s => (
+              {allSymbols.map(s => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
