@@ -44,7 +44,11 @@ export function RadarSymbolPicker({ broker, selected, onSelect }: {
   // Agrupamos por raíz: los futuros con distinto vencimiento (NQ_M, NQ_U)
   // se muestran como una sola entrada (NQ), conservando el mejor score.
   const annotated = useMemo(() => {
-    const byRoot = new Map<string, any>();
+    type Entry = (typeof all)[number] & {
+      _root: string; _desc: string; _family: Family | null; _subfamily: string | null;
+    };
+    const byRoot = new Map<string, Entry>();
+
     for (const it of all) {
       const cls = classifyFamily(it.symbol);
       const root = raizSimbolo(it.symbol);
