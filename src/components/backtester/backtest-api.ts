@@ -23,10 +23,21 @@ export interface BacktestMetrics {
   trades?: number;
 }
 
+export interface BacktestParamsUsados {
+  atr_mult_sl?: number;
+  tp_mult?: number;
+  nivel?: number;
+  adx?: number | string;
+  breakeven?: boolean | string;
+}
+
 export interface BacktestResult {
   metrics: BacktestMetrics;
   equity_curve: Array<{ date?: string; equity: number }>;
   trades: BacktestTrade[];
+  sistema?: string;
+  params_usados?: BacktestParamsUsados;
+  aviso_simbolo?: string;
 }
 
 /** Normalize raw server response → BacktestResult.
@@ -50,5 +61,32 @@ export function normalizeBacktestResult(raw: any): BacktestResult {
     metrics: raw?.metrics ?? {},
     equity_curve: raw?.equity_curve ?? [],
     trades,
+    sistema: raw?.sistema ?? undefined,
+    params_usados: raw?.params_usados ?? undefined,
+    aviso_simbolo: raw?.aviso_simbolo ?? undefined,
   };
+}
+
+/** Raíz del símbolo: todo lo que va antes del primer guion bajo.
+ * NQ_M → NQ · EURUSD → EURUSD (sin cambios). */
+export function raizSimbolo(sym: string): string {
+  if (!sym) return '';
+  const i = sym.indexOf('_');
+  return i === -1 ? sym : sym.slice(0, i);
+}
+
+const MESES = [
+  'January','February','March','April','May','June','July','August','September','October','November','December',
+  'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+];
+
+/** Quita el mes de vencimiento del final de la descripción de un futuro. */
+export function limpiarDescripcion(desc: string): string {
+  if (!desc) return '';
+  let out = desc.trim();
+  for (const m of MESES) {
+    const re = new RegExp(`[\\s,-]+${m}(\\s+\\d{2,4})?$`, 'i');
+    if (re.test(out)) { out = out.replace(re, '').trim(); break; }
+  }
+  return out;
 }
