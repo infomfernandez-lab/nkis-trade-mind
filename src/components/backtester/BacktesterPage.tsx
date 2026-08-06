@@ -27,7 +27,6 @@ import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList
 import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
 
-import Stoch50Form from './Stoch50Form';
 import { RadarSymbolPicker } from './RadarSymbolPicker';
 import { SliderRow, ToggleSliderRow } from './controls';
 import {
@@ -37,6 +36,7 @@ import {
   type BacktestMetrics,
   type BacktestResult,
 } from './backtest-api';
+import { InfoTip } from '@/components/statistics/InfoTip';
 
 
 const COLORS = {
@@ -101,7 +101,7 @@ export default function BacktesterPage() {
   type BrokerState = {
     symbol: string; symbolQuery: string; direction: Direction;
     dateFrom: string; dateTo: string;
-    adxMin: number; atrSl: number; tpMult: number; stochBuy: number; stochSell: number;
+    adxMin: number; atrSl: number; tpMult: number; nivel: number;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
     filtEnabled: boolean; filtAdxMin: number; filtMaSep: number; filtConsist: number;
     result: BacktestResult | null;
@@ -109,8 +109,8 @@ export default function BacktesterPage() {
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, tpMult: 0, stochBuy: 70, stochSell: 30,
-    beEnabled: true, beMult: 1.0, trEnabled: false, trMult: 1.5,
+    adxMin: 23, atrSl: 1.5, tpMult: 0, nivel: 50,
+    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 1.5,
     filtEnabled: false, filtAdxMin: 20, filtMaSep: 1.0, filtConsist: 65,
     result: null,
   });
@@ -128,9 +128,8 @@ export default function BacktesterPage() {
   const [adxMin, setAdxMin] = useState(23);
   const [atrSl, setAtrSl] = useState(1.5);
   const [tpMult, setTpMult] = useState(0);
-  const [stochBuy, setStochBuy] = useState(70);
-  const [stochSell, setStochSell] = useState(30);
-  const [beEnabled, setBeEnabled] = useState(true);
+  const [nivel, setNivel] = useState(50);
+  const [beEnabled, setBeEnabled] = useState(false);
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
   const [trMult, setTrMult] = useState(1.5);
@@ -144,9 +143,6 @@ export default function BacktesterPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
-  const [system, setSystem] = useState<'cap' | 'stoch50'>('cap');
-  const [stoch50Result, setStoch50Result] = useState<BacktestResult | null>(null);
-  const [stoch50Symbol, setStoch50Symbol] = useState('');
 
 
   const switchBroker = useCallback((next: BrokerKey) => {
@@ -154,7 +150,7 @@ export default function BacktesterPage() {
     // save current
     brokerStatesRef.current[broker] = {
       symbol, symbolQuery, direction, dateFrom, dateTo,
-      adxMin, atrSl, tpMult, stochBuy, stochSell,
+      adxMin, atrSl, tpMult, nivel,
       beEnabled, beMult, trEnabled, trMult,
       filtEnabled, filtAdxMin, filtMaSep, filtConsist,
       result,
@@ -163,12 +159,12 @@ export default function BacktesterPage() {
     const s = brokerStatesRef.current[next];
     setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
     setDateFrom(s.dateFrom); setDateTo(s.dateTo);
-    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setStochBuy(s.stochBuy); setStochSell(s.stochSell);
+    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setNivel(s.nivel);
     setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
     setFiltEnabled(s.filtEnabled); setFiltAdxMin(s.filtAdxMin); setFiltMaSep(s.filtMaSep); setFiltConsist(s.filtConsist);
     setResult(s.result); setError(null);
     setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, stochBuy, stochSell, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, nivel, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
@@ -245,8 +241,8 @@ export default function BacktesterPage() {
       adx_min: adxMin,
       atr_sl: atrSl,
       tp_mult: tpMult,
-      stoch_buy: stochBuy,
-      stoch_sell: stochSell,
+      stoch_buy: nivel,
+      stoch_sell: nivel,
       breakeven_enabled: beEnabled,
       breakeven_mult: beMult,
       trailing_enabled: trEnabled,
@@ -265,8 +261,8 @@ export default function BacktesterPage() {
       adx_min: Number(adxMin),
       atr_mult: Number(atrSl),
       tp_mult: Number(tpMult),
-      stoch_buy: Number(stochBuy),
-      stoch_sell: Number(stochSell),
+      stoch_buy: Number(nivel),
+      stoch_sell: Number(nivel),
       use_be: Boolean(beEnabled),
       be_mult: Number(beMult),
       use_trail: Boolean(trEnabled),
@@ -339,39 +335,19 @@ export default function BacktesterPage() {
         <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests de tus sistemas de trading</p>
       </div>
 
-      {/* Selector de sistema */}
       <div>
-        <Label className="mb-2 block text-xs text-muted-foreground font-medium">Sistema</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {([
-            { k: 'cap' as const, t: 'CAP Trend Following v2.99', s: 'Sistema oficial (NK / OX)' },
-            { k: 'stoch50' as const, t: 'Stoch 50 Cruce', s: 'Experimental (solo OCTX)' },
-          ]).map(o => (
-            <button
-              key={o.k}
-              type="button"
-              onClick={() => setSystem(o.k)}
-              className={`text-left rounded-md border p-3 transition-colors ${
-                system === o.k
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-secondary/30 hover:bg-accent'
-              }`}
-            >
-              <div className="text-sm font-semibold text-foreground">{o.t}</div>
-              <div className="text-[11px] text-muted-foreground">{o.s}</div>
-            </button>
-          ))}
+        <div className="text-sm font-semibold text-foreground">CAP Trend Following v3.00 — Cruce del 50</div>
+        <div className="text-[11px] text-muted-foreground">
+          Entrada y salida al cruzar el nivel 50 · Stop por ATR · sin filtro ADX · NK / OX
         </div>
       </div>
-
-      {system === 'stoch50' ? (
-        <Stoch50Form onResult={(r, s) => { setStoch50Result(r); setStoch50Symbol(s); }} />
-      ) : (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Configuración</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Instrumento</div>
 
           {/* Cuenta */}
           <div className="flex items-center gap-1.5">
@@ -460,17 +436,45 @@ export default function BacktesterPage() {
             </div>
           </div>
 
-          {/* Sliders */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-            <SliderRow label="ADX mínimo" value={adxMin} min={15} max={35} step={1} onChange={setAdxMin} />
-            <SliderRow label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl} />
-            <SliderRow label="Take Profit (× ATR)" value={tpMult} min={0} max={10.0} step={0.1} decimals={1} onChange={setTpMult} />
-            <SliderRow label="Stoch BUY nivel" value={stochBuy} min={60} max={85} step={1} onChange={setStochBuy} />
-            <SliderRow label="Stoch SELL nivel" value={stochSell} min={15} max={40} step={1} onChange={setStochSell} />
+          <div className="pt-3 border-t border-border text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Señal</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <SliderRow
+              label="Nivel de cruce" value={nivel} min={20} max={80} step={1} onChange={setNivel}
+              help="Entrada al cruzar este nivel; salida al cruzarlo de vuelta"
+            />
           </div>
 
-          {/* Toggles */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+          {/* Filtro por tendencia confirmada (aprox. escáner) */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs font-medium">Filtrar por tendencia confirmada (aprox. escáner)</Label>
+                <InfoTip text="Aproximación del escáner real: comprueba medias alineadas, separación de medias y consistencia de los últimos 100 días, calculado día a día sin mirar el futuro. No reproduce el score completo del escáner (estructura, momentum, divergencias, edad) — es una aproximación razonable, no una copia exacta." />
+              </div>
+              <Switch checked={filtEnabled} onCheckedChange={setFiltEnabled} />
+            </div>
+            {filtEnabled && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+                <SliderRow label="ADX mínimo del filtro" value={filtAdxMin} min={15} max={30} step={1} onChange={setFiltAdxMin} />
+                <SliderRow label="Separación mínima de medias (%)" value={filtMaSep} min={0.5} max={5.0} step={0.1} decimals={1} onChange={setFiltMaSep} />
+                <SliderRow label="Consistencia mínima (%)" value={filtConsist} min={40} max={90} step={1} onChange={setFiltConsist} />
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-border text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Riesgo</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <SliderRow
+              label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl}
+              help="Distancia del stop = ATR(14) × este valor"
+            />
+            <SliderRow
+              label="Take Profit (R:R)" value={tpMult} min={0} max={10} step={0.5} decimals={1} onChange={setTpMult}
+              badge={tpMult === 0 ? 'TP desactivado' : undefined}
+              help="0 = sin take profit. 2 = objetivo 1:2, 3 = objetivo 1:3"
+            />
             <ToggleSliderRow
               label="Breakeven" enabled={beEnabled} onToggle={setBeEnabled}
               value={beMult} min={0.5} max={2.0} step={0.1} onChange={setBeMult} suffix="×"
@@ -479,24 +483,6 @@ export default function BacktesterPage() {
               label="Trailing ATR" enabled={trEnabled} onToggle={setTrEnabled}
               value={trMult} min={1.0} max={3.0} step={0.1} onChange={setTrMult} suffix="×"
             />
-          </div>
-
-          {/* Filtro por tendencia confirmada (aprox. escáner) */}
-          <div className="pt-2 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label className="text-xs font-medium">Filtrar por tendencia confirmada (aprox. escáner)</Label>
-              <Switch checked={filtEnabled} onCheckedChange={setFiltEnabled} />
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Aproximación del escáner real: comprueba medias alineadas, ADX, separación de medias y consistencia de los últimos 100 días, calculado día a día sin mirar el futuro. No reproduce el score completo del escáner (estructura, momentum, divergencias, edad) — es una aproximación razonable, no una copia exacta.
-            </p>
-            {filtEnabled && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-                <SliderRow label="ADX mínimo del filtro" value={filtAdxMin} min={15} max={30} step={1} onChange={setFiltAdxMin} />
-                <SliderRow label="Separación mínima de medias (%)" value={filtMaSep} min={0.5} max={5.0} step={0.1} decimals={1} onChange={setFiltMaSep} />
-                <SliderRow label="Consistencia mínima (%)" value={filtConsist} min={40} max={90} step={1} onChange={setFiltConsist} />
-              </div>
-            )}
           </div>
 
           {error && (
@@ -516,24 +502,16 @@ export default function BacktesterPage() {
           </div>
         </CardContent>
       </Card>
-      )}
 
       <div className="text-xs text-muted-foreground flex items-center gap-2">
         <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
         {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
       </div>
 
-      {system === 'cap' && result && (
+      {result && (
         <ResultsView
           result={result}
           exportMeta={{ symbol, broker, direction }}
-        />
-      )}
-
-      {system === 'stoch50' && stoch50Result && (
-        <ResultsView
-          result={stoch50Result}
-          exportMeta={{ symbol: stoch50Symbol, broker: 'octx', direction: 'BOTH' }}
         />
       )}
 
@@ -770,6 +748,31 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
         )}
 
         {trades.length > 0 && <TradesTable trades={trades} />}
+
+        {result.aviso_simbolo && (
+          <div className="text-[11px] text-muted-foreground">{result.aviso_simbolo}</div>
+        )}
+
+        {(result.sistema || result.params_usados) && (
+          (result.sistema ?? '').toUpperCase() === 'DESCONOCIDA' ? (
+            <div className="text-[11px] text-warning">
+              El servidor está usando una versión antigua del backtester
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground">
+              Ejecutado con: <span className="font-mono">{result.sistema ?? '—'}</span>
+              {result.params_usados && (
+                <>
+                  {' · '}ATR×SL <span className="font-mono">{String(result.params_usados.atr_mult_sl ?? '—')}</span>
+                  {' · '}TP <span className="font-mono">{String(result.params_usados.tp_mult ?? '—')}</span>
+                  {' · '}Nivel <span className="font-mono">{String(result.params_usados.nivel ?? '—')}</span>
+                  {' · '}ADX <span className="font-mono">{String(result.params_usados.adx ?? '—')}</span>
+                  {' · '}Breakeven <span className="font-mono">{String(result.params_usados.breakeven ?? '—')}</span>
+                </>
+              )}
+            </div>
+          )
+        )}
       </CardContent>
     </Card>
   );
@@ -1102,10 +1105,8 @@ function SessionHeader({ symbol, broker, direction, dateFrom, dateTo, createdAt,
       </div>
       {params && (
         <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <div>ADX mín: <span className="font-mono text-foreground">{params.adx_min}</span></div>
           <div>ATR×SL: <span className="font-mono text-foreground">{params.atr_sl}</span></div>
-          <div>Stoch BUY: <span className="font-mono text-foreground">{params.stoch_buy}</span></div>
-          <div>Stoch SELL: <span className="font-mono text-foreground">{params.stoch_sell}</span></div>
+          <div>Nivel de cruce: <span className="font-mono text-foreground">{params.stoch_buy}</span></div>
           <div>Breakeven: <span className="font-mono text-foreground">{params.breakeven_enabled ? `ON ×${params.breakeven_mult}` : 'OFF'}</span></div>
           <div>Trailing: <span className="font-mono text-foreground">{params.trailing_enabled ? `ON ×${params.trailing_mult}` : 'OFF'}</span></div>
         </div>
@@ -1158,10 +1159,8 @@ async function exportXlsx(session: SavedSession) {
     ['Creado', new Date(session.created_at).toLocaleString('es-ES')],
     [],
     ['— Parámetros —'],
-    ['ADX mínimo', p.adx_min ?? ''],
     ['ATR × SL', p.atr_sl ?? ''],
-    ['Stoch BUY', p.stoch_buy ?? ''],
-    ['Stoch SELL', p.stoch_sell ?? ''],
+    ['Nivel de cruce', p.stoch_buy ?? ''],
     ['Breakeven', p.breakeven_enabled ? `ON ×${p.breakeven_mult}` : 'OFF'],
     ['Trailing', p.trailing_enabled ? `ON ×${p.trailing_mult}` : 'OFF'],
     [],
