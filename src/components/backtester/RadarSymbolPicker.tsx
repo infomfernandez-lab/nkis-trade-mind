@@ -4,6 +4,7 @@ import { useUnifiedInstruments } from '@/components/radar/EnTendenciaBlock';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from '@/components/radar/RadarFiltersBar';
 import { classifyFamily, type Family } from '@/lib/instrument-family';
 import { classifyInstrument } from '@/lib/instrument-classify';
+import { raizSimbolo, limpiarDescripcion } from './backtest-api';
 
 type BrokerKey = 'nkis' | 'octx';
 
@@ -40,10 +41,29 @@ export function RadarSymbolPicker({ broker, selected, onSelect }: {
     });
   }, [scanner, broker, brokerFilter]);
 
-  const annotated = useMemo(() => all.map(it => {
-    const cls = classifyFamily(it.symbol);
-    return { ...it, _family: cls?.family ?? null, _subfamily: cls?.subfamily ?? null };
-  }), [all]);
+  // Agrupamos por raíz: los futuros con distinto vencimiento (NQ_M, NQ_U)
+  // se muestran como una sola entrada (NQ), conservando el mejor score.
+  const annotated = useMemo(() => {
+    type Entry = (typeof all)[number] & {
+      _root: string; _desc: string; _family: Family | null; _subfamily: string | null;
+    };
+    const byRoot = new Map<string, Entry>();
+
+    for (const it of all) {
+      const cls = classifyFamily(it.symbol);
+      const root = raizSimbolo(it.symbol);
+      const entry = {
+        ...it,
+        _root: root,
+        _desc: limpiarDescripcion(classifyInstrument(it.symbol).description),
+        _family: cls?.family ?? null,
+        _subfamily: cls?.subfamily ?? null,
+      };
+      const prev = byRoot.get(root.toUpperCase());
+      if (!prev || (entry.score ?? 0) > (prev.score ?? 0)) byRoot.set(root.toUpperCase(), entry);
+    }
+    return [...byRoot.values()];
+  }, [all]);
 
   const familyCounts = useMemo(() => {
     const c: Partial<Record<Family, number>> = {};
@@ -67,7 +87,7 @@ export function RadarSymbolPicker({ broker, selected, onSelect }: {
     let arr = familyFiltered;
     if (filters.tier) arr = arr.filter(it => tierOfScore(it.score) === filters.tier);
     if (filters.search.trim()) {
-      arr = arr.filter(it => matchSearch(filters.search, [it.symbol, classifyInstrument(it.symbol).description]));
+      arr = arr.filter(it => matchSearch(filters.search, [it._root, it.symbol, it._desc]));
     }
     return [...arr].sort((a, b) => b.score - a.score);
   }, [familyFiltered, filters.tier, filters.search]);
@@ -75,17 +95,17 @@ export function RadarSymbolPicker({ broker, selected, onSelect }: {
   const availableSubs = useMemo(() => buildSubsList(annotated, filters.family), [annotated, filters.family]);
 
   const suggestions: Suggestion[] = useMemo(() => annotated.map(it => ({
-    value: it.symbol,
-    label: it.symbol,
-    description: classifyInstrument(it.symbol).description,
+    value: it._root,
+    label: it._root,
+    description: it._desc,
   })), [annotated]);
 
   // Si el usuario teclea (o elige una sugerencia) un símbolo exacto del radar, lo seleccionamos
   useEffect(() => {
     const q = filters.search.trim().toUpperCase();
     if (!q) return;
-    const exact = annotated.find(a => a.symbol.toUpperCase() === q);
-    if (exact && exact.symbol !== selected) onSelect(exact.symbol);
+    const exact = annotated.find(a => a._root.toUpperCase() === q);
+    if (exact && exact._root !== selected) onSelect(exact._root);
   }, [filters.search, annotated, selected, onSelect]);
 
   return (
@@ -113,18 +133,18 @@ export function RadarSymbolPicker({ broker, selected, onSelect }: {
                 : tier === 'solido'
                 ? 'border-l-success text-success'
                 : 'border-l-muted-foreground text-muted-foreground';
-              const isSel = selected === it.symbol;
-              const desc = classifyInstrument(it.symbol).description;
+              const isSel = selected === it._root;
+              const desc = it._desc;
               return (
-                <li key={`${it.symbol}::${it.broker}`}>
+                <li key={`${it._root}::${it.broker}`}>
                   <button
                     type="button"
-                    onClick={() => onSelect(it.symbol)}
+                    onClick={() => onSelect(it._root)}
                     className={`w-full text-left px-3 py-2 border-l-2 ${tierCls} hover:bg-accent/40 transition-colors flex items-center justify-between gap-2 ${isSel ? 'bg-primary/10' : ''}`}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs">{it.symbol}</span>
+                        <span className="font-mono font-bold text-xs">{it._root}</span>
                         {it.direction ? (
                           <span className={`text-[10px] font-bold ${
                             (it.direction ?? '').toLowerCase() === 'alcista' || (it.direction ?? '').toLowerCase() === 'buy'
