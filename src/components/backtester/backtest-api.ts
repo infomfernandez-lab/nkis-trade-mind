@@ -29,6 +29,7 @@ export interface BacktestParamsUsados {
   nivel?: number;
   adx?: number | string;
   breakeven?: boolean | string;
+  modo_salida?: string;
 }
 
 export interface BacktestResult {
