@@ -58,14 +58,38 @@ const tooltipProps = {
 
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
-type ModoSalida = 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4';
+type ModoSalida =
+  | 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4'
+  | 'DONCHIAN8' | 'DONCHIAN10' | 'DONCHIAN15';
 
-const MODOS_SALIDA: { value: ModoSalida; label: string; help: string }[] = [
-  { value: 'STOCH50', label: 'Cruce del 50', help: 'Sale al cruzar de vuelta el nivel 50 (sistema actual)' },
-  { value: 'VELAS2', label: '2 velas en contra', help: 'Sale tras 2 velas consecutivas en contra' },
-  { value: 'VELAS3', label: '3 velas en contra', help: 'Sale tras 3 velas consecutivas en contra' },
-  { value: 'VELAS4', label: '4 velas en contra', help: 'Sale tras 4 velas consecutivas en contra' },
+const HELP_STOCH = 'Sale al cruzar de vuelta el nivel 50.';
+const HELP_VELAS = 'Sale tras N velas consecutivas cerrando en contra.';
+const HELP_DONCHIAN = 'Sale cuando el precio cierra por debajo del mínimo de las últimas N velas (o por encima del máximo, en ventas).';
+
+const MODOS_SALIDA_GRUPOS: { group: string; items: { value: ModoSalida; label: string; help: string }[] }[] = [
+  {
+    group: 'Oscilador',
+    items: [{ value: 'STOCH50', label: 'Cruce del 50 (actual)', help: HELP_STOCH }],
+  },
+  {
+    group: 'Velas en contra',
+    items: [
+      { value: 'VELAS2', label: '2 velas en contra', help: HELP_VELAS },
+      { value: 'VELAS3', label: '3 velas en contra', help: HELP_VELAS },
+      { value: 'VELAS4', label: '4 velas en contra', help: HELP_VELAS },
+    ],
+  },
+  {
+    group: 'Canal de Donchian',
+    items: [
+      { value: 'DONCHIAN8', label: 'Donchian 8 velas', help: HELP_DONCHIAN },
+      { value: 'DONCHIAN10', label: 'Donchian 10 velas', help: HELP_DONCHIAN },
+      { value: 'DONCHIAN15', label: 'Donchian 15 velas', help: HELP_DONCHIAN },
+    ],
+  },
 ];
+
+const MODOS_SALIDA = MODOS_SALIDA_GRUPOS.flatMap(g => g.items);
 
 interface BacktestParams {
   symbol: string;
