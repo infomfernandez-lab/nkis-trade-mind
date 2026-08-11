@@ -58,6 +58,14 @@ const tooltipProps = {
 
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
+type ModoSalida = 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4';
+
+const MODOS_SALIDA: { value: ModoSalida; label: string; help: string }[] = [
+  { value: 'STOCH50', label: 'Cruce del 50', help: 'Sale al cruzar de vuelta el nivel 50 (sistema actual)' },
+  { value: 'VELAS2', label: '2 velas en contra', help: 'Sale tras 2 velas consecutivas en contra' },
+  { value: 'VELAS3', label: '3 velas en contra', help: 'Sale tras 3 velas consecutivas en contra' },
+  { value: 'VELAS4', label: '4 velas en contra', help: 'Sale tras 4 velas consecutivas en contra' },
+];
 
 interface BacktestParams {
   symbol: string;
@@ -69,6 +77,7 @@ interface BacktestParams {
   tp_mult: number;
   stoch_buy: number;
   stoch_sell: number;
+  modo_salida_v11: ModoSalida;
   breakeven_enabled: boolean;
   breakeven_mult: number;
   trailing_enabled: boolean;
