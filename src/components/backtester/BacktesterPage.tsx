@@ -900,13 +900,17 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }
 
   // Distribución salidas
-  const reasonCount: Record<string, number> = { STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
+  const reasonCount: Record<string, number> = {
+    STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0,
+    DONCHIAN8: 0, DONCHIAN10: 0, DONCHIAN15: 0,
+    SL: 0, BE: 0, TRAIL: 0, TP: 0,
+  };
   for (const t of trades) {
     const r = normalizeReason(t.reason);
     reasonCount[r] = (reasonCount[r] ?? 0) + 1;
   }
   const exitDist = Object.entries(reasonCount)
-    .filter(([reason, count]) => count > 0 || !reason.startsWith('VELAS'))
+    .filter(([reason, count]) => count > 0 || !(reason.startsWith('VELAS') || reason.startsWith('DONCHIAN')))
     .map(([reason, count]) => ({ reason: reason === 'STOCH' ? 'STOCH50' : reason, count }));
   const exitPct = {
     STOCH: n ? reasonCount.STOCH / n : 0,
