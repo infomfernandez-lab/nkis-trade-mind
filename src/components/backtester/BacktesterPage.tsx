@@ -850,7 +850,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 function exitColor(reason: string) {
   const r = reason.toUpperCase();
-  if (r.includes('DONCHIAN')) return COLORS.cyan ?? COLORS.blue;
+  if (r.includes('DONCHIAN')) return COLORS.blue;
   if (r.includes('VELAS')) return COLORS.purple;
   if (r.includes('STOCH')) return COLORS.green;
   if (r.includes('SL')) return COLORS.red;
