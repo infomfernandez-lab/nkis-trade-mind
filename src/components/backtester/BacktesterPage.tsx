@@ -481,23 +481,19 @@ export default function BacktesterPage() {
             />
             <div>
               <Label className="mb-1.5 block text-xs">Modo de salida</Label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {MODOS_SALIDA.map(m => (
-                  <button
-                    key={m.value}
-                    type="button"
-                    onClick={() => setModoSalida(m.value)}
-                    title={m.help}
-                    className={`px-2 py-1.5 rounded text-xs border transition-colors ${
-                      modoSalida === m.value
-                        ? 'bg-primary/15 border-primary text-primary font-semibold'
-                        : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+              <Select value={modoSalida} onValueChange={v => setModoSalida(v as ModoSalida)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MODOS_SALIDA_GRUPOS.map(g => (
+                    <SelectGroup key={g.group}>
+                      <SelectLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{g.group}</SelectLabel>
+                      {g.items.map(m => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
                 {MODOS_SALIDA.find(m => m.value === modoSalida)?.help}
               </p>
