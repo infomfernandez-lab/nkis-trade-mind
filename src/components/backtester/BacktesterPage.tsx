@@ -850,6 +850,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 function exitColor(reason: string) {
   const r = reason.toUpperCase();
+  if (r.includes('DONCHIAN')) return COLORS.cyan ?? COLORS.blue;
   if (r.includes('VELAS')) return COLORS.purple;
   if (r.includes('STOCH')) return COLORS.green;
   if (r.includes('SL')) return COLORS.red;
@@ -861,6 +862,12 @@ function exitColor(reason: string) {
 
 function normalizeReason(raw: string | undefined): string {
   const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('DONCHIAN')) {
+    if (r.includes('15')) return 'DONCHIAN15';
+    if (r.includes('10')) return 'DONCHIAN10';
+    if (r.includes('8')) return 'DONCHIAN8';
+    return 'DONCHIAN';
+  }
   if (r.includes('VELAS4') || r.includes('VELAS_4')) return 'VELAS4';
   if (r.includes('VELAS3') || r.includes('VELAS_3')) return 'VELAS3';
   if (r.includes('VELAS2') || r.includes('VELAS_2')) return 'VELAS2';
