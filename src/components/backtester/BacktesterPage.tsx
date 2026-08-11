@@ -1027,7 +1027,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 const pnlColor = win ? 'text-success' : 'text-destructive';
                 const reason = (t.reason ?? '—').toUpperCase();
                 const reasonBg = reason.includes('DONCHIAN')
-                  ? 'bg-info/30 text-info'
+                  ? 'bg-accent/40 text-accent-foreground'
                   : reason.includes('VELAS')
                   ? 'bg-primary/30 text-primary'
                   : reason.includes('STOCH')
