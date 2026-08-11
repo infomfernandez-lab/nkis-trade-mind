@@ -110,7 +110,7 @@ export default function BacktesterPage() {
   type BrokerState = {
     symbol: string; symbolQuery: string; direction: Direction;
     dateFrom: string; dateTo: string;
-    adxMin: number; atrSl: number; tpMult: number; nivel: number;
+    adxMin: number; atrSl: number; tpMult: number; nivel: number; modoSalida: ModoSalida;
     beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
     filtEnabled: boolean; filtAdxMin: number; filtMaSep: number; filtConsist: number;
     result: BacktestResult | null;
@@ -118,7 +118,7 @@ export default function BacktesterPage() {
   const defaultBrokerState = (): BrokerState => ({
     symbol: '', symbolQuery: '', direction: 'BUY',
     dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, tpMult: 0, nivel: 50,
+    adxMin: 23, atrSl: 1.5, tpMult: 0, nivel: 50, modoSalida: 'STOCH50',
     beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 1.5,
     filtEnabled: false, filtAdxMin: 20, filtMaSep: 1.0, filtConsist: 65,
     result: null,
@@ -138,6 +138,7 @@ export default function BacktesterPage() {
   const [atrSl, setAtrSl] = useState(1.5);
   const [tpMult, setTpMult] = useState(0);
   const [nivel, setNivel] = useState(50);
+  const [modoSalida, setModoSalida] = useState<ModoSalida>('STOCH50');
   const [beEnabled, setBeEnabled] = useState(false);
   const [beMult, setBeMult] = useState(1.0);
   const [trEnabled, setTrEnabled] = useState(false);
@@ -159,7 +160,7 @@ export default function BacktesterPage() {
     // save current
     brokerStatesRef.current[broker] = {
       symbol, symbolQuery, direction, dateFrom, dateTo,
-      adxMin, atrSl, tpMult, nivel,
+      adxMin, atrSl, tpMult, nivel, modoSalida,
       beEnabled, beMult, trEnabled, trMult,
       filtEnabled, filtAdxMin, filtMaSep, filtConsist,
       result,
@@ -168,12 +169,12 @@ export default function BacktesterPage() {
     const s = brokerStatesRef.current[next];
     setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
     setDateFrom(s.dateFrom); setDateTo(s.dateTo);
-    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setNivel(s.nivel);
+    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setNivel(s.nivel); setModoSalida(s.modoSalida);
     setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
     setFiltEnabled(s.filtEnabled); setFiltAdxMin(s.filtAdxMin); setFiltMaSep(s.filtMaSep); setFiltConsist(s.filtConsist);
     setResult(s.result); setError(null);
     setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, nivel, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
+  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, nivel, modoSalida, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
 
   const setDatePreset = useCallback((years: number | 'all') => {
     if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
@@ -252,6 +253,7 @@ export default function BacktesterPage() {
       tp_mult: tpMult,
       stoch_buy: nivel,
       stoch_sell: nivel,
+      modo_salida_v11: modoSalida,
       breakeven_enabled: beEnabled,
       breakeven_mult: beMult,
       trailing_enabled: trEnabled,
@@ -272,6 +274,7 @@ export default function BacktesterPage() {
       tp_mult: Number(tpMult),
       stoch_buy: Number(nivel),
       stoch_sell: Number(nivel),
+      modo_salida_v11: modoSalida,
       use_be: Boolean(beEnabled),
       be_mult: Number(beMult),
       use_trail: Boolean(trEnabled),
@@ -452,6 +455,32 @@ export default function BacktesterPage() {
               label="Nivel de cruce" value={nivel} min={20} max={80} step={1} onChange={setNivel}
               help="Entrada al cruzar este nivel; salida al cruzarlo de vuelta"
             />
+            <div>
+              <Label className="mb-1.5 block text-xs">Modo de salida</Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {MODOS_SALIDA.map(m => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setModoSalida(m.value)}
+                    title={m.help}
+                    className={`px-2 py-1.5 rounded text-xs border transition-colors ${
+                      modoSalida === m.value
+                        ? 'bg-primary/15 border-primary text-primary font-semibold'
+                        : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
+                {MODOS_SALIDA.find(m => m.value === modoSalida)?.help}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground/70 leading-relaxed">
+                El stop por ATR sigue activo en todos los modos.
+              </p>
+            </div>
           </div>
 
           {/* Filtro por tendencia confirmada (aprox. escáner) */}
@@ -775,6 +804,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
                   {' · '}ATR×SL <span className="font-mono">{String(result.params_usados.atr_mult_sl ?? '—')}</span>
                   {' · '}TP <span className="font-mono">{String(result.params_usados.tp_mult ?? '—')}</span>
                   {' · '}Nivel <span className="font-mono">{String(result.params_usados.nivel ?? '—')}</span>
+                  {' · '}Salida <span className="font-mono">{String((result.params_usados as any).modo_salida ?? '—')}</span>
                   {' · '}ADX <span className="font-mono">{String(result.params_usados.adx ?? '—')}</span>
                   {' · '}Breakeven <span className="font-mono">{String(result.params_usados.breakeven ?? '—')}</span>
                 </>
@@ -800,6 +830,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 function exitColor(reason: string) {
   const r = reason.toUpperCase();
+  if (r.includes('VELAS')) return COLORS.purple;
   if (r.includes('STOCH')) return COLORS.green;
   if (r.includes('SL')) return COLORS.red;
   if (r.includes('BE')) return COLORS.yellow;
@@ -810,6 +841,9 @@ function exitColor(reason: string) {
 
 function normalizeReason(raw: string | undefined): string {
   const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('VELAS4') || r.includes('VELAS_4')) return 'VELAS4';
+  if (r.includes('VELAS3') || r.includes('VELAS_3')) return 'VELAS3';
+  if (r.includes('VELAS2') || r.includes('VELAS_2')) return 'VELAS2';
   if (r.includes('TP') || r.includes('TAKE') || r.includes('TARGET')) return 'TP';
   if (r.includes('STOCH') || r.includes('SIGNAL') || r.includes('CROSS') || r.includes('EXIT')) return 'STOCH';
   if (r.includes('BREAKEVEN') || r === 'BE' || r.includes('_BE') || r.includes('BE_')) return 'BE';
@@ -839,12 +873,14 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }
 
   // Distribución salidas
-  const reasonCount: Record<string, number> = { STOCH: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
+  const reasonCount: Record<string, number> = { STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
   for (const t of trades) {
     const r = normalizeReason(t.reason);
     reasonCount[r] = (reasonCount[r] ?? 0) + 1;
   }
-  const exitDist = Object.entries(reasonCount).map(([reason, count]) => ({ reason, count }));
+  const exitDist = Object.entries(reasonCount)
+    .filter(([reason, count]) => count > 0 || !reason.startsWith('VELAS'))
+    .map(([reason, count]) => ({ reason: reason === 'STOCH' ? 'STOCH50' : reason, count }));
   const exitPct = {
     STOCH: n ? reasonCount.STOCH / n : 0,
     SL: n ? reasonCount.SL / n : 0,
@@ -959,7 +995,9 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
                 const pnlColor = win ? 'text-success' : 'text-destructive';
                 const reason = (t.reason ?? '—').toUpperCase();
-                const reasonBg = reason.includes('STOCH')
+                const reasonBg = reason.includes('VELAS')
+                  ? 'bg-primary/30 text-primary'
+                  : reason.includes('STOCH')
                   ? 'bg-success/30 text-success'
                   : reason.includes('SL') || reason.includes('STOP')
                   ? 'bg-destructive/30 text-destructive'
