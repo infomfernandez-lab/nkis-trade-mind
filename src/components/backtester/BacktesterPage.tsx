@@ -804,7 +804,7 @@ function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMet
                   {' · '}ATR×SL <span className="font-mono">{String(result.params_usados.atr_mult_sl ?? '—')}</span>
                   {' · '}TP <span className="font-mono">{String(result.params_usados.tp_mult ?? '—')}</span>
                   {' · '}Nivel <span className="font-mono">{String(result.params_usados.nivel ?? '—')}</span>
-                  {' · '}Salida <span className="font-mono">{String((result.params_usados as any).modo_salida ?? '—')}</span>
+                  {' · '}Salida <span className="font-mono">{String(result.params_usados.modo_salida ?? '—')}</span>
                   {' · '}ADX <span className="font-mono">{String(result.params_usados.adx ?? '—')}</span>
                   {' · '}Breakeven <span className="font-mono">{String(result.params_usados.breakeven ?? '—')}</span>
                 </>
