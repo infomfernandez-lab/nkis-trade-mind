@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { useUnifiedInstruments } from '@/components/radar/EnTendenciaBlock';
 import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from '@/components/radar/RadarFiltersBar';
 import { classifyFamily, type Family } from '@/lib/instrument-family';
@@ -58,14 +58,38 @@ const tooltipProps = {
 
 type BrokerKey = 'nkis' | 'octx';
 type Direction = 'BUY' | 'SELL';
-type ModoSalida = 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4';
+type ModoSalida =
+  | 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4'
+  | 'DONCHIAN8' | 'DONCHIAN10' | 'DONCHIAN15';
 
-const MODOS_SALIDA: { value: ModoSalida; label: string; help: string }[] = [
-  { value: 'STOCH50', label: 'Cruce del 50', help: 'Sale al cruzar de vuelta el nivel 50 (sistema actual)' },
-  { value: 'VELAS2', label: '2 velas en contra', help: 'Sale tras 2 velas consecutivas en contra' },
-  { value: 'VELAS3', label: '3 velas en contra', help: 'Sale tras 3 velas consecutivas en contra' },
-  { value: 'VELAS4', label: '4 velas en contra', help: 'Sale tras 4 velas consecutivas en contra' },
+const HELP_STOCH = 'Sale al cruzar de vuelta el nivel 50.';
+const HELP_VELAS = 'Sale tras N velas consecutivas cerrando en contra.';
+const HELP_DONCHIAN = 'Sale cuando el precio cierra por debajo del mínimo de las últimas N velas (o por encima del máximo, en ventas).';
+
+const MODOS_SALIDA_GRUPOS: { group: string; items: { value: ModoSalida; label: string; help: string }[] }[] = [
+  {
+    group: 'Oscilador',
+    items: [{ value: 'STOCH50', label: 'Cruce del 50 (actual)', help: HELP_STOCH }],
+  },
+  {
+    group: 'Velas en contra',
+    items: [
+      { value: 'VELAS2', label: '2 velas en contra', help: HELP_VELAS },
+      { value: 'VELAS3', label: '3 velas en contra', help: HELP_VELAS },
+      { value: 'VELAS4', label: '4 velas en contra', help: HELP_VELAS },
+    ],
+  },
+  {
+    group: 'Canal de Donchian',
+    items: [
+      { value: 'DONCHIAN8', label: 'Donchian 8 velas', help: HELP_DONCHIAN },
+      { value: 'DONCHIAN10', label: 'Donchian 10 velas', help: HELP_DONCHIAN },
+      { value: 'DONCHIAN15', label: 'Donchian 15 velas', help: HELP_DONCHIAN },
+    ],
+  },
 ];
+
+const MODOS_SALIDA = MODOS_SALIDA_GRUPOS.flatMap(g => g.items);
 
 interface BacktestParams {
   symbol: string;
@@ -457,23 +481,19 @@ export default function BacktesterPage() {
             />
             <div>
               <Label className="mb-1.5 block text-xs">Modo de salida</Label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {MODOS_SALIDA.map(m => (
-                  <button
-                    key={m.value}
-                    type="button"
-                    onClick={() => setModoSalida(m.value)}
-                    title={m.help}
-                    className={`px-2 py-1.5 rounded text-xs border transition-colors ${
-                      modoSalida === m.value
-                        ? 'bg-primary/15 border-primary text-primary font-semibold'
-                        : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+              <Select value={modoSalida} onValueChange={v => setModoSalida(v as ModoSalida)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MODOS_SALIDA_GRUPOS.map(g => (
+                    <SelectGroup key={g.group}>
+                      <SelectLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{g.group}</SelectLabel>
+                      {g.items.map(m => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
                 {MODOS_SALIDA.find(m => m.value === modoSalida)?.help}
               </p>
@@ -830,6 +850,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactEl
 
 function exitColor(reason: string) {
   const r = reason.toUpperCase();
+  if (r.includes('DONCHIAN')) return COLORS.blue;
   if (r.includes('VELAS')) return COLORS.purple;
   if (r.includes('STOCH')) return COLORS.green;
   if (r.includes('SL')) return COLORS.red;
@@ -841,6 +862,12 @@ function exitColor(reason: string) {
 
 function normalizeReason(raw: string | undefined): string {
   const r = (raw ?? '').toUpperCase().trim();
+  if (r.includes('DONCHIAN')) {
+    if (r.includes('15')) return 'DONCHIAN15';
+    if (r.includes('10')) return 'DONCHIAN10';
+    if (r.includes('8')) return 'DONCHIAN8';
+    return 'DONCHIAN';
+  }
   if (r.includes('VELAS4') || r.includes('VELAS_4')) return 'VELAS4';
   if (r.includes('VELAS3') || r.includes('VELAS_3')) return 'VELAS3';
   if (r.includes('VELAS2') || r.includes('VELAS_2')) return 'VELAS2';
@@ -873,13 +900,17 @@ function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity
   }
 
   // Distribución salidas
-  const reasonCount: Record<string, number> = { STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0, SL: 0, BE: 0, TRAIL: 0, TP: 0 };
+  const reasonCount: Record<string, number> = {
+    STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0,
+    DONCHIAN8: 0, DONCHIAN10: 0, DONCHIAN15: 0,
+    SL: 0, BE: 0, TRAIL: 0, TP: 0,
+  };
   for (const t of trades) {
     const r = normalizeReason(t.reason);
     reasonCount[r] = (reasonCount[r] ?? 0) + 1;
   }
   const exitDist = Object.entries(reasonCount)
-    .filter(([reason, count]) => count > 0 || !reason.startsWith('VELAS'))
+    .filter(([reason, count]) => count > 0 || !(reason.startsWith('VELAS') || reason.startsWith('DONCHIAN')))
     .map(([reason, count]) => ({ reason: reason === 'STOCH' ? 'STOCH50' : reason, count }));
   const exitPct = {
     STOCH: n ? reasonCount.STOCH / n : 0,
@@ -995,7 +1026,9 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
                 const pnlColor = win ? 'text-success' : 'text-destructive';
                 const reason = (t.reason ?? '—').toUpperCase();
-                const reasonBg = reason.includes('VELAS')
+                const reasonBg = reason.includes('DONCHIAN')
+                  ? 'bg-accent/40 text-accent-foreground'
+                  : reason.includes('VELAS')
                   ? 'bg-primary/30 text-primary'
                   : reason.includes('STOCH')
                   ? 'bg-success/30 text-success'
