@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowUp, ArrowDown, Loader2, TrendingUp, TrendingDown, Activity, ListChecks, BarChart3, Info } from 'lucide-react';
 import { assetsSupabase } from '@/components/activos/assets-supabase-client';
 import { supabase } from '@/integrations/supabase/client';
-import { getContractSpec } from '@/lib/contract-specs';
+import { getSpecByRoot } from '@/lib/contract-specs';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { rowToTrade, formatCurrency, type Trade } from '@/lib/trade-utils';
@@ -96,7 +96,7 @@ function AssetDetailPage() {
     },
   });
 
-  const spec = getContractSpec(symbol);
+  const spec = getSpecByRoot(symbol);
   const stats = useMemo(() => computeStats(trades), [trades]);
   const openTrade = useMemo(() => trades.find(t => t.status === 'open') ?? null, [trades]);
   const lastClosed = useMemo(() => trades.find(t => t.status === 'closed') ?? null, [trades]);
