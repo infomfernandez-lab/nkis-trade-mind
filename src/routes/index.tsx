@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useAllTrades } from '@/hooks/use-trades';
 import { useSettings } from '@/hooks/use-settings';
 import { filterByBroker } from '@/lib/trade-utils';
+import { accountFromSettings } from '@/lib/account';
 import { useBrokerFilter } from '@/components/layout/AppLayout';
 import { StatusBar } from '@/components/radar/StatusBar';
 import { OpenPositionsTable } from '@/components/radar/OpenPositionsTable';
@@ -21,7 +22,11 @@ export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
       { title: 'Panel — CAP Trading' },
-      { name: 'description', content: 'Cockpit diario: resumen del día, briefing, escáner, posiciones, calendario económico y backtests.' },
+      { name: 'description', content: 'Cockpit diario de la cuenta CWND: resumen del día, briefing, escáner, posiciones y backtests.' },
+      { property: 'og:title', content: 'Panel — CAP Trading' },
+      { property: 'og:description', content: 'Cockpit diario de la cuenta CWND.' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary' },
     ],
   }),
 });
@@ -50,21 +55,15 @@ function Dashboard() {
 
   const closedTrades = filterByBroker(allClosed, broker);
   const openTrades = filterByBroker(allOpen, broker);
-  const startingBalance = Number(settings?.balance ?? 10000);
+  const startingBalance = accountFromSettings(settings).saldoInicial;
 
-  const INITIAL_NKIS = 953000;
-  const INITIAL_OCTX = 100000;
-  const balanceNkis = Number((settings as any)?.balance_nkis ?? 0);
-  const balanceOctx = Number((settings as any)?.balance_octx ?? 0);
-  const initialBalance =
-    broker === 'darwinex' ? INITIAL_NKIS :
-    broker === 'octx' ? INITIAL_OCTX :
-    INITIAL_NKIS + INITIAL_OCTX;
-  const currentBalance =
-    broker === 'darwinex' ? balanceNkis :
-    broker === 'octx' ? balanceOctx :
-    balanceNkis + balanceOctx;
-  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
+  const account = accountFromSettings(settings);
+  const initialBalance = account.saldoInicial;
+  // El balance que llega del script de sincronización (balance_nkis) es el de CWND.
+  const syncedBalance = Number((settings as any)?.balance_nkis ?? 0);
+  const realized = closedTrades.reduce((s, t) => s + t.netPnl, 0);
+  const currentBalance = syncedBalance > 0 ? syncedBalance : initialBalance + realized;
+  const brokerLabel = ' — CWND';
 
   return (
     <div className="space-y-4 max-w-[1800px] mx-auto">

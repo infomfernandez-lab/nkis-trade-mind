@@ -13,10 +13,8 @@ export const Route = createFileRoute('/api/assets-proxy')({
           const incoming = new URL(request.url);
           const params = new URLSearchParams(incoming.search);
           // Transformar broker=nkis → broker=eq.nkis (PostgREST)
-          const broker = params.get('broker');
-          if (broker && !broker.includes('.')) {
-            params.set('broker', `eq.${broker}`);
-          }
+          // Cuenta única CWND: solo futuros (broker = 'nkis'). Lo de 'octx' se oculta siempre.
+          params.set('broker', 'eq.nkis');
           if (!params.has('select')) params.set('select', '*');
           const target = `${EXTERNAL_URL}/rest/v1/assets?${params.toString()}`;
 
@@ -34,7 +32,22 @@ export const Route = createFileRoute('/api/assets-proxy')({
           });
 
 
-          const body = await res.text();
+          let body = await res.text();
+          // Una fila por mercado (raíz), quedándonos con el contrato visto más recientemente.
+          try {
+            const rows = JSON.parse(body);
+            if (Array.isArray(rows)) {
+              const best = new Map<string, any>();
+              for (const r of rows) {
+                const sym = String(r?.symbol ?? '').toUpperCase();
+                const root = sym.includes('_') ? sym.split('_')[0] : sym;
+                const cur = best.get(root);
+                const ts = (x: any) => new Date(x?.last_seen_scanner ?? x?.first_seen ?? 0).getTime() || 0;
+                if (!cur || ts(r) > ts(cur)) best.set(root, { ...r, raiz: root, contrato: sym });
+              }
+              body = JSON.stringify([...best.values()]);
+            }
+          } catch { /* no JSON: devolver tal cual */ }
           const headers = new Headers({
             'Content-Type': res.headers.get('content-type') ?? 'application/json',
           });
