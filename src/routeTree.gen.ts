@@ -28,6 +28,7 @@ import { Route as ActivosIndexRouteImport } from './routes/activos.index'
 import { Route as TradeTradeIdRouteImport } from './routes/trade.$tradeId'
 import { Route as ApiSyncTradesRouteImport } from './routes/api/sync-trades'
 import { Route as ApiSyncScannerRouteImport } from './routes/api/sync-scanner'
+import { Route as ApiSyncEscanerRouteImport } from './routes/api/sync-escaner'
 import { Route as ApiSyncEaWatchlistRouteImport } from './routes/api/sync-ea-watchlist'
 import { Route as ApiSyncBalanceRouteImport } from './routes/api/sync-balance'
 import { Route as ApiFfCalendarRouteImport } from './routes/api/ff-calendar'
@@ -129,6 +130,11 @@ const ApiSyncScannerRoute = ApiSyncScannerRouteImport.update({
   path: '/api/sync-scanner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSyncEscanerRoute = ApiSyncEscanerRouteImport.update({
+  id: '/api/sync-escaner',
+  path: '/api/sync-escaner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSyncEaWatchlistRoute = ApiSyncEaWatchlistRouteImport.update({
   id: '/api/sync-ea-watchlist',
   path: '/api/sync-ea-watchlist',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
+  '/api/sync-escaner': typeof ApiSyncEscanerRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
+  '/api/sync-escaner': typeof ApiSyncEscanerRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/api/ff-calendar': typeof ApiFfCalendarRoute
   '/api/sync-balance': typeof ApiSyncBalanceRoute
   '/api/sync-ea-watchlist': typeof ApiSyncEaWatchlistRoute
+  '/api/sync-escaner': typeof ApiSyncEscanerRoute
   '/api/sync-scanner': typeof ApiSyncScannerRoute
   '/api/sync-trades': typeof ApiSyncTradesRoute
   '/trade/$tradeId': typeof TradeTradeIdRoute
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
+    | '/api/sync-escaner'
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
+    | '/api/sync-escaner'
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/api/ff-calendar'
     | '/api/sync-balance'
     | '/api/sync-ea-watchlist'
+    | '/api/sync-escaner'
     | '/api/sync-scanner'
     | '/api/sync-trades'
     | '/trade/$tradeId'
@@ -333,6 +345,7 @@ export interface RootRouteChildren {
   ApiFfCalendarRoute: typeof ApiFfCalendarRoute
   ApiSyncBalanceRoute: typeof ApiSyncBalanceRoute
   ApiSyncEaWatchlistRoute: typeof ApiSyncEaWatchlistRoute
+  ApiSyncEscanerRoute: typeof ApiSyncEscanerRoute
   ApiSyncScannerRoute: typeof ApiSyncScannerRoute
   ApiSyncTradesRoute: typeof ApiSyncTradesRoute
   TradeTradeIdRoute: typeof TradeTradeIdRoute
@@ -473,6 +486,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSyncScannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sync-escaner': {
+      id: '/api/sync-escaner'
+      path: '/api/sync-escaner'
+      fullPath: '/api/sync-escaner'
+      preLoaderRoute: typeof ApiSyncEscanerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sync-ea-watchlist': {
       id: '/api/sync-ea-watchlist'
       path: '/api/sync-ea-watchlist'
@@ -544,6 +564,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFfCalendarRoute: ApiFfCalendarRoute,
   ApiSyncBalanceRoute: ApiSyncBalanceRoute,
   ApiSyncEaWatchlistRoute: ApiSyncEaWatchlistRoute,
+  ApiSyncEscanerRoute: ApiSyncEscanerRoute,
   ApiSyncScannerRoute: ApiSyncScannerRoute,
   ApiSyncTradesRoute: ApiSyncTradesRoute,
   TradeTradeIdRoute: TradeTradeIdRoute,
