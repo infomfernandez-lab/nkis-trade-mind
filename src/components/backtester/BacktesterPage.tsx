@@ -1,1347 +1,481 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  ReferenceLine, BarChart, Bar, ScatterChart, Scatter, ZAxis, Cell,
-  ComposedChart, Area,
-} from 'recharts';
-import { FlaskConical, Play, AlertTriangle, FileSpreadsheet, FileText, Trash2, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { Upload, Play, Trash2, AlertTriangle, Loader2, FileText, Columns2 } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-
-import html2canvas from 'html2canvas-pro';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/use-auth';
-import { CONTRACT_SPECS } from '@/lib/contract-specs';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { useUnifiedInstruments } from '@/components/radar/EnTendenciaBlock';
-import { RadarFiltersBar, EMPTY_FILTERS, tierOfScore, matchSearch, buildSubsList, type RadarFilterState, type Tier, type Suggestion } from '@/components/radar/RadarFiltersBar';
-import { classifyFamily, type Family } from '@/lib/instrument-family';
-import { classifyInstrument } from '@/lib/instrument-classify';
-
-import { RadarSymbolPicker } from './RadarSymbolPicker';
-import { SliderRow, ToggleSliderRow } from './controls';
 import {
-  SERVER_URL,
-  normalizeBacktestResult,
-  type BacktestTrade,
-  type BacktestMetrics,
-  type BacktestResult,
-} from './backtest-api';
-import { InfoTip } from '@/components/statistics/InfoTip';
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, AreaChart, Area, Cell,
+} from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
+import { useSettings } from '@/hooks/use-settings';
+import { backtestServerHeaders } from '@/lib/account';
+import {
+  parseOperacionesCsv, variantStats, equity, groupR, isoDate, fmtPf, type CsvTrade, type VariantStats,
+} from './csv-backtest';
 
-
-const COLORS = {
-  green: '#10b981',
-  red: '#ef4444',
-  yellow: '#f59e0b',
-  purple: '#6366f1',
-  blue: '#3b82f6',
-  gray: '#64748b',
-  grid: '#1e2d45',
-  axis: '#64748b',
-} as const;
-const CHART_BG = '#0a0e1a';
-const tooltipProps = {
-  contentStyle: { background: '#111827', border: '1px solid #1e2d45', fontSize: 12, color: '#e5e7eb' },
-  labelStyle: { color: '#e5e7eb' },
-  itemStyle: { color: '#e5e7eb' },
-} as const;
-
-type BrokerKey = 'nkis' | 'octx';
-type Direction = 'BUY' | 'SELL';
-type ModoSalida =
-  | 'STOCH50' | 'VELAS2' | 'VELAS3' | 'VELAS4'
-  | 'DONCHIAN8' | 'DONCHIAN10' | 'DONCHIAN15';
-
-const HELP_STOCH = 'Sale al cruzar de vuelta el nivel 50.';
-const HELP_VELAS = 'Sale tras N velas consecutivas cerrando en contra.';
-const HELP_DONCHIAN = 'Sale cuando el precio cierra por debajo del mínimo de las últimas N velas (o por encima del máximo, en ventas).';
-
-const MODOS_SALIDA_GRUPOS: { group: string; items: { value: ModoSalida; label: string; help: string }[] }[] = [
-  {
-    group: 'Oscilador',
-    items: [{ value: 'STOCH50', label: 'Cruce del 50 (actual)', help: HELP_STOCH }],
-  },
-  {
-    group: 'Velas en contra',
-    items: [
-      { value: 'VELAS2', label: '2 velas en contra', help: HELP_VELAS },
-      { value: 'VELAS3', label: '3 velas en contra', help: HELP_VELAS },
-      { value: 'VELAS4', label: '4 velas en contra', help: HELP_VELAS },
-    ],
-  },
-  {
-    group: 'Canal de Donchian',
-    items: [
-      { value: 'DONCHIAN8', label: 'Donchian 8 velas', help: HELP_DONCHIAN },
-      { value: 'DONCHIAN10', label: 'Donchian 10 velas', help: HELP_DONCHIAN },
-      { value: 'DONCHIAN15', label: 'Donchian 15 velas', help: HELP_DONCHIAN },
-    ],
-  },
-];
-
-const MODOS_SALIDA = MODOS_SALIDA_GRUPOS.flatMap(g => g.items);
-
-interface BacktestParams {
-  symbol: string;
-  direction: Direction;
-  date_from?: string;
-  date_to?: string;
-  adx_min: number;
-  atr_sl: number;
-  tp_mult: number;
-  stoch_buy: number;
-  stoch_sell: number;
-  modo_salida_v11: ModoSalida;
-  breakeven_enabled: boolean;
-  breakeven_mult: number;
-  trailing_enabled: boolean;
-  trailing_mult: number;
-  use_filtro_escaner: boolean;
-  escaner_adx_min: number;
-  escaner_ma_sep_min: number;
-  escaner_consistencia_min: number;
-}
-
-
-interface SavedSession {
+type Session = {
   id: string;
-  symbol: string;
-  broker: string;
-  direction: string;
-  date_from: string | null;
-  date_to: string | null;
-  params: BacktestParams;
-  metrics: BacktestMetrics;
-  equity_curve: BacktestResult['equity_curve'];
-  trades: BacktestTrade[];
   created_at: string;
-}
+  params: { tipo?: string; nombre?: string; fuente?: string; nota?: string; paramCols?: string[] };
+  metrics: { variantes?: VariantStats[]; abiertas?: number; n?: number };
+  trades: CsvTrade[];
+  archivada?: boolean;
+};
 
-export default function BacktesterPage() {
-  const { user } = useAuth();
-  const qc = useQueryClient();
+const SERVER_OFF = 'Servidor apagado: abre 4_SERVIDOR_BACKTEST.bat y ngrok en tu PC, y comprueba la URL en Ajustes';
 
-  type BrokerState = {
-    symbol: string; symbolQuery: string; direction: Direction;
-    dateFrom: string; dateTo: string;
-    adxMin: number; atrSl: number; tpMult: number; nivel: number; modoSalida: ModoSalida;
-    beEnabled: boolean; beMult: number; trEnabled: boolean; trMult: number;
-    filtEnabled: boolean; filtAdxMin: number; filtMaSep: number; filtConsist: number;
-    result: BacktestResult | null;
-  };
-  const defaultBrokerState = (): BrokerState => ({
-    symbol: '', symbolQuery: '', direction: 'BUY',
-    dateFrom: '', dateTo: '',
-    adxMin: 23, atrSl: 1.5, tpMult: 0, nivel: 50, modoSalida: 'STOCH50',
-    beEnabled: false, beMult: 1.0, trEnabled: false, trMult: 1.5,
-    filtEnabled: false, filtAdxMin: 20, filtMaSep: 1.0, filtConsist: 65,
-    result: null,
-  });
-  const brokerStatesRef = useRef<Record<BrokerKey, BrokerState>>({
-    nkis: defaultBrokerState(),
-    octx: defaultBrokerState(),
-  });
-
-  const [broker, setBrokerState] = useState<BrokerKey>('nkis');
-  const [symbol, setSymbol] = useState('');
-  const [symbolQuery, setSymbolQuery] = useState('');
-  const [direction, setDirection] = useState<Direction>('BUY');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [adxMin, setAdxMin] = useState(23);
-  const [atrSl, setAtrSl] = useState(1.5);
-  const [tpMult, setTpMult] = useState(0);
-  const [nivel, setNivel] = useState(50);
-  const [modoSalida, setModoSalida] = useState<ModoSalida>('STOCH50');
-  const [beEnabled, setBeEnabled] = useState(false);
-  const [beMult, setBeMult] = useState(1.0);
-  const [trEnabled, setTrEnabled] = useState(false);
-  const [trMult, setTrMult] = useState(1.5);
-  const [filtEnabled, setFiltEnabled] = useState(false);
-  const [filtAdxMin, setFiltAdxMin] = useState(20);
-  const [filtMaSep, setFiltMaSep] = useState(1.0);
-  const [filtConsist, setFiltConsist] = useState(65);
-
-
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<BacktestResult | null>(null);
-  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
-
-
-  const switchBroker = useCallback((next: BrokerKey) => {
-    if (next === broker) return;
-    // save current
-    brokerStatesRef.current[broker] = {
-      symbol, symbolQuery, direction, dateFrom, dateTo,
-      adxMin, atrSl, tpMult, nivel, modoSalida,
-      beEnabled, beMult, trEnabled, trMult,
-      filtEnabled, filtAdxMin, filtMaSep, filtConsist,
-      result,
-    };
-    // restore next
-    const s = brokerStatesRef.current[next];
-    setSymbol(s.symbol); setSymbolQuery(s.symbolQuery); setDirection(s.direction);
-    setDateFrom(s.dateFrom); setDateTo(s.dateTo);
-    setAdxMin(s.adxMin); setAtrSl(s.atrSl); setTpMult(s.tpMult); setNivel(s.nivel); setModoSalida(s.modoSalida);
-    setBeEnabled(s.beEnabled); setBeMult(s.beMult); setTrEnabled(s.trEnabled); setTrMult(s.trMult);
-    setFiltEnabled(s.filtEnabled); setFiltAdxMin(s.filtAdxMin); setFiltMaSep(s.filtMaSep); setFiltConsist(s.filtConsist);
-    setResult(s.result); setError(null);
-    setBrokerState(next);
-  }, [broker, symbol, symbolQuery, direction, dateFrom, dateTo, adxMin, atrSl, tpMult, nivel, modoSalida, beEnabled, beMult, trEnabled, trMult, filtEnabled, filtAdxMin, filtMaSep, filtConsist, result]);
-
-  const setDatePreset = useCallback((years: number | 'all') => {
-    if (years === 'all') { setDateFrom(''); setDateTo(''); return; }
-    const to = new Date();
-    const from = new Date();
-    from.setFullYear(from.getFullYear() - years);
-    const iso = (d: Date) => d.toISOString().slice(0, 10);
-    setDateFrom(iso(from)); setDateTo(iso(to));
-  }, []);
-
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const r = await fetch('https://ointment-handcraft-payee.ngrok-free.dev/health', {
-          method: 'GET',
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-        });
-        setServerOnline(r.ok);
-      } catch {
-        setServerOnline(false);
-      }
-    };
-    checkServer();
-    const id = setInterval(checkServer, 30000);
-    return () => clearInterval(id);
-  }, []);
-
-  const [histSymbol, setHistSymbol] = useState('');
-  const [histBroker, setHistBroker] = useState<'all' | BrokerKey>('all');
-
-  const symbolsForBroker = useMemo(
-    () => CONTRACT_SPECS.filter(s => s.broker === broker).map(s => s.symbol),
-    [broker]
-  );
-  const symbolSuggestions = useMemo(() => {
-    if (!symbolQuery) return [];
-    const q = symbolQuery.toUpperCase();
-    return symbolsForBroker.filter(s => s.toUpperCase().includes(q)).slice(0, 8);
-  }, [symbolQuery, symbolsForBroker]);
-
-  const sessionsQuery = useQuery({
-    queryKey: ['backtest_sessions', user?.id],
-    enabled: !!user,
+function useSessions() {
+  return useQuery({
+    queryKey: ['backtest-imports'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('backtest_sessions')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
-      return (data ?? []) as SavedSession[];
+      return ((data ?? []) as Session[]).filter(s => s.params?.tipo === 'import' && s.archivada !== true);
     },
   });
+}
 
-  const filteredSessions = useMemo(() => {
-    const list = sessionsQuery.data ?? [];
-    return list.filter(s => {
-      if (histBroker !== 'all' && s.broker !== histBroker) return false;
-      if (histSymbol && !s.symbol.toUpperCase().includes(histSymbol.toUpperCase())) return false;
-      return true;
-    });
-  }, [sessionsQuery.data, histSymbol, histBroker]);
+async function saveSession(csvText: string, nombre: string, fuente: string, nota: string) {
+  const { trades, abiertas, paramCols } = parseOperacionesCsv(csvText);
+  const variantes = variantStats(trades);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Sin sesión');
+  const { error } = await (supabase as any).from('backtest_sessions').insert({
+    user_id: user.id,
+    symbol: 'MULTI',
+    broker: 'cwnd',
+    direction: 'AMBAS',
+    params: { tipo: 'import', nombre, fuente, nota, paramCols },
+    metrics: { variantes, abiertas: abiertas.length, n: trades.length },
+    trades,
+    equity_curve: [],
+  });
+  if (error) throw error;
+}
 
-  async function runBacktest() {
-    setError(null);
-    if (!symbol) { setError('Selecciona un símbolo'); return; }
-    if (!user) { setError('Sesión no iniciada'); return; }
+export default function BacktesterPage() {
+  const qc = useQueryClient();
+  const { data: sessions = [], isLoading } = useSessions();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [compare, setCompare] = useState<string[]>([]);
+  const refresh = () => qc.invalidateQueries({ queryKey: ['backtest-imports'] });
 
-    const params: BacktestParams = {
-      symbol,
-      direction,
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
-      adx_min: adxMin,
-      atr_sl: atrSl,
-      tp_mult: tpMult,
-      stoch_buy: nivel,
-      stoch_sell: nivel,
-      modo_salida_v11: modoSalida,
-      breakeven_enabled: beEnabled,
-      breakeven_mult: beMult,
-      trailing_enabled: trEnabled,
-      trailing_mult: trMult,
-      use_filtro_escaner: filtEnabled,
-      escaner_adx_min: filtAdxMin,
-      escaner_ma_sep_min: filtMaSep,
-      escaner_consistencia_min: filtConsist,
-    };
+  const current = sessions.find(s => s.id === selected) ?? sessions[0] ?? null;
 
-    const payload = {
-      symbol,
-      direction: direction === 'BUY' ? 1 : -1,
-      date_from: dateFrom ? dateFrom : null,
-      date_to: dateTo ? dateTo : null,
-      adx_min: Number(adxMin),
-      atr_mult: Number(atrSl),
-      tp_mult: Number(tpMult),
-      stoch_buy: Number(nivel),
-      stoch_sell: Number(nivel),
-      modo_salida_v11: modoSalida,
-      use_be: Boolean(beEnabled),
-      be_mult: Number(beMult),
-      use_trail: Boolean(trEnabled),
-      trail_mult: Number(trMult),
-      use_filtro_escaner: Boolean(filtEnabled),
-      escaner_adx_min: Number(filtAdxMin),
-      escaner_ma_sep_min: Number(filtMaSep),
-      escaner_consistencia_min: Number(filtConsist),
-    };
-
-    setRunning(true);
-    setResult(null);
-    try {
-      console.log('[backtest] POST payload:', JSON.stringify(payload, null, 2));
-      const res = await fetch(`${SERVER_URL}/backtest/${broker}`, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => '');
-        console.error('[backtest] Server error', res.status, errText);
-        throw new Error(`HTTP ${res.status} — ${errText || 'sin detalle'}`);
-      }
-      const raw = await res.json();
-      const data = normalizeBacktestResult(raw);
-      setResult(data);
-
-      const { error: insertErr } = await (supabase as any).from('backtest_sessions').insert({
-        user_id: user.id,
-        symbol,
-        broker,
-        direction,
-        date_from: dateFrom || null,
-        date_to: dateTo || null,
-        params,
-        metrics: data.metrics ?? {},
-        equity_curve: data.equity_curve ?? [],
-        trades: data.trades ?? [],
-      });
-      if (insertErr) {
-        toast.error(`Backtest OK pero no se guardó: ${insertErr.message}`);
-      } else {
-        toast.success(`Sesión guardada: ${symbol} (${(data.trades ?? []).length} trades)`);
-      }
-      qc.invalidateQueries({ queryKey: ['backtest_sessions'] });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Error del servidor: ${msg}`);
-      console.error('[backtest] Fetch failed:', e);
-    } finally {
-      setRunning(false);
-    }
-  }
-
-
-  async function deleteSession(id: string) {
+  const del = async (id: string) => {
     await (supabase as any).from('backtest_sessions').delete().eq('id', id);
-    qc.invalidateQueries({ queryKey: ['backtest_sessions'] });
-  }
+    refresh();
+  };
+
+  const compared = compare.map(id => sessions.find(s => s.id === id)).filter(Boolean) as Session[];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1600px]">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Backtester</h1>
-        <p className="text-base text-muted-foreground mt-1">Ejecuta y guarda backtests de tus sistemas de trading</p>
+        <p className="text-sm text-muted-foreground mt-1">Importa el operaciones.csv de cualquiera de tus scripts o ejecútalo en tu PC.</p>
       </div>
 
-      <div>
-        <div className="text-sm font-semibold text-foreground">CAP Trend Following v3.00 — Cruce del 50</div>
-        <div className="text-[11px] text-muted-foreground">
-          Entrada y salida al cruzar el nivel 50 · Stop por ATR · sin filtro ADX · NK / OX
+      <div className="grid lg:grid-cols-2 gap-4">
+        <ImportBlock onSaved={refresh} />
+        <RunOnPcBlock onSaved={refresh} />
+      </div>
+
+      {/* Historial */}
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="font-display font-bold text-sm">HISTORIAL DE SESIONES</h2>
+          {compare.length > 0 && <span className="text-xs text-muted-foreground">Comparando {compare.length}/2</span>}
         </div>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Configuración</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Instrumento</div>
-
-          {/* Cuenta */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-medium">Cuenta</span>
-            <div className="inline-flex rounded-md border border-border overflow-hidden">
-              {(['nkis', 'octx'] as BrokerKey[]).map(b => (
-                <button
-                  key={b}
-                  onClick={() => switchBroker(b)}
-                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                    broker === b
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  {b === 'nkis' ? 'NK' : 'OX'}
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : sessions.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic">Aún no hay sesiones importadas.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {sessions.map(s => (
+              <li key={s.id} className={`flex items-center gap-3 px-2 py-2 text-sm ${current?.id === s.id ? 'bg-primary/10' : ''}`}>
+                <input
+                  type="checkbox"
+                  title="Comparar"
+                  checked={compare.includes(s.id)}
+                  onChange={ev => setCompare(c => ev.target.checked ? [...c, s.id].slice(-2) : c.filter(x => x !== s.id))}
+                />
+                <button className="flex-1 text-left" onClick={() => setSelected(s.id)}>
+                  <span className="font-semibold">{s.params?.nombre}</span>
+                  <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-secondary">{s.params?.fuente}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {new Date(s.created_at).toLocaleString('es-ES')} · {s.metrics?.n ?? 0} ops · {s.metrics?.variantes?.length ?? 0} variantes
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Símbolo — picker estilo Radar */}
-          <div>
-            <Label className="mb-2 block text-xs text-muted-foreground font-medium">Símbolo</Label>
-            <RadarSymbolPicker
-              broker={broker}
-              selected={symbol}
-              onSelect={(s) => { setSymbol(s); setSymbolQuery(s); }}
-            />
-            {symbol && (
-              <div className="mt-2 text-xs text-primary">
-                Seleccionado: <span className="font-data font-semibold">{symbol}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Dirección */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-medium">Dirección</span>
-            <div className="inline-flex rounded-md border border-border overflow-hidden">
-              {(['BUY', 'SELL'] as Direction[]).map(d => (
-                <button
-                  key={d}
-                  onClick={() => setDirection(d)}
-                  className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                    direction === d
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-transparent text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
-
-
-          {/* Fechas */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1.5">
-              {([
-                { l: 'Último año', y: 1 as const },
-                { l: 'Últimos 3 años', y: 3 as const },
-                { l: 'Últimos 10 años', y: 10 as const },
-                { l: 'Todo el historial', y: 'all' as const },
-              ]).map(p => (
-                <button
-                  key={p.l}
-                  type="button"
-                  onClick={() => setDatePreset(p.y)}
-                  className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border bg-secondary text-muted-foreground hover:text-foreground hover:bg-accent"
-                >
-                  {p.l}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="mb-1.5 block text-xs">Desde (opcional)</Label>
-                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-              </div>
-              <div>
-                <Label className="mb-1.5 block text-xs">Hasta (opcional)</Label>
-                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-border text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Señal</div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <SliderRow
-              label="Nivel de cruce" value={nivel} min={20} max={80} step={1} onChange={setNivel}
-              help="Entrada al cruzar este nivel; salida al cruzarlo de vuelta"
-            />
-            <div>
-              <Label className="mb-1.5 block text-xs">Modo de salida</Label>
-              <Select value={modoSalida} onValueChange={v => setModoSalida(v as ModoSalida)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MODOS_SALIDA_GRUPOS.map(g => (
-                    <SelectGroup key={g.group}>
-                      <SelectLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{g.group}</SelectLabel>
-                      {g.items.map(m => (
-                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
-                {MODOS_SALIDA.find(m => m.value === modoSalida)?.help}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/70 leading-relaxed">
-                El stop por ATR sigue activo en todos los modos.
-              </p>
-            </div>
-          </div>
-
-          {/* Filtro por tendencia confirmada (aprox. escáner) */}
-          <div className="pt-2 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-xs font-medium">Filtrar por tendencia confirmada (aprox. escáner)</Label>
-                <InfoTip text="Aproximación del escáner real: comprueba medias alineadas, separación de medias y consistencia de los últimos 100 días, calculado día a día sin mirar el futuro. No reproduce el score completo del escáner (estructura, momentum, divergencias, edad) — es una aproximación razonable, no una copia exacta." />
-              </div>
-              <Switch checked={filtEnabled} onCheckedChange={setFiltEnabled} />
-            </div>
-            {filtEnabled && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-                <SliderRow label="ADX mínimo del filtro" value={filtAdxMin} min={15} max={30} step={1} onChange={setFiltAdxMin} />
-                <SliderRow label="Separación mínima de medias (%)" value={filtMaSep} min={0.5} max={5.0} step={0.1} decimals={1} onChange={setFiltMaSep} />
-                <SliderRow label="Consistencia mínima (%)" value={filtConsist} min={40} max={90} step={1} onChange={setFiltConsist} />
-              </div>
-            )}
-          </div>
-
-          <div className="pt-3 border-t border-border text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Riesgo</div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <SliderRow
-              label="ATR × SL" value={atrSl} min={1.0} max={3.0} step={0.1} decimals={1} onChange={setAtrSl}
-              help="Distancia del stop = ATR(14) × este valor"
-            />
-            <SliderRow
-              label="Take Profit (R:R)" value={tpMult} min={0} max={10} step={0.5} decimals={1} onChange={setTpMult}
-              badge={tpMult === 0 ? 'TP desactivado' : undefined}
-              help="0 = sin take profit. 2 = objetivo 1:2, 3 = objetivo 1:3"
-            />
-            <ToggleSliderRow
-              label="Breakeven" enabled={beEnabled} onToggle={setBeEnabled}
-              value={beMult} min={0.5} max={2.0} step={0.1} onChange={setBeMult} suffix="×"
-            />
-            <ToggleSliderRow
-              label="Trailing ATR" enabled={trEnabled} onToggle={setTrEnabled}
-              value={trMult} min={1.0} max={3.0} step={0.1} onChange={setTrMult} suffix="×"
-            />
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-xs">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <Button onClick={runBacktest} disabled={running || !symbol} className="w-full" size="lg">
-            <Play className="w-4 h-4" />
-            {running ? 'Ejecutando…' : 'Ejecutar Backtest'}
-          </Button>
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
-            {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="text-xs text-muted-foreground flex items-center gap-2">
-        <span className={`inline-block w-2 h-2 rounded-full ${serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500' : 'bg-destructive'}`} />
-        {serverOnline === null ? 'Comprobando servidor…' : serverOnline ? 'Servidor online' : 'Servidor offline — abre RUN_BACKTEST_SERVER.bat en tu PC'}
-      </div>
-
-      {result && (
-        <ResultsView
-          result={result}
-          exportMeta={{ symbol, broker, direction }}
-        />
-      )}
-
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Historial de sesiones</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              placeholder="Filtrar por símbolo…"
-              value={histSymbol}
-              onChange={e => setHistSymbol(e.target.value)}
-              className="sm:max-w-xs"
-            />
-            <div className="flex gap-1 p-0.5 rounded-md bg-secondary">
-              {(['all', 'nkis', 'octx'] as const).map(b => (
-                <button
-                  key={b}
-                  onClick={() => setHistBroker(b)}
-                  className={`px-3 py-1 rounded text-xs font-medium ${
-                    histBroker === b
-                      ? 'bg-primary/20 text-primary border border-primary/40'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {b === 'all' ? 'Todos' : b.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {sessionsQuery.isLoading && <p className="text-xs text-muted-foreground">Cargando…</p>}
-          {!sessionsQuery.isLoading && filteredSessions.length === 0 && (
-            <p className="text-xs text-muted-foreground">Sin sesiones guardadas.</p>
-          )}
-          <div className="space-y-2">
-            {filteredSessions.map(s => (
-              <SessionRow key={s.id} session={s} onDelete={() => deleteSession(s.id)} />
+                <button onClick={() => del(s.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+              </li>
             ))}
+          </ul>
+        )}
+      </section>
+
+      {compared.length === 2 ? (
+        <section className="space-y-2">
+          <div className="flex items-center gap-2"><Columns2 className="w-4 h-4 text-primary" /><h2 className="font-display font-bold">Comparación</h2>
+            <button onClick={() => setCompare([])} className="ml-auto text-xs text-primary hover:underline">Cerrar comparación</button></div>
+          <div className="grid xl:grid-cols-2 gap-4">
+            {compared.map(s => <SessionView key={s.id} session={s} compact />)}
           </div>
-        </CardContent>
-      </Card>
+        </section>
+      ) : current ? <SessionView session={current} /> : null}
     </div>
   );
 }
 
+/* ───────── Importar ───────── */
 
+function ImportBlock({ onSaved }: { onSaved: () => void }) {
+  const [csv, setCsv] = useState<string | null>(null);
+  const [fileName, setFileName] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [fuente, setFuente] = useState<'MT5' | 'YAHOO'>('MT5');
+  const [nota, setNota] = useState('');
+  const [drag, setDrag] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  const preview = useMemo(() => {
+    if (!csv) return null;
+    try { const p = parseOperacionesCsv(csv); return { ...p, variantes: new Set(p.trades.map(t => t.variante)).size, error: null }; }
+    catch (e: any) { return { error: e.message as string } as any; }
+  }, [csv]);
 
-function ResultsView({ result, exportMeta }: { result: BacktestResult; exportMeta?: { symbol: string; broker: string; direction: string } }) {
-  const m = result.metrics ?? {};
-  const trades = result.trades ?? [];
-  const equity = result.equity_curve ?? [];
-  const resultsRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
+  const load = async (f: File) => { setFileName(f.name); setCsv(await f.text()); };
 
-  const analysis = useMemo(() => computeAnalysis(trades, equity), [trades, equity]);
-  const initialEquity = equity[0]?.equity ?? 0;
-  const finalEquity = equity[equity.length - 1]?.equity ?? initialEquity;
-  const equityUp = finalEquity >= initialEquity;
-  const lineColor = equityUp ? 'hsl(var(--success))' : 'hsl(var(--destructive))';
-
-  const handleExportPdf = async () => {
-    const el = resultsRef.current;
-    if (!el || !exportMeta) return;
-    setExporting(true);
-    try {
-      await exportPdfBySections(
-        el,
-        `backtest_${exportMeta.symbol}_${exportMeta.broker}_${exportMeta.direction}.pdf`
-      );
-    } catch (e) {
-      console.error('[exportPDF] failed', e);
-      toast.error('Error al exportar el PDF');
-    } finally {
-      setExporting(false);
-    }
+  const save = async () => {
+    if (!csv || !nombre.trim()) { toast.error('Indica el nombre del sistema'); return; }
+    setSaving(true);
+    try { await saveSession(csv, nombre.trim(), fuente, nota); toast.success('Sesión guardada'); setCsv(null); setNombre(''); setNota(''); onSaved(); }
+    catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
   };
 
   return (
-    <Card id="backtest-results" ref={resultsRef}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Resultados</CardTitle>
-        {exportMeta && (
-          <Button size="sm" variant="outline" onClick={handleExportPdf} disabled={exporting} data-html2canvas-ignore="true">
-            <FileText className="w-4 h-4" />
-            {exporting ? 'Exportando…' : 'Exportar PDF'}
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Métricas principales */}
-        <div data-pdf-section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Metric label="PnL Total" value={fmtUsd(analysis.pnlTotal)} positive={analysis.pnlTotal >= 0} />
-          <Metric label="Win Rate" value={fmtPct(m.win_rate)} />
-          <Metric label="Profit Factor" value={fmtNum(m.profit_factor)} />
-          <Metric label="Sharpe" value={fmtNum(m.sharpe)} />
-          <Metric label="Trades" value={String(m.trades ?? trades.length)} />
-          <Metric label="Drawdown Máx" value={`${fmtPct(analysis.maxDdPct)} · ${fmtUsd(-analysis.maxDdUsd)}`} positive={false} />
-          <Metric label="Expectancy" value={fmtUsd(analysis.expectancy)} positive={analysis.expectancy >= 0} />
-          <Metric label="Duración media" value={`${analysis.avgDays.toFixed(1)} d`} />
-          <Metric label="MFE medio" value={fmtUsd(analysis.avgMfe)} />
-          <Metric label="Salidas STOCH" value={fmtPct(analysis.exitPct.STOCH)} />
-          <Metric label="Salidas SL" value={fmtPct(analysis.exitPct.SL)} positive={false} />
-          <Metric label="Salidas BE" value={fmtPct(analysis.exitPct.BE)} />
-          <Metric label="Trades revertidos" value={`${analysis.reverted} (${fmtPct(analysis.revertedPct)})`} positive={false} />
-        </div>
-
-        {/* Curva de equity */}
-        {equity.length > 0 && (
-          <div data-pdf-section>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Curva de equity</div>
-            <div className="h-64 rounded-md overflow-hidden" style={{ background: CHART_BG }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={equity} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                  <defs>
-                    <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={equityUp ? COLORS.green : COLORS.red} stopOpacity={0.2} />
-                      <stop offset="100%" stopColor={equityUp ? COLORS.green : COLORS.red} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} domain={['auto', 'auto']} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
-                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} />
-                  <ReferenceLine y={initialEquity} stroke={COLORS.axis} strokeDasharray="4 4" label={{ value: 'Balance inicial', position: 'right', fontSize: 10, fill: COLORS.axis }} />
-                  <Area type="monotone" dataKey="equity" stroke="none" fill="url(#equityFill)" isAnimationActive={false} />
-                  <Line type="monotone" dataKey="equity" stroke={equityUp ? COLORS.green : COLORS.red} strokeWidth={2} dot={false} isAnimationActive={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* ¿Qué mejoraría? */}
-        {trades.length > 0 && (
-          <div className="space-y-4 pt-2 border-t border-border">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">¿Qué mejoraría?</h3>
-              <p className="text-xs text-muted-foreground">Análisis avanzado para identificar puntos débiles del sistema.</p>
-            </div>
-
-            <div data-pdf-section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Metric label="Captura MFE" value={fmtPct(analysis.mfeCaptureRatio)} positive={analysis.mfeCaptureRatio >= 0.6} />
-              <Metric label="Racha ganadora máx" value={String(analysis.maxWinStreak)} />
-              <Metric label="Racha perdedora máx" value={String(analysis.maxLossStreak)} positive={false} />
-              <Metric label="Mejor / Peor trade" value={`${fmtUsd(analysis.bestTrade)} / ${fmtUsd(analysis.worstTrade)}`} />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Distribución de salidas */}
-              <ChartCard title="Distribución de salidas">
-                <BarChart data={analysis.exitDist}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis dataKey="reason" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <Tooltip {...tooltipProps} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {analysis.exitDist.map((d, i) => (
-                      <Cell key={i} fill={exitColor(d.reason)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ChartCard>
-
-              {/* Curva de rachas */}
-              <ChartCard title="Balance trade a trade (rachas)">
-                <ComposedChart data={analysis.runningBalance}>
-                  <defs>
-                    <linearGradient id="streakFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.2} />
-                      <stop offset="100%" stopColor={COLORS.blue} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis dataKey="i" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v).toLocaleString('es-ES')}`} />
-                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} />
-                  <ReferenceLine y={0} stroke={COLORS.axis} strokeDasharray="4 4" />
-                  <Area type="monotone" dataKey="balance" stroke="none" fill="url(#streakFill)" isAnimationActive={false} />
-                  <Line
-                    type="monotone"
-                    dataKey="balance"
-                    stroke={COLORS.blue}
-                    strokeWidth={2}
-                    isAnimationActive={false}
-                    dot={(props: any) => {
-                      const { cx, cy, payload, index } = props;
-                      const color = (payload?.balance ?? 0) >= 0 ? COLORS.green : COLORS.red;
-                      return <circle key={index} cx={cx} cy={cy} r={3} fill={color} stroke={color} />;
-                    }}
-                  />
-                </ComposedChart>
-              </ChartCard>
-
-              {/* Histograma duración */}
-              <ChartCard title="Histograma de duración (días)">
-                <BarChart data={analysis.durationHist}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <YAxis tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} />
-                  <Tooltip {...tooltipProps} />
-                  <Bar dataKey="count" fill={COLORS.purple} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartCard>
-
-              {/* Scatter PnL vs MFE */}
-              <ChartCard title="PnL vs MFE (dinero dejado encima de la mesa)">
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis type="number" dataKey="mfe" name="MFE" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v)}`} />
-                  <YAxis type="number" dataKey="pnl" name="PnL" tick={{ fontSize: 10, fill: COLORS.axis }} stroke={COLORS.grid} tickFormatter={(v) => `$${Math.round(v)}`} />
-                  <ZAxis range={[40, 40]} />
-                  <ReferenceLine
-                    segment={[
-                      { x: analysis.scatterMin, y: analysis.scatterMin },
-                      { x: analysis.scatterMax, y: analysis.scatterMax },
-                    ]}
-                    stroke={COLORS.yellow}
-                    strokeDasharray="4 4"
-                  />
-                  <Tooltip {...tooltipProps} formatter={(v: number) => fmtUsd(v)} cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter data={analysis.scatter}>
-                    {analysis.scatter.map((p, i) => (
-                      <Cell key={i} fill={p.pnl >= 0 ? COLORS.green : COLORS.red} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ChartCard>
-            </div>
-          </div>
-        )}
-
-        {trades.length > 0 && <TradesTable trades={trades} />}
-
-        {result.aviso_simbolo && (
-          <div className="text-[11px] text-muted-foreground">{result.aviso_simbolo}</div>
-        )}
-
-        {(result.sistema || result.params_usados) && (
-          (result.sistema ?? '').toUpperCase() === 'DESCONOCIDA' ? (
-            <div className="text-[11px] text-warning">
-              El servidor está usando una versión antigua del backtester
-            </div>
-          ) : (
-            <div className="text-[11px] text-muted-foreground">
-              Ejecutado con: <span className="font-mono">{result.sistema ?? '—'}</span>
-              {result.params_usados && (
-                <>
-                  {' · '}ATR×SL <span className="font-mono">{String(result.params_usados.atr_mult_sl ?? '—')}</span>
-                  {' · '}TP <span className="font-mono">{String(result.params_usados.tp_mult ?? '—')}</span>
-                  {' · '}Nivel <span className="font-mono">{String(result.params_usados.nivel ?? '—')}</span>
-                  {' · '}Salida <span className="font-mono">{String(result.params_usados.modo_salida ?? '—')}</span>
-                  {' · '}ADX <span className="font-mono">{String(result.params_usados.adx ?? '—')}</span>
-                  {' · '}Breakeven <span className="font-mono">{String(result.params_usados.breakeven ?? '—')}</span>
-                </>
-              )}
-            </div>
-          )
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ChartCard({ title, children }: { title: string; children: React.ReactElement }) {
-  return (
-    <div data-pdf-section className="border border-border rounded-md p-3 bg-secondary/30">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
-      <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+    <section className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <h2 className="font-display font-bold text-sm">IMPORTAR RESULTADOS (operaciones.csv)</h2>
+      <div
+        onDragOver={e => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={e => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files[0]; if (f) load(f); }}
+        onClick={() => inputRef.current?.click()}
+        className={`cursor-pointer rounded-md border-2 border-dashed p-6 text-center text-sm ${drag ? 'border-primary bg-primary/5' : 'border-border text-muted-foreground'}`}
+      >
+        <Upload className="w-5 h-5 mx-auto mb-1" />
+        {fileName || 'Arrastra aquí el archivo o pulsa para elegirlo'}
+        <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) load(f); }} />
       </div>
-    </div>
+      {preview?.error && <p className="text-xs text-destructive">{preview.error}</p>}
+      {preview && !preview.error && (
+        <p className="text-xs text-muted-foreground">
+          {preview.trades.length} operaciones cerradas · {preview.abiertas.length} abiertas · parámetros: {preview.paramCols.join(', ') || 'ninguno'} · {preview.variantes} variantes
+        </p>
+      )}
+      {csv && !preview?.error && (
+        <div className="space-y-2">
+          <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder='Nombre del sistema (p. ej. "Reglas Manuel – pivotes")'
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm" />
+          <FuenteSelect value={fuente} onChange={setFuente} />
+          <textarea value={nota} onChange={e => setNota(e.target.value)} placeholder="Nota (opcional)" rows={2}
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm" />
+          <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Guardar e importar
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
-function exitColor(reason: string) {
-  const r = reason.toUpperCase();
-  if (r.includes('DONCHIAN')) return COLORS.blue;
-  if (r.includes('VELAS')) return COLORS.purple;
-  if (r.includes('STOCH')) return COLORS.green;
-  if (r.includes('SL')) return COLORS.red;
-  if (r.includes('BE')) return COLORS.yellow;
-  if (r.includes('TRAIL')) return COLORS.purple;
-  if (r.includes('TP')) return COLORS.blue;
-  return COLORS.gray;
-}
-
-function normalizeReason(raw: string | undefined): string {
-  const r = (raw ?? '').toUpperCase().trim();
-  if (r.includes('DONCHIAN')) {
-    if (r.includes('15')) return 'DONCHIAN15';
-    if (r.includes('10')) return 'DONCHIAN10';
-    if (r.includes('8')) return 'DONCHIAN8';
-    return 'DONCHIAN';
-  }
-  if (r.includes('VELAS4') || r.includes('VELAS_4')) return 'VELAS4';
-  if (r.includes('VELAS3') || r.includes('VELAS_3')) return 'VELAS3';
-  if (r.includes('VELAS2') || r.includes('VELAS_2')) return 'VELAS2';
-  if (r.includes('TP') || r.includes('TAKE') || r.includes('TARGET')) return 'TP';
-  if (r.includes('STOCH') || r.includes('SIGNAL') || r.includes('CROSS') || r.includes('EXIT')) return 'STOCH';
-  if (r.includes('BREAKEVEN') || r === 'BE' || r.includes('_BE') || r.includes('BE_')) return 'BE';
-  if (r.includes('TRAIL')) return 'TRAIL';
-  if (r.includes('SL') || r.includes('STOP') || r.includes('LOSS')) return 'SL';
-  return 'STOCH';
-}
-
-function computeAnalysis(trades: BacktestTrade[], equity: BacktestResult['equity_curve']) {
-  const n = trades.length;
-  const pnlTotal = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
-  const avgDays = n ? trades.reduce((s, t) => s + (t.days ?? 0), 0) / n : 0;
-  const avgMfe = n ? trades.reduce((s, t) => s + (t.mfe ?? 0), 0) / n : 0;
-  const expectancy = n ? pnlTotal / n : 0;
-
-  // Drawdown sobre equity_curve
-  let peak = equity[0]?.equity ?? 0;
-  let maxDdUsd = 0;
-  let maxDdPct = 0;
-  for (const p of equity) {
-    if (p.equity > peak) peak = p.equity;
-    const dd = peak - p.equity;
-    if (dd > maxDdUsd) {
-      maxDdUsd = dd;
-      maxDdPct = peak > 0 ? dd / peak : 0;
-    }
-  }
-
-  // Distribución salidas
-  const reasonCount: Record<string, number> = {
-    STOCH: 0, VELAS2: 0, VELAS3: 0, VELAS4: 0,
-    DONCHIAN8: 0, DONCHIAN10: 0, DONCHIAN15: 0,
-    SL: 0, BE: 0, TRAIL: 0, TP: 0,
-  };
-  for (const t of trades) {
-    const r = normalizeReason(t.reason);
-    reasonCount[r] = (reasonCount[r] ?? 0) + 1;
-  }
-  const exitDist = Object.entries(reasonCount)
-    .filter(([reason, count]) => count > 0 || !(reason.startsWith('VELAS') || reason.startsWith('DONCHIAN')))
-    .map(([reason, count]) => ({ reason: reason === 'STOCH' ? 'STOCH50' : reason, count }));
-  const exitPct = {
-    STOCH: n ? reasonCount.STOCH / n : 0,
-    SL: n ? reasonCount.SL / n : 0,
-    BE: n ? reasonCount.BE / n : 0,
-    TRAIL: n ? (reasonCount.TRAIL ?? 0) / n : 0,
-    TP: n ? (reasonCount.TP ?? 0) / n : 0,
-  };
-
-  // Trades revertidos: MFE > 0 favorable y cerraron en SL con pnl < 0
-  const reverted = trades.filter(t => (t.mfe ?? 0) > 0 && (t.pnl ?? 0) < 0 && normalizeReason(t.reason) === 'SL').length;
-  const revertedPct = n ? reverted / n : 0;
-
-  // Captura MFE
-  const mfeCaptureRatio = avgMfe > 0 ? Math.max(0, expectancy / avgMfe) : 0;
-
-  // Rachas
-  let curW = 0, curL = 0, maxWinStreak = 0, maxLossStreak = 0;
-  for (const t of trades) {
-    if ((t.pnl ?? 0) >= 0) { curW++; curL = 0; if (curW > maxWinStreak) maxWinStreak = curW; }
-    else { curL++; curW = 0; if (curL > maxLossStreak) maxLossStreak = curL; }
-  }
-
-  // Running balance trade a trade
-  let bal = 0;
-  const runningBalance = trades.map((t, i) => { bal += (t.pnl ?? 0); return { i: i + 1, balance: Math.round(bal * 100) / 100 }; });
-
-  // Histograma duración
-  const buckets = [
-    { bucket: '0-1d', min: 0, max: 1 },
-    { bucket: '2-3d', min: 2, max: 3 },
-    { bucket: '4-7d', min: 4, max: 7 },
-    { bucket: '8-14d', min: 8, max: 14 },
-    { bucket: '15-30d', min: 15, max: 30 },
-    { bucket: '>30d', min: 31, max: Infinity },
-  ];
-  const durationHist = buckets.map(b => ({
-    bucket: b.bucket,
-    count: trades.filter(t => (t.days ?? 0) >= b.min && (t.days ?? 0) <= b.max).length,
-  }));
-
-  // Scatter
-  // Los sistemas que no reportan MFE (viene null) simplemente no pintan puntos.
-  const scatter = trades
-    .filter(t => t.mfe != null && Number.isFinite(Number(t.mfe)))
-    .map(t => ({ mfe: Number(t.mfe), pnl: t.pnl ?? 0 }));
-
-  const allVals = scatter.flatMap(p => [p.mfe, p.pnl]);
-  const scatterMin = allVals.length ? Math.min(...allVals, 0) : 0;
-  const scatterMax = allVals.length ? Math.max(...allVals, 0) : 0;
-
-  const bestTrade = trades.reduce((m, t) => Math.max(m, t.pnl ?? 0), 0);
-  const worstTrade = trades.reduce((m, t) => Math.min(m, t.pnl ?? 0), 0);
-
-  return {
-    pnlTotal, expectancy, avgDays, avgMfe,
-    maxDdUsd, maxDdPct,
-    exitDist, exitPct,
-    reverted, revertedPct,
-    mfeCaptureRatio,
-    maxWinStreak, maxLossStreak,
-    runningBalance,
-    durationHist,
-    scatter, scatterMin, scatterMax,
-    bestTrade, worstTrade,
-  };
-}
-
-function fmtUsd(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—';
-  const sign = v < 0 ? '-' : '';
-  return `${sign}$${Math.abs(v).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function TradesTable({ trades }: { trades: BacktestTrade[] }) {
-  const CHUNK = 20;
-  const chunks: BacktestTrade[][] = [];
-  if (trades.length === 0) {
-    chunks.push([]);
-  } else {
-    for (let i = 0; i < trades.length; i += CHUNK) {
-      chunks.push(trades.slice(i, i + CHUNK));
-    }
-  }
+function FuenteSelect({ value, onChange }: { value: 'MT5' | 'YAHOO'; onChange: (v: 'MT5' | 'YAHOO') => void }) {
   return (
-    <div className="space-y-3">
-      {chunks.map((chunk, ci) => (
-        <div
-          key={ci}
-          data-pdf-section
-          className="rounded-lg border border-border bg-card overflow-x-auto"
-        >
-          <table className="w-full text-base">
-            <thead className="bg-muted/40 border-b border-border">
-              <tr className="text-left text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                <th className="px-3 py-3">#</th>
-                <th className="px-3 py-3">Entrada</th>
-                <th className="px-3 py-3">Salida</th>
-                <th className="px-3 py-3 text-right">Precio</th>
-                <th className="px-3 py-3 text-right">SL</th>
-                <th className="px-3 py-3 text-right">TP</th>
-                <th className="px-3 py-3 text-right">Lotes</th>
-                <th className="px-3 py-3 text-right">Días</th>
-                <th className="px-3 py-3 text-right">MFE</th>
-                <th className="px-3 py-3 text-right">P&L</th>
-                <th className="px-3 py-3">Razón</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chunk.map((t, idx) => {
-                const i = ci * CHUNK + idx;
-                const win = t.pnl >= 0;
-                const rowBg = win ? 'bg-success/15 hover:bg-success/25' : 'bg-destructive/15 hover:bg-destructive/25';
-                const pnlColor = win ? 'text-success' : 'text-destructive';
-                const reason = (t.reason ?? '—').toUpperCase();
-                const reasonBg = reason.includes('DONCHIAN')
-                  ? 'bg-accent/40 text-accent-foreground'
-                  : reason.includes('VELAS')
-                  ? 'bg-primary/30 text-primary'
-                  : reason.includes('STOCH')
-                  ? 'bg-success/30 text-success'
-                  : reason.includes('SL') || reason.includes('STOP')
-                  ? 'bg-destructive/30 text-destructive'
-                  : reason.includes('BE')
-                  ? 'bg-warning/30 text-warning'
-                  : reason.includes('TRAIL')
-                  ? 'bg-primary/30 text-primary'
-                  : 'bg-muted/50 text-muted-foreground';
-                return (
-                  <tr key={i} className={`border-b border-border transition-colors ${rowBg}`}>
-                    <td className="px-3 py-3 font-data text-muted-foreground">{i + 1}</td>
-                    <td className="px-3 py-3 font-data">{fmtDate(t.entry_date)}</td>
-                    <td className="px-3 py-3 font-data">{fmtDate(t.exit_date)}</td>
-                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.entry_price, 4)}</td>
-                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.sl_price, 4)}</td>
-                    <td className="px-3 py-3 font-data text-right">{t.tp_price == null ? '—' : fmtNum(t.tp_price, 4)}</td>
-                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.lot_size, 2)}</td>
-                    <td className="px-3 py-3 font-data text-right">{t.days ?? '—'}</td>
-                    <td className="px-3 py-3 font-data text-right">{fmtNum(t.mfe, 2)}</td>
-                    <td className={`px-3 py-3 font-data font-bold text-right ${pnlColor}`}>{fmtNum(t.pnl, 2)}</td>
-                    <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-data font-bold ${reasonBg}`}>{reason}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {chunk.length === 0 && (
-                <tr><td colSpan={11} className="p-12 text-center text-muted-foreground text-sm">Sin trades.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+    <div className="inline-flex rounded-md border border-border overflow-hidden">
+      {(['MT5', 'YAHOO'] as const).map(f => (
+        <button key={f} onClick={() => onChange(f)}
+          className={`px-4 py-1.5 text-xs font-bold ${value === f ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'}`}>
+          {f === 'YAHOO' ? 'Yahoo' : 'MT5'}
+        </button>
       ))}
     </div>
   );
 }
 
+/* ───────── Ejecutar en mi PC ───────── */
 
-function SessionRow({ session, onDelete }: { session: SavedSession; onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<null | 'pdf' | 'xlsx'>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const m = session.metrics ?? {};
+function RunOnPcBlock({ onSaved }: { onSaved: () => void }) {
+  const { data: settings } = useSettings();
+  const url = String((settings as any)?.backtest_server_url ?? '').replace(/\/+$/, '');
+  const key = String((settings as any)?.backtest_server_key ?? '');
+  const [scripts, setScripts] = useState<{ nombre: string; descripcion: string }[] | null>(null);
+  const [script, setScript] = useState('');
+  const [fuente, setFuente] = useState<'MT5' | 'YAHOO'>('MT5');
+  const [err, setErr] = useState<string | null>(null);
+  const [job, setJob] = useState<{ id: string; estado: string; segundos: number; log: string } | null>(null);
+  const [showLog, setShowLog] = useState(false);
 
-  const sessionAsResult: BacktestResult = useMemo(() => ({
-    metrics: session.metrics ?? {},
-    equity_curve: session.equity_curve ?? [],
-    trades: session.trades ?? [],
-  }), [session]);
+  useEffect(() => {
+    if (!url) return;
+    fetch(`${url}/scripts`, { headers: backtestServerHeaders(key) })
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((list) => { setScripts(list); setErr(null); if (list?.[0]) setScript(list[0].nombre); })
+      .catch(() => setErr(SERVER_OFF));
+  }, [url, key]);
 
-  const handlePdf = async () => {
-    setBusy('pdf');
+  useEffect(() => {
+    if (!job || job.estado !== 'en_curso') return;
+    const iv = setInterval(async () => {
+      try {
+        const r = await fetch(`${url}/trabajo/${job.id}`, { headers: backtestServerHeaders(key) });
+        const j = await r.json();
+        if (j.estado === 'terminado') {
+          clearInterval(iv);
+          setJob({ id: job.id, estado: 'terminado', segundos: j.segundos ?? 0, log: j.log ?? '' });
+          try { await saveSession(j.csv ?? '', script, fuente, j.log ?? ''); toast.success('Backtest terminado y guardado'); onSaved(); }
+          catch (e: any) { toast.error(`No se pudo procesar el CSV: ${e.message}`); }
+        } else if (j.estado === 'error') {
+          clearInterval(iv);
+          setJob({ id: job.id, estado: 'error', segundos: j.segundos ?? 0, log: j.log ?? '' });
+        } else {
+          setJob(prev => prev && { ...prev, segundos: j.segundos ?? prev.segundos, log: j.log ?? prev.log });
+        }
+      } catch { clearInterval(iv); setErr(SERVER_OFF); setJob(null); }
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [job?.id, job?.estado]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const run = async () => {
     try {
-      if (!open) {
-        setOpen(true);
-        await new Promise(r => setTimeout(r, 600));
-      }
-      // ensure panelRef is mounted (in case open just toggled)
-      for (let i = 0; i < 20 && !panelRef.current; i++) {
-        await new Promise(r => setTimeout(r, 50));
-      }
-      const el = panelRef.current;
-      if (!el) {
-        toast.error('No se pudo capturar el contenido');
-        return;
-      }
-      await exportPdf(session, el);
-    } catch (e) {
-      console.error('[handlePdf] failed', e);
-      toast.error('Error al exportar el PDF');
-    } finally { setBusy(null); }
+      const r = await fetch(`${url}/ejecutar`, {
+        method: 'POST',
+        headers: { ...backtestServerHeaders(key), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script, fuente }),
+      });
+      if (!r.ok) throw new Error();
+      const j = await r.json();
+      setJob({ id: j.trabajo, estado: 'en_curso', segundos: 0, log: '' });
+      setErr(null);
+    } catch { setErr(SERVER_OFF); }
   };
-  const handleXlsx = async () => {
-    setBusy('xlsx');
-    try {
-      await exportXlsx(session);
-      toast.success('Excel descargado');
-    } catch (e) {
-      console.error('[handleXlsx] failed', e);
-      toast.error('Error al descargar el archivo Excel');
-    } finally { setBusy(null); }
-  };
+
+  const desc = scripts?.find(s => s.nombre === script)?.descripcion;
 
   return (
-    <div className="border border-border rounded-md">
-      <div className="flex items-center gap-2 p-2.5">
-        <button onClick={() => setOpen(o => !o)} className="text-muted-foreground hover:text-foreground">
-          {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </button>
-        <div className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-2 text-xs items-center">
-          <div className="font-mono font-semibold">{session.symbol}</div>
-          <div className="text-muted-foreground">{session.broker.toUpperCase()} · {session.direction}</div>
-          <div>WR: <span className="font-mono">{fmtPct(m.win_rate)}</span></div>
-          <div>PF: <span className="font-mono">{fmtNum(m.profit_factor)}</span></div>
-          <div className={m.pnl != null && m.pnl >= 0 ? 'text-success' : 'text-destructive'}>
-            PnL: <span className="font-mono font-semibold">{fmtNum(m.pnl, 2)}</span>
+    <section className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <h2 className="font-display font-bold text-sm">EJECUTAR EN MI PC</h2>
+      {!url ? (
+        <p className="text-xs text-muted-foreground">Configura la URL y la clave del servidor en Ajustes › Servidor de backtest.</p>
+      ) : err ? (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{err}</div>
+      ) : !scripts ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+        <>
+          <select value={script} onChange={e => setScript(e.target.value)} className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm">
+            {scripts.map(s => <option key={s.nombre} value={s.nombre}>{s.nombre}</option>)}
+          </select>
+          {desc && <p className="text-xs text-muted-foreground">{desc}</p>}
+          <FuenteSelect value={fuente} onChange={setFuente} />
+          <div>
+            <button onClick={run} disabled={!script || job?.estado === 'en_curso'}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
+              {job?.estado === 'en_curso' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {job?.estado === 'en_curso' ? `Ejecutando… ${job.segundos} s` : 'Ejecutar'}
+            </button>
           </div>
-          <div className="text-muted-foreground text-[10px]">{new Date(session.created_at).toLocaleString('es-ES')}</div>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          <Button size="sm" variant="ghost" onClick={handleXlsx} disabled={busy !== null} title="Exportar Excel">
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={handlePdf} disabled={busy !== null} title="Exportar PDF (mismo aspecto)">
-            <FileText className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onDelete} title="Eliminar">
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-          </Button>
-        </div>
-      </div>
-      {open && (
-        <div ref={panelRef} className="border-t border-border p-4 bg-background space-y-3">
-          <SessionHeader
-            symbol={session.symbol}
-            broker={session.broker}
-            direction={session.direction}
-            dateFrom={session.date_from}
-            dateTo={session.date_to}
-            createdAt={session.created_at}
-            params={session.params}
-          />
-          <ResultsView result={sessionAsResult} />
-        </div>
+        </>
       )}
-    </div>
-  );
-}
-
-
-
-function SessionHeader({ symbol, broker, direction, dateFrom, dateTo, createdAt, params }: {
-  symbol: string; broker: string; direction: string;
-  dateFrom: string | null; dateTo: string | null; createdAt: string;
-  params?: BacktestParams;
-}) {
-  const periodo = dateFrom || dateTo
-    ? `${dateFrom ?? '—'}  →  ${dateTo ?? '—'}`
-    : 'Todo el historial disponible';
-  return (
-    <div className="border border-border rounded-md p-3 bg-secondary/30">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      {job && job.estado === 'error' && (
+        <pre className="max-h-60 overflow-auto rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[11px] text-destructive whitespace-pre-wrap">{job.log || 'Error sin log'}</pre>
+      )}
+      {job && job.estado !== 'error' && (
         <div>
-          <div className="text-base font-bold font-mono">{symbol}</div>
-          <div className="text-xs text-muted-foreground">
-            {broker.toUpperCase()} · {direction} · Periodo: <span className="font-mono">{periodo}</span>
-          </div>
-        </div>
-        <div className="text-[10px] text-muted-foreground">
-          Generado: {new Date(createdAt).toLocaleString('es-ES')}
-        </div>
-      </div>
-      {params && (
-        <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <div>ATR×SL: <span className="font-mono text-foreground">{params.atr_sl}</span></div>
-          <div>Nivel de cruce: <span className="font-mono text-foreground">{params.stoch_buy}</span></div>
-          <div>Breakeven: <span className="font-mono text-foreground">{params.breakeven_enabled ? `ON ×${params.breakeven_mult}` : 'OFF'}</span></div>
-          <div>Trailing: <span className="font-mono text-foreground">{params.trailing_enabled ? `ON ×${params.trailing_mult}` : 'OFF'}</span></div>
+          <button onClick={() => setShowLog(v => !v)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+            <FileText className="w-3 h-3" /> {showLog ? 'Ocultar log' : 'Ver log'}
+          </button>
+          {showLog && <pre className="mt-1 max-h-60 overflow-auto rounded-md border border-border bg-secondary/40 p-2 text-[11px] whitespace-pre-wrap">{job.log}</pre>}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
-function Metric({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
-  const colorClass = positive == null ? 'text-foreground' : positive ? 'text-success' : 'text-destructive';
+/* ───────── Vista de sesión ───────── */
+
+type SortK = keyof VariantStats;
+
+function SessionView({ session, compact }: { session: Session; compact?: boolean }) {
+  const variantes = session.metrics?.variantes ?? [];
+  const [sortK, setSortK] = useState<SortK>('pf');
+  const [desc, setDesc] = useState(true);
+  const best = useMemo(() => [...variantes].filter(v => v.n >= 100).sort((a, b) => b.pf - a.pf)[0]?.variante
+    ?? [...variantes].sort((a, b) => b.pf - a.pf)[0]?.variante, [variantes]);
+  const [sel, setSel] = useState<string | null>(null);
+  const selVar = sel ?? best ?? null;
+
+  const sorted = useMemo(() => [...variantes].sort((a, b) => {
+    const va = a[sortK] as any, vb = b[sortK] as any;
+    const c = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return desc ? -c : c;
+  }), [variantes, sortK, desc]);
+
+  const th = (label: string, k: SortK) => (
+    <th className="px-2 py-1.5 text-right cursor-pointer hover:text-foreground" onClick={() => { if (sortK === k) setDesc(!desc); else { setSortK(k); setDesc(true); } }}>
+      {label}{sortK === k ? (desc ? ' ↓' : ' ↑') : ''}
+    </th>
+  );
+
+  const trades = (session.trades ?? []).filter(t => t.variante === selVar);
+
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
-      <div className={`text-2xl font-data font-bold ${colorClass}`}>{value}</div>
+    <div className="space-y-4">
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex flex-wrap items-baseline gap-2 mb-3">
+          <h2 className="font-display font-bold">{session.params?.nombre}</h2>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-secondary">{session.params?.fuente}</span>
+          <span className="text-xs text-muted-foreground">{new Date(session.created_at).toLocaleString('es-ES')} · {session.metrics?.abiertas ?? 0} abiertas (fuera de estadísticas)</span>
+        </div>
+        {session.params?.nota && !compact && <p className="text-xs text-muted-foreground mb-3 whitespace-pre-wrap line-clamp-4">{session.params.nota}</p>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-muted-foreground border-b border-border">
+              <tr>
+                <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => setSortK('variante')}>Variante</th>
+                {th('Ops', 'n')}{th('% acierto', 'winRate')}{th('R medio', 'rMedio')}{th('PF', 'pf')}{th('R total', 'rTotal')}
+                {th('DD máx R', 'maxDdR')}{th('PF 1ª', 'pf1')}{th('PF 2ª', 'pf2')}{th('Años +', 'anosPos')}{th('Símb. +', 'simbPos')}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(v => (
+                <tr key={v.variante} onClick={() => setSel(v.variante)}
+                  className={`border-b border-border cursor-pointer hover:bg-accent ${v.variante === best ? 'bg-success/10' : ''} ${v.variante === selVar ? 'ring-1 ring-primary ring-inset' : ''}`}>
+                  <td className="px-2 py-1.5 font-data">
+                    {v.variante === best && '★ '}{v.variante}
+                    {v.n < 100 && <span className="ml-1 text-[10px] text-orange-500">⚠ pocas operaciones</span>}
+                    {v.pf2 < 1 && <span className="ml-1 text-[10px] text-destructive">⚠ PF 2ª mitad &lt; 1</span>}
+                  </td>
+                  <td className="px-2 text-right font-data">{v.n}</td>
+                  <td className="px-2 text-right font-data">{v.winRate.toFixed(1)}%</td>
+                  <td className="px-2 text-right font-data">{v.rMedio.toFixed(3)}</td>
+                  <td className="px-2 text-right font-data font-bold">{fmtPf(v.pf)}</td>
+                  <td className={`px-2 text-right font-data ${v.rTotal >= 0 ? 'text-success' : 'text-destructive'}`}>{v.rTotal.toFixed(1)}</td>
+                  <td className="px-2 text-right font-data text-destructive">{v.maxDdR.toFixed(1)}</td>
+                  <td className="px-2 text-right font-data">{fmtPf(v.pf1)}</td>
+                  <td className={`px-2 text-right font-data ${v.pf2 < 1 ? 'text-destructive' : ''}`}>{fmtPf(v.pf2)}</td>
+                  <td className="px-2 text-right font-data">{v.anosPos}</td>
+                  <td className="px-2 text-right font-data">{v.simbPos}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {selVar && <VariantDetail trades={trades} name={selVar} compact={compact} />}
     </div>
   );
 }
 
+function VariantDetail({ trades, name, compact }: { trades: CsvTrade[]; name: string; compact?: boolean }) {
+  const { pts, sorted } = useMemo(() => equity(trades), [trades]);
+  const n = trades.length;
+  const v = variantStats(trades)[0];
+  const byYear = groupR(trades, t => isoDate(t.fecha_entrada).slice(0, 4));
+  const bySym = groupR(trades, t => t.simbolo);
+  const byFam = groupR(trades, t => t.familia ?? '');
+  const bySig = groupR(trades, t => t.senal ?? '');
+  const byDir = groupR(trades, t => t.direccion);
+  const byMot = groupR(trades, t => t.motivo);
+  const dist = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const t of trades) { const b = Math.floor(t.R * 2) / 2; m.set(b, (m.get(b) ?? 0) + 1); }
+    return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, c]) => ({ k: k.toFixed(1), c }));
+  }, [trades]);
 
-function fmtNum(v: number | null | undefined, decimals = 2) {
-  if (v == null || Number.isNaN(v)) return '—';
-  return v.toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-function fmtPct(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—';
-  const val = Math.abs(v) <= 1 ? v * 100 : v;
-  return `${val.toFixed(1)}%`;
-}
-function fmtDate(s: string | undefined) {
-  if (!s) return '—';
-  try { return new Date(s).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }); }
-  catch { return s; }
-}
-
-async function exportXlsx(session: SavedSession) {
-  const wb = XLSX.utils.book_new();
-  const trades = session.trades ?? [];
-  const equity = session.equity_curve ?? [];
-  const a = computeAnalysis(trades, equity);
-
-  const p = session.params ?? ({} as Partial<BacktestParams>);
-  const meta: any[][] = [
-    ['BACKTEST — Resultado completo'],
-    [],
-    ['Símbolo', session.symbol],
-    ['Broker', session.broker],
-    ['Dirección', session.direction],
-    ['Periodo desde', session.date_from ?? 'Todo el historial'],
-    ['Periodo hasta', session.date_to ?? 'Todo el historial'],
-    ['Creado', new Date(session.created_at).toLocaleString('es-ES')],
-    [],
-    ['— Parámetros —'],
-    ['ATR × SL', p.atr_sl ?? ''],
-    ['Nivel de cruce', p.stoch_buy ?? ''],
-    ['Breakeven', p.breakeven_enabled ? `ON ×${p.breakeven_mult}` : 'OFF'],
-    ['Trailing', p.trailing_enabled ? `ON ×${p.trailing_mult}` : 'OFF'],
-    [],
-    ['— Métricas principales —'],
-    ['PnL Total', a.pnlTotal],
-    ['Win Rate', session.metrics?.win_rate ?? ''],
-    ['Profit Factor', session.metrics?.profit_factor ?? ''],
-    ['Sharpe', session.metrics?.sharpe ?? ''],
-    ['Trades', session.metrics?.trades ?? trades.length],
-    ['Drawdown Máx %', a.maxDdPct],
-    ['Drawdown Máx USD', a.maxDdUsd],
-    ['Expectancy', a.expectancy],
-    ['Duración media (d)', a.avgDays],
-    ['MFE medio', a.avgMfe],
-    ['Salidas STOCH %', a.exitPct.STOCH],
-    ['Salidas SL %', a.exitPct.SL],
-    ['Salidas BE %', a.exitPct.BE],
-    ['Salidas TRAIL %', a.exitPct.TRAIL],
-    ['Trades revertidos', a.reverted],
-    ['Trades revertidos %', a.revertedPct],
-    [],
-    ['— ¿Qué mejoraría? —'],
-    ['Captura MFE', a.mfeCaptureRatio],
-    ['Racha ganadora máx', a.maxWinStreak],
-    ['Racha perdedora máx', a.maxLossStreak],
-    ['Mejor trade', a.bestTrade],
-    ['Peor trade', a.worstTrade],
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(meta), 'Resumen');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(trades), 'Trades');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(equity), 'Equity');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.exitDist), 'Distribución salidas');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.durationHist), 'Duración (histograma)');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.runningBalance), 'Balance trade a trade');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(a.scatter), 'Scatter PnL vs MFE');
-  XLSX.writeFile(wb, `backtest_${session.symbol}_${session.id.slice(0, 8)}.xlsx`);
+  return (
+    <section className="rounded-lg border border-border bg-card p-4 space-y-4">
+      <h3 className="font-display font-bold text-sm">{name}</h3>
+      {n < 100 && <Warn>Pocas operaciones ({n}): resultado poco fiable</Warn>}
+      {v && v.pf2 < 1 && <Warn>El Profit Factor de la 2ª mitad es menor que 1 ({fmtPf(v.pf2)})</Warn>}
+      <div className={`grid gap-4 ${compact ? '' : 'lg:grid-cols-2'}`}>
+        <Chart title="R acumulado">
+          <LineChart data={pts}><CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="fecha" hide /><YAxis width={40} fontSize={10} /><Tooltip /><Line dataKey="r" dot={false} stroke="hsl(var(--primary))" strokeWidth={2} /></LineChart>
+        </Chart>
+        <Chart title="Drawdown en R">
+          <AreaChart data={pts}><XAxis dataKey="fecha" hide /><YAxis width={40} fontSize={10} /><Tooltip /><Area dataKey="dd" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive) / 0.25)" /></AreaChart>
+        </Chart>
+        <Chart title="Distribución de R">
+          <BarChart data={dist}><XAxis dataKey="k" fontSize={10} /><YAxis width={30} fontSize={10} /><Tooltip /><Bar dataKey="c">{dist.map(d => <Cell key={d.k} fill={Number(d.k) >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />)}</Bar></BarChart>
+        </Chart>
+        <Chart title="Resultado por año (R)">
+          <BarChart data={byYear}><XAxis dataKey="k" fontSize={10} /><YAxis width={40} fontSize={10} /><Tooltip /><Bar dataKey="rTotal">{byYear.map(d => <Cell key={d.k} fill={d.rTotal >= 0 ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />)}</Bar></BarChart>
+        </Chart>
+      </div>
+      <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-2 xl:grid-cols-3'}`}>
+        <GroupTable title="Por símbolo" rows={bySym} />
+        {byFam.length > 1 && <GroupTable title="Por familia" rows={byFam} />}
+        {bySig.length > 1 && <GroupTable title="Por señal" rows={bySig} />}
+        <GroupTable title="Largos vs cortos" rows={byDir} />
+        <GroupTable title="Por motivo de salida" rows={byMot} />
+      </div>
+      {!compact && (
+        <details>
+          <summary className="cursor-pointer text-xs text-primary">Lista de operaciones ({n})</summary>
+          <div className="max-h-96 overflow-auto mt-2">
+            <table className="w-full text-xs font-data">
+              <thead className="text-muted-foreground"><tr><th className="text-left px-2">Símbolo</th><th className="text-left">Dir</th><th className="text-left">Entrada</th><th className="text-left">Salida</th><th className="text-right">Precio E</th><th className="text-right">Precio S</th><th className="text-right">R</th><th className="text-left px-2">Motivo</th></tr></thead>
+              <tbody>
+                {sorted.map((t, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="px-2">{t.simbolo}{t.contrato !== t.simbolo && <span className="text-muted-foreground"> {t.contrato}</span>}</td>
+                    <td>{t.direccion}</td><td>{t.fecha_entrada}</td><td>{t.fecha_salida}</td>
+                    <td className="text-right">{t.entrada}</td><td className="text-right">{t.salida}</td>
+                    <td className={`text-right font-bold ${t.R >= 0 ? 'text-success' : 'text-destructive'}`}>{t.R.toFixed(2)}</td>
+                    <td className="px-2">{t.motivo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+    </section>
+  );
 }
 
-async function exportPdfBySections(root: HTMLElement, filename: string) {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = 210;
-  const pageH = 297;
-  const margin = 0;
-
-  let sections = Array.from(root.querySelectorAll<HTMLElement>('[data-pdf-section]'));
-  if (sections.length === 0) sections = [root];
-
-  let currentY = 0;
-  let firstPage = true;
-
-  for (const section of sections) {
-    const canvas = await html2canvas(section, {
-      backgroundColor: '#0a0e1a',
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-    const imgW = pageW - margin * 2;
-    const imgH = (canvas.height * imgW) / canvas.width;
-
-    // If the section itself is taller than a page, slice it across pages
-    if (imgH > pageH) {
-      if (!firstPage) { pdf.addPage(); currentY = 0; }
-      const pxPerMm = canvas.width / imgW;
-      const pageHpx = pageH * pxPerMm;
-      let y = 0;
-      while (y < canvas.height) {
-        const sliceH = Math.min(pageHpx, canvas.height - y);
-        const tmp = document.createElement('canvas');
-        tmp.width = canvas.width;
-        tmp.height = sliceH;
-        const ctx = tmp.getContext('2d')!;
-        ctx.fillStyle = '#0a0e1a';
-        ctx.fillRect(0, 0, tmp.width, tmp.height);
-        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        if (y > 0) pdf.addPage();
-        pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', margin, 0, imgW, sliceH / pxPerMm);
-        y += sliceH;
-      }
-      currentY = pageH; // force new page for next section
-      firstPage = false;
-      continue;
-    }
-
-    if (!firstPage && currentY + imgH > pageH) {
-      pdf.addPage();
-      currentY = 0;
-    }
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, currentY, imgW, imgH);
-    currentY += imgH + 3;
-    firstPage = false;
-  }
-
-  pdf.save(filename);
+function Warn({ children }: { children: React.ReactNode }) {
+  return <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-600 dark:text-orange-400"><AlertTriangle className="w-4 h-4" />{children}</div>;
 }
 
-async function exportPdf(session: SavedSession, node: HTMLElement) {
-  try {
-    await exportPdfBySections(node, `backtest_${session.symbol}_${session.id.slice(0, 8)}.pdf`);
-  } catch (e) {
-    console.error('[exportPdf] failed', e);
-    toast.error('No se pudo exportar el PDF');
-  }
+function Chart({ title, children }: { title: string; children: React.ReactElement }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground mb-1">{title}</div>
+      <div className="h-48"><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></div>
+    </div>
+  );
+}
+
+function GroupTable({ title, rows }: { title: string; rows: ReturnType<typeof groupR> }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground mb-1">{title}</div>
+      <div className="max-h-56 overflow-auto rounded border border-border">
+        <table className="w-full text-xs font-data">
+          <thead className="text-muted-foreground"><tr><th className="text-left px-2">—</th><th className="text-right">Ops</th><th className="text-right">%</th><th className="text-right">PF</th><th className="text-right px-2">R</th></tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.k} className="border-t border-border">
+                <td className="px-2">{r.k}</td><td className="text-right">{r.n}</td><td className="text-right">{r.winRate.toFixed(0)}</td>
+                <td className="text-right">{fmtPf(r.pf)}</td>
+                <td className={`text-right px-2 ${r.rTotal >= 0 ? 'text-success' : 'text-destructive'}`}>{r.rTotal.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
