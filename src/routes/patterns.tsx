@@ -13,7 +13,7 @@ import { AnchorNav } from '@/components/radar/AnchorNav';
 
 const BROKER_LABELS: Record<BrokerFilter, string> = {
   all: 'Todos los brokers',
-  darwinex: 'NK',
+  darwinex: 'CWND',
   octx: 'OX',
 };
 

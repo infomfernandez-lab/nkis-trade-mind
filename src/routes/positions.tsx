@@ -266,7 +266,7 @@ function PositionsPage() {
                           ? 'bg-primary/15 text-primary'
                           : 'bg-blue-500/15 text-blue-400'
                       }`}>
-                        {trade.broker === 'darwinex' ? 'NK' : 'OX'}
+                        {'CWND'}
                       </span>
                     </TableCell>
 
