@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { FlaskConical, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/lib/trade-utils';
 
 type Row = {
   id: string;
@@ -11,6 +10,7 @@ type Row = {
   direction: string;
   created_at: string;
   metrics: any;
+  params?: any;
 };
 
 export function RecentBacktestsWidget() {
@@ -19,11 +19,11 @@ export function RecentBacktestsWidget() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('backtest_sessions')
-        .select('id, symbol, broker, direction, created_at, metrics')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(50);
       if (error) throw error;
-      return (data ?? []) as Row[];
+      return ((data ?? []) as any[]).filter(r => r.params?.tipo === 'import' && r.archivada !== true).slice(0, 10) as Row[];
     },
   });
 
@@ -49,31 +49,16 @@ export function RecentBacktestsWidget() {
         ) : (
           <ul className="divide-y divide-border">
             {rows.map(r => {
-              const pnl = Number(r.metrics?.total_pnl ?? r.metrics?.totalPnl ?? 0);
-              const wr = Number(r.metrics?.win_rate ?? r.metrics?.winRate ?? 0);
-              const pf = r.metrics?.profit_factor ?? r.metrics?.profitFactor;
+              const vs: any[] = r.metrics?.variantes ?? [];
+              const best = [...vs].sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
               const dt = new Date(r.created_at);
               return (
                 <li key={r.id} className="flex items-center gap-2 px-2 py-1.5 text-xs">
-                  <span className="font-data font-bold w-20 truncate">{r.symbol}</span>
-                  <span className="text-[10px] uppercase text-muted-foreground w-10 shrink-0">{r.broker}</span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border w-12 text-center shrink-0 ${
-                    r.direction === 'long' || r.direction === 'BUY'
-                      ? 'bg-success/15 text-success border-success/40'
-                      : 'bg-destructive/15 text-destructive border-destructive/40'
-                  }`}>
-                    {r.direction === 'long' || r.direction === 'BUY' ? 'LONG' : 'SHORT'}
-                  </span>
-                  <span className={`font-data font-bold ml-auto ${pnl >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(pnl)}
-                  </span>
-                  <span className="font-data text-muted-foreground w-12 text-right shrink-0">
-                    {wr ? `${wr.toFixed(0)}%` : '—'}
-                  </span>
-                  <span className="font-data text-muted-foreground w-10 text-right shrink-0">
-                    {pf != null ? Number(pf).toFixed(2) : '—'}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-data w-16 text-right shrink-0">
+                  <span className="font-semibold flex-1 truncate">{r.params?.nombre}</span>
+                  <span className="text-[10px] uppercase text-muted-foreground w-12 shrink-0">{r.params?.fuente}</span>
+                  <span className="font-data text-muted-foreground w-16 text-right shrink-0">{r.metrics?.n ?? 0} ops</span>
+                  <span className="font-data font-bold w-16 text-right shrink-0">PF {best ? (best.pf === null || best.pf > 1e9 ? '∞' : Number(best.pf).toFixed(2)) : '—'}</span>
+                  <span className="text-[10px] text-muted-foreground font-data w-12 text-right shrink-0">
                     {dt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
                   </span>
                 </li>
