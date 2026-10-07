@@ -1,3 +1,4 @@
+import { raiz } from '@/lib/account';
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -122,7 +123,7 @@ export default function AssetsPage() {
     [closedTrades, openTrades],
   );
   const aggFor = (a: Asset): TradeAgg | undefined =>
-    tradeAgg.get(`${a.symbol}|${assetBrokerToTrade(a.broker)}`);
+    tradeAgg.get(`${raiz(a.symbol)}|${assetBrokerToTrade(a.broker)}`);
 
   const familias = useMemo(() => {
     const s = new Set<string>();
@@ -151,7 +152,7 @@ export default function AssetsPage() {
       if (sectorF !== 'all' && a.sector !== sectorF) return false;
       if (dirF !== 'all' && (a.last_direction ?? '').toUpperCase() !== dirF) return false;
       if (activeF === 'active' && !a.is_active_scanner) return false;
-      if (q && !a.symbol.toUpperCase().includes(q)) return false;
+      if (q && !(raiz(a.symbol).includes(q) || a.symbol.toUpperCase().includes(q) || (a.description ?? '').toUpperCase().includes(q))) return false;
 
       if (strongTrend && !(Number(a.last_adx ?? 0) >= 25)) return false;
 
@@ -327,12 +328,13 @@ export default function AssetsPage() {
                 <TableRow
                   key={`${a.symbol}-${a.broker}`}
                   className={`cursor-pointer ${rowTint}`}
-                  onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: a.broker, symbol: a.symbol } })}
+                  onClick={() => navigate({ to: '/activos/$broker/$symbol', params: { broker: a.broker, symbol: raiz(a.symbol) } })}
                 >
                   <TableCell className="text-right"><ScoreBadge score={a.last_score} /></TableCell>
                   <TableCell className="font-data font-bold">
-                    {a.symbol}
-                    <span className="ml-1.5 text-[9px] uppercase text-muted-foreground">{a.broker}</span>
+                    {raiz(a.symbol)}
+                    <span className="ml-1.5 text-[9px] uppercase text-muted-foreground">CWND</span>
+                    {a.symbol.includes('_') && <span className="block text-[9px] font-normal text-muted-foreground">{a.symbol}</span>}
                     {agg && agg.openCount > 0 && (
                       <span className="ml-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-bold bg-primary/15 text-primary border border-primary/40">
                         ● {agg.openCount}

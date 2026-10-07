@@ -10,11 +10,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { rowToTrade, formatCurrency, type Trade } from '@/lib/trade-utils';
 import { resolveSector } from '@/lib/asset-enrich';
 import type { Activity as Act } from '@/hooks/use-activities';
+import { useAllTrades } from '@/hooks/use-trades';
+import { raiz } from '@/lib/account';
 
 export const Route = createFileRoute('/activos/$broker/$symbol')({
   component: AssetDetailPage,
   head: ({ params }) => ({
-    meta: [{ title: `${params.symbol} — Activos` }],
+    meta: [
+      { title: `${params.symbol} — Activos CWND` },
+      { name: 'description', content: `Ficha del mercado ${params.symbol}: timeline, operaciones y estadísticas.` },
+      { property: 'og:title', content: `${params.symbol} — Activos CWND` },
+      { property: 'og:description', content: `Ficha del mercado ${params.symbol}.` },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary' },
+    ],
   }),
 });
 
@@ -35,8 +44,9 @@ function AssetDetailPage() {
       const { data, error } = await assetsSupabase
         .from('assets')
         .select('*')
-        .eq('symbol', symbol)
+        .or(`symbol.eq.${symbol},symbol.like.${symbol}\\_%`)
         .eq('broker', broker)
+        .order('last_seen_scanner', { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -48,20 +58,14 @@ function AssetDetailPage() {
 
   const tradeBroker = assetBrokerToTradeBroker(broker);
 
-  const { data: trades = [] } = useQuery({
-    queryKey: ['asset-trades', symbol, tradeBroker],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('symbol', symbol)
-        .eq('broker', tradeBroker)
-        .order('entry_date', { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []).map(rowToTrade);
-    },
-  });
+  // Solo operaciones CWND, agrupadas por raíz (NQ_U, NQ_Z… = NQ)
+  const { closedTrades: cwndClosed, openTrades: cwndOpen } = useAllTrades();
+  const trades = useMemo(
+    () => [...cwndOpen, ...cwndClosed]
+      .filter(t => t.symbol === raiz(symbol) && t.broker === tradeBroker)
+      .sort((a, b) => b.entryDate.localeCompare(a.entryDate)),
+    [cwndOpen, cwndClosed, symbol, tradeBroker],
+  );
 
   const { data: activities = [] } = useQuery({
     queryKey: ['asset-activities', symbol],
