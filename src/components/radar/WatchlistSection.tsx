@@ -165,7 +165,7 @@ export function WatchlistSection({ openSymbols, brokerFilter }: Props) {
                         ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40'
                         : 'bg-orange-900/40 text-orange-300 border border-orange-700/50'
                     }`}>
-                      {normalizeBroker(item.broker) === 'darwinex' ? 'NK' : 'OX'}
+                      {'CWND'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">

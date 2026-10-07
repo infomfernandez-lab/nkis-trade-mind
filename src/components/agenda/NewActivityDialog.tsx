@@ -114,12 +114,11 @@ export function NewActivityDialog({ open, onOpenChange, defaultDate, activity }:
               </datalist>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Broker</label>
+              <label className="text-xs text-muted-foreground">Cuenta</label>
               <select value={broker} onChange={e => setBroker(e.target.value as '' | 'nkis' | 'octx')}
                 className="w-full h-9 px-2 rounded-md border border-input bg-transparent text-sm">
                 <option value="">—</option>
-                <option value="nkis">NKIS</option>
-                <option value="octx">OCTX</option>
+                <option value="nkis">CWND</option>
               </select>
             </div>
           </div>

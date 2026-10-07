@@ -1,3 +1,4 @@
+import { raiz } from '@/lib/account';
 import { useMemo, useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -138,12 +139,18 @@ export function useUnifiedInstruments(brokerFilter: BrokerFilter): UnifiedInstru
     for (const row of data) {
       const v = (row.broker ?? '').toLowerCase();
       const key: 'darwinex' | 'octx' = (v.includes('octx') || v.includes('octx')) ? 'octx' : 'darwinex';
+      // Cuenta única CWND: solo escaneos de futuros ('nkis'); lo de OCTX se oculta.
+      if (key === 'octx') continue;
       if (!latestByBroker.has(key)) latestByBroker.set(key, row);
     }
     const out: UnifiedInstrument[] = [];
     for (const [broker, row] of latestByBroker.entries()) {
       if (brokerFilter !== 'all' && brokerFilter !== broker) continue;
-      const arr = Array.isArray(row.top_instruments) ? (row.top_instruments as Raw[]) : [];
+      // Una fila por mercado: símbolo = raíz (NQ_Z → NQ), primera aparición gana.
+      const seenRoots = new Set<string>();
+      const arr = (Array.isArray(row.top_instruments) ? (row.top_instruments as Raw[]) : [])
+        .map((r) => ({ ...r, symbol: raiz(r.symbol) }))
+        .filter((r) => (seenRoots.has(r.symbol) ? false : (seenRoots.add(r.symbol), true)));
       for (const r of arr) {
         const stochK = r.stoch_k ?? null;
         let stochSub: boolean | null = null;
@@ -716,7 +723,7 @@ function DesktopRow({ inst, rank, hl, isWatched, isInSeguimiento, isOpen, qual, 
       <td className="px-2 py-2 text-center">
         <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${
           inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+        }`}>{'CWND'}</span>
       </td>
       <td className="px-2 py-2 text-right"><PriceCell price={inst.current_price} /></td>
       <td className="px-2 py-2"><AtrValueCell inst={inst} /></td>

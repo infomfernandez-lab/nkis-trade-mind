@@ -10,7 +10,9 @@ const requestSchema = z.object({
   balance: z.number(),
   // Opcional: forzar la columna destino. Si se omite, se deriva de `broker`.
   field: z.enum(['balance_nkis', 'balance_octx']).optional(),
-});
+  account: z.union([z.string(), z.number()]).optional(),
+  login: z.union([z.string(), z.number()]).optional(),
+}).passthrough();
 
 export const Route = createFileRoute('/api/sync-balance')({
   server: {
@@ -30,12 +32,16 @@ export const Route = createFileRoute('/api/sync-balance')({
             }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
           }
 
-          const { broker, balance, field } = parsed.data;
-          const column: 'balance_nkis' | 'balance_octx' =
-            field ?? (broker === 'darwinex' ? 'balance_nkis' : 'balance_octx');
-          const updates = column === 'balance_nkis'
-            ? { balance_nkis: balance }
-            : { balance_octx: balance };
+          const { broker, balance } = parsed.data;
+          // Cuenta única CWND: solo se acepta el balance de la cuenta MT5 configurada.
+          const { data: st } = await supabaseAdmin.from('user_settings').select('account_number').eq('user_id', userId).maybeSingle();
+          const expected = String(st?.account_number || '4000100512').trim();
+          const sentAccount = parsed.data.account ?? parsed.data.login;
+          if (broker === 'octx' || (sentAccount != null && String(sentAccount).trim() !== expected)) {
+            return withCors(Response.json({ success: true, ignored: true, reason: 'cuenta distinta de CWND' }));
+          }
+          const column = 'balance_nkis' as const;
+          const updates = { balance_nkis: balance };
 
           const { error } = await supabaseAdmin
             .from('user_settings')

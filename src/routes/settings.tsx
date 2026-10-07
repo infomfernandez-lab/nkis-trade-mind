@@ -3,13 +3,19 @@ import { Settings as SettingsIcon, Key, Download, Upload, RefreshCw, Loader2, Sa
 import { useState, useEffect } from 'react';
 import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
+import { Server } from 'lucide-react';
+import { accountFromSettings, backtestServerHeaders } from '@/lib/account';
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
   head: () => ({
     meta: [
       { title: 'Ajustes — CAP Trading' },
-      { name: 'description', content: 'Configuración de cuenta y sistema.' },
+      { name: 'description', content: 'Configuración de la cuenta CWND, riesgo y servidor de backtest.' },
+      { property: 'og:title', content: 'Ajustes — CAP Trading' },
+      { property: 'og:description', content: 'Configuración de la cuenta CWND.' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary' },
     ],
   }),
 });
@@ -19,29 +25,44 @@ function SettingsPage() {
   const updateSettings = useUpdateSettings();
   const [showKey, setShowKey] = useState(false);
 
-  const [broker, setBroker] = useState('');
+  const [nombre, setNombre] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
-  const [balance, setBalance] = useState('');
-  const [balanceNkis, setBalanceNkis] = useState('');
-  const [balanceOctx, setBalanceOctx] = useState('');
-  const [riskPerTrade, setRiskPerTrade] = useState('');
+  const [saldoInicial, setSaldoInicial] = useState('');
+  const [moneda, setMoneda] = useState('');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [riesgoPct, setRiesgoPct] = useState('');
   const [maxOpenPositions, setMaxOpenPositions] = useState('');
-  const [vixBlock, setVixBlock] = useState('');
-  const [vixCaution, setVixCaution] = useState('');
+  const [serverUrl, setServerUrl] = useState('');
+  const [serverKey, setServerKey] = useState('');
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     if (settings) {
-      setBroker(settings.broker ?? '');
-      setAccountNumber(settings.account_number ?? '');
-      setBalance(String(settings.balance ?? 0));
-      setBalanceNkis(String((settings as any).balance_nkis ?? 1000000));
-      setBalanceOctx(String((settings as any).balance_octx ?? 26.39));
-      setRiskPerTrade(String(settings.risk_per_trade ?? 1));
-      setMaxOpenPositions(String(settings.max_open_positions ?? 2));
-      setVixBlock(String(settings.vix_block_threshold ?? 45));
-      setVixCaution(String(settings.vix_caution_threshold ?? 25));
+      const acc = accountFromSettings(settings);
+      setNombre(acc.nombre);
+      setAccountNumber(acc.numero);
+      setSaldoInicial(String(acc.saldoInicial));
+      setMoneda(acc.moneda);
+      setFechaInicio(acc.fechaInicio);
+      setRiesgoPct(String(acc.riesgoPct));
+      setMaxOpenPositions(String(settings.max_open_positions ?? 8));
+      setServerUrl(String((settings as any).backtest_server_url ?? ''));
+      setServerKey(String((settings as any).backtest_server_key ?? ''));
     }
   }, [settings]);
+
+  const testConnection = async () => {
+    setTesting(true); setTestMsg(null);
+    try {
+      const r = await fetch(`${serverUrl.replace(/\/+$/, '')}/salud`, { headers: backtestServerHeaders(serverKey) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const j = await r.json().catch(() => ({}));
+      setTestMsg({ ok: true, text: `Conectado · cuenta ${j?.cuenta ?? accountNumber}` });
+    } catch (e: any) {
+      setTestMsg({ ok: false, text: `Error: ${e.message ?? e}. Servidor apagado: abre 4_SERVIDOR_BACKTEST.bat y ngrok en tu PC.` });
+    } finally { setTesting(false); }
+  };
 
   if (isLoading) {
     return (
@@ -62,15 +83,15 @@ function SettingsPage() {
 
   const handleSave = () => {
     updateSettings.mutate({
-      broker,
+      cuenta_nombre: nombre,
       account_number: accountNumber,
-      balance: parseFloat(balance) || 0,
-      balance_nkis: parseFloat(balanceNkis) || 0,
-      balance_octx: parseFloat(balanceOctx) || 0,
-      risk_per_trade: parseFloat(riskPerTrade) || 1,
-      max_open_positions: parseInt(maxOpenPositions) || 2,
-      vix_block_threshold: parseFloat(vixBlock) || 45,
-      vix_caution_threshold: parseFloat(vixCaution) || 25,
+      saldo_inicial: parseFloat(saldoInicial) || 0,
+      moneda,
+      fecha_inicio: fechaInicio,
+      riesgo_pct: parseFloat(riesgoPct.replace(',', '.')) || 0.25,
+      max_open_positions: parseInt(maxOpenPositions) || 8,
+      backtest_server_url: serverUrl.trim(),
+      backtest_server_key: serverKey.trim(),
     } as any, {
       onSuccess: () => toast.success('Ajustes guardados'),
       onError: (e) => toast.error(`Error al guardar: ${e.message}`),
@@ -96,21 +117,31 @@ function SettingsPage() {
 
       <SettingsCard title="Cuenta" icon={SettingsIcon}>
         <FieldGroup>
-          <InputField label="Broker" value={broker} onChange={setBroker} />
-          <InputField label="Número de Cuenta" value={accountNumber} onChange={setAccountNumber} />
-          <InputField label="Balance (legacy)" value={balance} onChange={setBalance} />
-          <InputField label="Balance NKIS (€)" value={balanceNkis} onChange={setBalanceNkis} />
-          <InputField label="Balance OCTX (€)" value={balanceOctx} onChange={setBalanceOctx} />
+          <InputField label="Nombre" value={nombre} onChange={setNombre} />
+          <InputField label="Número de cuenta MT5" value={accountNumber} onChange={setAccountNumber} />
+          <InputField label="Saldo inicial" value={saldoInicial} onChange={setSaldoInicial} />
+          <InputField label="Moneda" value={moneda} onChange={setMoneda} />
+          <InputField label="Fecha de inicio (AAAA-MM-DD)" value={fechaInicio} onChange={setFechaInicio} />
+          <InputField label="Riesgo por operación (%)" value={riesgoPct} onChange={setRiesgoPct} />
+          <InputField label="Máx. posiciones abiertas" value={maxOpenPositions} onChange={setMaxOpenPositions} />
         </FieldGroup>
       </SettingsCard>
 
-      <SettingsCard title="Configuración de Riesgo" icon={SettingsIcon}>
+      <SettingsCard title="Servidor de backtest" icon={Server}>
         <FieldGroup>
-          <InputField label="Riesgo por Trade (%)" value={riskPerTrade} onChange={setRiskPerTrade} />
-          <InputField label="Máx. Posiciones Abiertas" value={maxOpenPositions} onChange={setMaxOpenPositions} />
-          <InputField label="Umbral VIX Bloqueo" value={vixBlock} onChange={setVixBlock} />
-          <InputField label="Umbral VIX Precaución" value={vixCaution} onChange={setVixCaution} />
+          <InputField label="URL del servidor (ngrok)" value={serverUrl} onChange={setServerUrl} />
+          <InputField label="Clave" value={serverKey} onChange={setServerKey} />
         </FieldGroup>
+        <div className="mt-3 flex items-center gap-3">
+          <button
+            onClick={testConnection}
+            disabled={testing || !serverUrl}
+            className="flex items-center gap-2 px-3 py-2 rounded-md bg-secondary text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Probar conexión
+          </button>
+          {testMsg && <span className={`text-sm ${testMsg.ok ? 'text-success' : 'text-destructive'}`}>{testMsg.text}</span>}
+        </div>
       </SettingsCard>
 
       <SettingsCard title="Clave API Sincronización MT5" icon={Key}>

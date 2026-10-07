@@ -33,7 +33,7 @@ export function PnlCalendarSection({ closedTrades, broker = 'all' }: Props) {
     [closedTrades],
   );
 
-  const accountLabel = broker === 'darwinex' ? 'NK' : broker === 'octx' ? 'OX' : 'Todas las cuentas';
+  const accountLabel = 'CWND';
 
 
   const byDay = useMemo(() => {

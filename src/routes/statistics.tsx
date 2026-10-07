@@ -1,3 +1,4 @@
+import { accountFromSettings } from '@/lib/account';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import {
@@ -281,25 +282,9 @@ function StatisticsPage() {
 
   const closedTrades = useMemo(() => filterByBroker(allClosed, broker), [allClosed, broker]);
 
-  // Capital inicial derivado de los balances REALES guardados en user_settings.
-  // starting = balance_actual - sum(pnl de los trades cerrados de esa cuenta).
-  const balanceNk = Number(settings?.balance_nkis ?? 0);
-  const balanceOx = Number(settings?.balance_octx ?? 0);
-  const nkPnl = useMemo(
-    () => allClosed.filter(t => t.broker === 'darwinex' || t.broker === 'nkis')
-      .reduce((s, t) => s + t.netPnl, 0),
-    [allClosed],
-  );
-  const oxPnl = useMemo(
-    () => allClosed.filter(t => t.broker === 'octx').reduce((s, t) => s + t.netPnl, 0),
-    [allClosed],
-  );
-  const startingNk = balanceNk - nkPnl;
-  const startingOx = balanceOx - oxPnl;
-  const startingBalance =
-    broker === 'darwinex' ? startingNk :
-    broker === 'octx' ? startingOx :
-    startingNk + startingOx;
+  // Drawdown y retorno % sobre el saldo inicial de la cuenta CWND.
+  const startingBalance = accountFromSettings(settings).saldoInicial;
+  const startingNk = startingBalance;
 
   const stats = useMemo(() => computeAllStats(closedTrades, startingBalance), [closedTrades, startingBalance]);
 
@@ -485,8 +470,8 @@ function StatisticsPage() {
         {/* Curva de Equity */}
         <EquityCurveSection
           closedTrades={closedTrades}
-          initialNk={broker === 'octx' ? 0 : startingNk}
-          initialOx={broker === 'darwinex' ? 0 : startingOx}
+          initialNk={startingNk}
+          initialOx={0}
           broker={broker}
         />
 

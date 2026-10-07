@@ -40,10 +40,10 @@ const ROW_ALT: [number, number, number] = [248, 249, 252];
 
 function brokerLabel(b: string): string {
   const k = (b || '').toLowerCase();
-  if (k === 'darwinex') return 'NK';
+  if (k === 'darwinex') return 'CWND';
   if (k === 'fxpro') return 'OX';
   if (k === 'octx') return 'OX';
-  if (k === 'nkis') return 'NK';
+  if (k === 'nkis') return 'CWND';
   return (b || '').toUpperCase();
 }
 
@@ -119,7 +119,7 @@ export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, ch
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...GOLD_SOFT);
-    doc.text('DARWIN NKIS', margin, 17);
+    doc.text('CWND · Darwinex Zero', margin, 17);
     doc.setTextColor(255, 255, 255);
     doc.text(`Exportado: ${exportDate}`, pageWidth - margin, 17, { align: 'right' });
 
@@ -364,7 +364,7 @@ export async function exportTradePdf({ trade, journal, scannerInfo, vixValue, ch
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('DARWIN NKIS — Confidencial', margin, pageHeight - 7);
+    doc.text('CWND · Darwinex Zero — Confidencial', margin, pageHeight - 7);
     doc.text(exportDate, pageWidth / 2, pageHeight - 7, { align: 'center' });
     doc.text(`Página ${i} / ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }

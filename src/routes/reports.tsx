@@ -1,3 +1,4 @@
+import { accountFromSettings } from '@/lib/account';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, Calendar, TrendingUp, BarChart3, Download, Loader2, CalendarDays, Save, Sparkles } from 'lucide-react';
@@ -35,11 +36,8 @@ function Reports() {
   const trades = useMemo(() => filterByBroker(allClosed ?? [], broker), [allClosed, broker]);
 
   const startingBalance = useMemo(() => {
-    if (!settings) return 0;
-    if (broker === 'darwinex') return Number(settings.balance_nkis ?? 0);
-    if (broker === 'octx') return Number(settings.balance_octx ?? 0);
-    return Number(settings.balance_nkis ?? 0) + Number(settings.balance_octx ?? 0);
-  }, [settings, broker]);
+    return accountFromSettings(settings).saldoInicial;
+  }, [settings]);
 
   if (isLoading) {
     return (
@@ -90,7 +88,7 @@ function Reports() {
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Informes</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Informes generados automáticamente con los datos del registro de trades · Exportables a PDF con diseño NKIS
+          Informes generados automáticamente con los datos del registro de trades · Exportables a PDF con diseño CWND
         </p>
       </div>
 
@@ -587,9 +585,9 @@ function DailyPanel({ closedTrades, openTrades, brokerFilter }: {
         <MiniStat label="Posiciones abiertas" value={String(openNow.length)} />
         <MiniStat label="P&L Flotante" value={formatCurrency(floating)} positive={floating >= 0} />
         <MiniStat label="VIX del día" value={vix != null ? vix.toFixed(2) : '—'} />
-        <MiniStat label="ÉLITE NKIS" value={String(eliteNkis.length)} />
+        <MiniStat label="ÉLITE CWND" value={String(eliteNkis.length)} />
         <MiniStat label="ÉLITE OCTX" value={String(eliteOctx.length)} />
-        <MiniStat label="Cuenta" value={brokerFilter === 'all' ? 'NKIS+OCTX' : brokerFilter.toUpperCase()} />
+        <MiniStat label="Cuenta" value="CWND" />
       </div>
 
       {/* Closed today */}
@@ -637,7 +635,7 @@ function DailyPanel({ closedTrades, openTrades, brokerFilter }: {
 
       {/* Elite signals */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <EliteList title="★ ÉLITE NKIS" list={eliteNkis} />
+        <EliteList title="★ ÉLITE CWND" list={eliteNkis} />
         <EliteList title="★ ÉLITE OCTX" list={eliteOctx} />
       </div>
 

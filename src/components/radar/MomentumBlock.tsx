@@ -250,7 +250,7 @@ export function MomentumBlock({ brokerFilter }: Props) {
                       ? 'bg-blue-500/20 text-blue-300 border-blue-400/40'
                       : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
                   }`}>
-                    {bk === 'darwinex' ? 'NK' : 'OX'}
+                    {'CWND'}
                   </span>
 
                   {/* Score bar pushed to right on desktop */}

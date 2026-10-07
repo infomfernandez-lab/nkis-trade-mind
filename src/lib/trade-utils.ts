@@ -1,4 +1,6 @@
 import type { Tables } from '@/integrations/supabase/types';
+import { raiz } from '@/lib/account';
+import { getSpecByRoot } from '@/lib/contract-specs';
 
 // Re-export the DB row type with a convenient alias
 export type TradeRow = Tables<'trades'>;
@@ -24,7 +26,12 @@ export function normalizeBroker(raw: string | null | undefined): string {
 export interface Trade {
   id: string;
   ticket: number;
+  /** Raíz del mercado (NQ) */
   symbol: string;
+  /** Contrato completo operado (NQ_Z) */
+  contrato: string;
+  /** Resultado en R (net / riesgo inicial). null si no hay stop inicial. */
+  rMultiple: number | null;
   direction: 'BUY' | 'SELL';
   entryDate: string;
   exitDate: string | null;
@@ -72,7 +79,9 @@ export function rowToTrade(row: TradeRow): Trade {
   return {
     id: row.id,
     ticket: Number(row.ticket ?? 0),
-    symbol: row.symbol,
+    symbol: raiz(row.symbol),
+    contrato: row.symbol,
+    rMultiple: computeR(row),
     direction: row.direction as 'BUY' | 'SELL',
     entryDate: row.entry_date,
     exitDate: row.exit_date,
@@ -114,6 +123,20 @@ export function rowToTrade(row: TradeRow): Trade {
     broker: normalizeBroker((row as any).broker),
     updatedAt: row.updated_at,
   };
+}
+
+/** R = resultado / riesgo inicial (|entrada − stop| / tick × valor tick × lotes). */
+function computeR(row: TradeRow): number | null {
+  const entry = Number(row.entry_price);
+  const sl = row.sl_price != null ? Number(row.sl_price) : 0;
+  const lots = Number(row.lot_size ?? 0);
+  if (!sl || !entry || !lots) return null;
+  const spec = getSpecByRoot(row.symbol);
+  const dist = Math.abs(entry - sl);
+  if (!spec || !(spec.tickSize > 0) || !dist) return null;
+  const risk = (dist / spec.tickSize) * spec.tickValue * lots;
+  if (!(risk > 0)) return null;
+  return Number(row.net_pnl ?? 0) / risk;
 }
 
 /** Filter trades by broker */

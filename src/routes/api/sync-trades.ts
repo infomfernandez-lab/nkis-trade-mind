@@ -35,6 +35,8 @@ const tradeSchema = z.object({
   vix_at_entry: z.number().nullable().optional(),
   broker: z.enum(['darwinex', 'octx', 'nkis', 'fxpro']).optional().default('darwinex')
     .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'fxpro' ? 'octx' : v)),
+  account: z.union([z.string(), z.number()]).optional(),
+  login: z.union([z.string(), z.number()]).optional(),
 });
 
 const requestSchema = z.object({
@@ -46,7 +48,9 @@ const requestSchema = z.object({
     .transform((v) => (v === 'nkis' ? 'darwinex' : v === 'fxpro' ? 'octx' : v)),
   open_tickets: z.array(z.number().int()).optional(),
   expected_tickets: z.array(z.number().int()).max(10000).optional(),
-});
+  account: z.union([z.string(), z.number()]).optional(),
+  login: z.union([z.string(), z.number()]).optional(),
+}).passthrough();
 
 export const Route = createFileRoute('/api/sync-trades')({
   server: {
@@ -70,13 +74,29 @@ export const Route = createFileRoute('/api/sync-trades')({
 
           // Per-row validation so one bad row doesn't kill the whole batch.
           // Track which tickets were rejected and why.
+          // Cuenta única CWND: ignorar todo lo que no sea de la cuenta MT5 configurada.
+          const { data: st } = await supabaseAdmin.from('user_settings').select('account_number').eq('user_id', userId).maybeSingle();
+          const expectedAccount = String(st?.account_number || '4000100512').trim();
+          const batchAccount = parsed.data.account ?? parsed.data.login;
+          if (parsed.data.broker === 'octx' || (batchAccount != null && String(batchAccount).trim() !== expectedAccount)) {
+            return withCors(Response.json({ success: true, ignored: true, reason: 'cuenta distinta de CWND', received: 0, upserted: 0 }));
+          }
+          const ignored: number[] = [];
           const validRows: any[] = [];
           const rejected: { ticket: number | null; reason: string; field_errors?: any }[] = [];
           const rawTrades = Array.isArray((body as any)?.trades) ? (body as any).trades : [];
           for (const raw of rawTrades) {
             const single = tradeSchema.safeParse(raw);
             if (single.success) {
-              validRows.push({ ...single.data, user_id: userId });
+              const { account, login, ...rowData } = single.data;
+              const acc = account ?? login;
+              if (rowData.broker === 'octx' || (acc != null && String(acc).trim() !== expectedAccount)) {
+                ignored.push(rowData.ticket);
+                continue;
+              }
+              const contrato = rowData.symbol.trim().toUpperCase();
+              const raizSym = contrato.includes('_') ? contrato.split('_')[0] : contrato;
+              validRows.push({ ...rowData, user_id: userId, raiz: raizSym, contrato, cuenta: expectedAccount, archivada: false });
             } else {
               rejected.push({
                 ticket: typeof raw?.ticket === 'number' ? raw.ticket : null,
@@ -194,6 +214,7 @@ export const Route = createFileRoute('/api/sync-trades')({
             rejected: rejected.slice(0, 100), // cap response size
             upsert_errors: upsertErrors,
             stales_closed: stalesClosed,
+            ignored_other_account: ignored.length,
             verification,
           }));
         } catch (e) {

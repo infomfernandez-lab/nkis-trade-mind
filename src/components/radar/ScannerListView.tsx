@@ -294,7 +294,7 @@ function DesktopRow({ inst, rank }: { inst: UnifiedInstrument; rank: number }) {
       <td className="px-3 py-3 text-center">
         <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
           inst.broker === 'darwinex' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-orange-900/40 text-orange-300 border-orange-700/50'
-        }`}>{inst.broker === 'darwinex' ? 'NK' : 'OX'}</span>
+        }`}>{'CWND'}</span>
       </td>
       <td className="px-3 py-3 text-right"><PriceCell price={inst.current_price} /></td>
       <td className="px-3 py-3"><AtrValueCell inst={inst} /></td>

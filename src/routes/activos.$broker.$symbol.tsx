@@ -4,17 +4,26 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ArrowUp, ArrowDown, Loader2, TrendingUp, TrendingDown, Activity, ListChecks, BarChart3, Info } from 'lucide-react';
 import { assetsSupabase } from '@/components/activos/assets-supabase-client';
 import { supabase } from '@/integrations/supabase/client';
-import { getContractSpec } from '@/lib/contract-specs';
+import { getSpecByRoot } from '@/lib/contract-specs';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { rowToTrade, formatCurrency, type Trade } from '@/lib/trade-utils';
 import { resolveSector } from '@/lib/asset-enrich';
 import type { Activity as Act } from '@/hooks/use-activities';
+import { useAllTrades } from '@/hooks/use-trades';
+import { raiz } from '@/lib/account';
 
 export const Route = createFileRoute('/activos/$broker/$symbol')({
   component: AssetDetailPage,
   head: ({ params }) => ({
-    meta: [{ title: `${params.symbol} — Activos` }],
+    meta: [
+      { title: `${params.symbol} — Activos CWND` },
+      { name: 'description', content: `Ficha del mercado ${params.symbol}: timeline, operaciones y estadísticas.` },
+      { property: 'og:title', content: `${params.symbol} — Activos CWND` },
+      { property: 'og:description', content: `Ficha del mercado ${params.symbol}.` },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary' },
+    ],
   }),
 });
 
@@ -35,8 +44,9 @@ function AssetDetailPage() {
       const { data, error } = await assetsSupabase
         .from('assets')
         .select('*')
-        .eq('symbol', symbol)
+        .or(`symbol.eq.${symbol},symbol.like.${symbol}\\_%`)
         .eq('broker', broker)
+        .order('last_seen_scanner', { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -48,20 +58,14 @@ function AssetDetailPage() {
 
   const tradeBroker = assetBrokerToTradeBroker(broker);
 
-  const { data: trades = [] } = useQuery({
-    queryKey: ['asset-trades', symbol, tradeBroker],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('symbol', symbol)
-        .eq('broker', tradeBroker)
-        .order('entry_date', { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []).map(rowToTrade);
-    },
-  });
+  // Solo operaciones CWND, agrupadas por raíz (NQ_U, NQ_Z… = NQ)
+  const { closedTrades: cwndClosed, openTrades: cwndOpen } = useAllTrades();
+  const trades = useMemo(
+    () => [...cwndOpen, ...cwndClosed]
+      .filter(t => t.symbol === raiz(symbol) && t.broker === tradeBroker)
+      .sort((a, b) => b.entryDate.localeCompare(a.entryDate)),
+    [cwndOpen, cwndClosed, symbol, tradeBroker],
+  );
 
   const { data: activities = [] } = useQuery({
     queryKey: ['asset-activities', symbol],
@@ -92,7 +96,7 @@ function AssetDetailPage() {
     },
   });
 
-  const spec = getContractSpec(symbol);
+  const spec = getSpecByRoot(symbol);
   const stats = useMemo(() => computeStats(trades), [trades]);
   const openTrade = useMemo(() => trades.find(t => t.status === 'open') ?? null, [trades]);
   const lastClosed = useMemo(() => trades.find(t => t.status === 'closed') ?? null, [trades]);
@@ -389,7 +393,7 @@ function StatsTab({ stats }: { stats: Stats }) {
 
 /* ────── Info tab ────── */
 
-function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getContractSpec> }) {
+function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getSpecByRoot> }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

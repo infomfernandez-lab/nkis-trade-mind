@@ -1,3 +1,4 @@
+import { raiz } from '@/lib/account';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,10 +62,16 @@ export function useLatestScannerByKey(): Map<string, UnifiedInstrument> {
     for (const row of data) {
       const v = (row.broker ?? '').toLowerCase();
       const key: 'darwinex' | 'octx' = (v.includes('octx') || v.includes('octx')) ? 'octx' : 'darwinex';
+      // Cuenta única CWND: solo escaneos de futuros ('nkis'); lo de OCTX se oculta.
+      if (key === 'octx') continue;
       if (!latestByBroker.has(key)) latestByBroker.set(key, row);
     }
     for (const [broker, row] of latestByBroker.entries()) {
-      const arr = Array.isArray(row.top_instruments) ? (row.top_instruments as Raw[]) : [];
+      // Una fila por mercado: símbolo = raíz (NQ_Z → NQ), primera aparición gana.
+      const seenRoots = new Set<string>();
+      const arr = (Array.isArray(row.top_instruments) ? (row.top_instruments as Raw[]) : [])
+        .map((r) => ({ ...r, symbol: raiz(r.symbol) }))
+        .filter((r) => (seenRoots.has(r.symbol) ? false : (seenRoots.add(r.symbol), true)));
       for (const r of arr) {
         const inst: UnifiedInstrument = {
           symbol: r.symbol,

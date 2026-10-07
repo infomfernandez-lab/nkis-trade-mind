@@ -15,7 +15,7 @@ const ROW_ALT: [number, number, number] = [248, 249, 252];
 
 function brokerLabel(b: string): string {
   const k = (b || '').toLowerCase();
-  if (k === 'darwinex' || k === 'nkis') return 'NK';
+  if (k === 'darwinex' || k === 'nkis') return 'CWND';
   if (k === 'fxpro' || k === 'octx') return 'OX';
   return (b || '').toUpperCase();
 }
@@ -434,7 +434,7 @@ function drawFooter(d: Doc) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...TEXT_MUTED);
-    doc.text('DARWIN NKIS — Confidencial', margin, pageHeight - 7);
+    doc.text('CWND · Darwinex Zero — Confidencial', margin, pageHeight - 7);
     doc.text(d.exportDate, pageWidth / 2, pageHeight - 7, { align: 'center' });
     doc.text(`Página ${i} / ${pageCount}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
   }
@@ -563,7 +563,7 @@ export interface DailyArgs {
 export function exportDailyReport(args: DailyArgs) {
   const { date, brokerFilter, closedToday, openNow, eliteNkis, eliteOctx, vix,
     marketContext, systemFollowed, errors, lesson, planTomorrow } = args;
-  const d = newDoc('Informe Diario · DARWIN NKIS');
+  const d = newDoc('Informe Diario · CWND · Darwinex Zero');
   const totalPnl = closedToday.reduce((s, t) => s + t.netPnl, 0);
   const floating = openNow.reduce((s, p) => s + p.floatingPnl, 0);
   const pnlColor: [number, number, number] = totalPnl >= 0 ? GREEN : RED;
@@ -706,7 +706,7 @@ export interface WeeklyArgs {
 }
 
 export function exportWeeklyReport({ trades, weekStart, weekEnd, perspective }: WeeklyArgs) {
-  const d = newDoc('Informe Semanal · DARWIN NKIS');
+  const d = newDoc('Informe Semanal · CWND · Darwinex Zero');
   const m = computeMetrics(trades);
   const dd = maxDrawdown(trades);
   const compliance = complianceRate(trades);
@@ -803,7 +803,7 @@ export interface MonthlyArgs {
 }
 
 export function exportMonthlyReport({ trades, prevTrades, monthDate, startingBalance, selfAssessment }: MonthlyArgs) {
-  const d = newDoc('Informe Mensual · DARWIN NKIS');
+  const d = newDoc('Informe Mensual · CWND · Darwinex Zero');
   const monthName = monthDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
   const m = computeMetrics(trades);
   const prev = computeMetrics(prevTrades);
@@ -975,7 +975,7 @@ export interface PerformanceArgs {
 }
 
 export function exportPerformanceReport({ trades, startingBalance, vixCautionThreshold }: PerformanceArgs) {
-  const d = newDoc('Informe de Performance · DARWIN NKIS');
+  const d = newDoc('Informe de Performance · CWND · Darwinex Zero');
   const m = computeMetrics(trades);
   const dd = maxDrawdown(trades);
   const compliance = complianceRate(trades);

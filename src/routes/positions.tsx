@@ -57,9 +57,7 @@ function timeSinceText(dateStr: string): { text: string; stale: boolean } {
 }
 
 const TAB_OPTIONS: { value: BrokerFilter; label: string }[] = [
-  { value: 'all', label: 'Todas' },
-  { value: 'darwinex', label: 'NK' },
-  { value: 'octx', label: 'OX' },
+  { value: 'darwinex', label: 'CWND' },
 ];
 
 function InlineNotes({ trade }: { trade: Trade }) {
@@ -104,7 +102,7 @@ function InlineNotes({ trade }: { trade: Trade }) {
 function PositionsPage() {
   const { openTrades: allOpen, isLoading } = useAllTrades();
   const { data: settings } = useSettings();
-  const [tab, setTab] = useState<BrokerFilter>('all');
+  const [tab, setTab] = useState<BrokerFilter>('darwinex');
   const [, setTick] = useState(0);
 
   // Live duration counter — update every minute
@@ -266,7 +264,7 @@ function PositionsPage() {
                           ? 'bg-primary/15 text-primary'
                           : 'bg-blue-500/15 text-blue-400'
                       }`}>
-                        {trade.broker === 'darwinex' ? 'NK' : 'OX'}
+                        {'CWND'}
                       </span>
                     </TableCell>
 

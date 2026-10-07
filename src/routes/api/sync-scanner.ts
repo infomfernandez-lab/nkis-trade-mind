@@ -68,7 +68,10 @@ export const Route = createFileRoute('/api/sync-scanner')({
           const row = {
             user_id: userId,
             session_date: parsed.data.session_date ?? new Date().toISOString(),
-            top_instruments: (parsed.data.top_instruments ?? []) as unknown as import('@/integrations/supabase/types').Json,
+            top_instruments: (parsed.data.top_instruments ?? []).map((it: any) => {
+              const contrato = String(it?.symbol ?? '').trim().toUpperCase();
+              return { ...it, contrato, raiz: contrato.includes('_') ? contrato.split('_')[0] : contrato };
+            }) as unknown as import('@/integrations/supabase/types').Json,
             correlations_detected: (parsed.data.correlations_detected ?? []) as unknown as import('@/integrations/supabase/types').Json,
             notes: parsed.data.notes ?? null,
             broker,

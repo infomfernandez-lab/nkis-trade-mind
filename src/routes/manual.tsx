@@ -1,4 +1,48 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useSettings, useUpdateSettings } from '@/hooks/use-settings';
+
+const DEFAULT_RULES = `· Dirección: solo la que marca el escáner (fuerza ≥ +30 compras, ≤ −30 ventas).
+· Entrada: la distancia (cierre − EMA64)/ATR14 cruza −2, 0 o +2 a favor de la tendencia, con una vela cerrada a cada lado del nivel. Entrada a la apertura siguiente.
+· Stop: penúltimo pivote no tocado; se sube (o baja en ventas) a medida que se forman pivotes nuevos, solo a favor.
+· Objetivo: segundo pivote no tocado a favor.
+· Riesgo: 0,25 % del saldo por operación. Máximo 2 posiciones por tema y 8 en total.
+· Contratos: cambiar al siguiente vencimiento antes de la fecha de entrega.`;
+
+function CwndRules() {
+  const { data: settings } = useSettings();
+  const update = useUpdateSettings();
+  const [text, setText] = useState(DEFAULT_RULES);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    const saved = (settings as any)?.reglas_sistema;
+    if (saved) setText(saved);
+  }, [settings]);
+  const save = () => update.mutate({ reglas_sistema: text } as any, {
+    onSuccess: () => { toast.success('Reglas guardadas'); setEditing(false); },
+    onError: (e) => toast.error(`Error al guardar: ${e.message}`),
+  });
+  return (
+    <ManualSection icon={Shield} title="Reglas del sistema (CWND)">
+      {editing ? (
+        <div className="space-y-2">
+          <textarea value={text} onChange={e => setText(e.target.value)} rows={10}
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm" />
+          <div className="flex gap-2">
+            <button onClick={save} className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium">Guardar</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-md bg-secondary text-xs">Cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{text}</p>
+          <button onClick={() => setEditing(true)} className="mt-3 text-xs text-primary hover:underline">Editar reglas</button>
+        </div>
+      )}
+    </ManualSection>
+  );
+}
 import { Shield, Target, Zap, Eye, BarChart3, AlertTriangle, BookOpen } from 'lucide-react';
 
 export const Route = createFileRoute('/manual')({
@@ -18,6 +62,8 @@ function Manual() {
         <h1 className="font-display text-3xl font-bold tracking-tight">Sistema 1</h1>
         <p className="text-muted-foreground mt-2">Sistema de Trading Sistemático Trend-Following — Referencia Completa</p>
       </div>
+
+      <CwndRules />
 
       <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 text-sm">
         <p className="text-foreground/90 italic font-medium">

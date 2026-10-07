@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { rowToTrade, type Trade } from '@/lib/trade-utils';
+import { useSettings } from '@/hooks/use-settings';
+import { accountFromSettings, isCwndTradeRow } from '@/lib/account';
 
-async function fetchTrades(isOpen: boolean): Promise<Trade[]> {
+async function fetchTrades(isOpen: boolean): Promise<any[]> {
   const { data, error } = await supabase
     .from('trades')
     .select('*')
@@ -11,21 +13,26 @@ async function fetchTrades(isOpen: boolean): Promise<Trade[]> {
     .limit(1000);
 
   if (error) throw error;
-  return (data ?? []).map(rowToTrade);
+  return data ?? [];
+}
+
+/** Solo operaciones de la cuenta CWND desde la fecha de inicio (las antiguas quedan archivadas). */
+function useCwndTrades(isOpen: boolean) {
+  const { data: settings } = useSettings();
+  const fechaInicio = accountFromSettings(settings).fechaInicio;
+  return useQuery({
+    queryKey: ['trades', isOpen ? 'open' : 'closed'],
+    queryFn: () => fetchTrades(isOpen),
+    select: (rows): Trade[] => rows.filter(r => isCwndTradeRow(r, fechaInicio)).map(rowToTrade),
+  });
 }
 
 export function useClosedTrades() {
-  return useQuery({
-    queryKey: ['trades', 'closed'],
-    queryFn: () => fetchTrades(false),
-  });
+  return useCwndTrades(false);
 }
 
 export function useOpenTrades() {
-  return useQuery({
-    queryKey: ['trades', 'open'],
-    queryFn: () => fetchTrades(true),
-  });
+  return useCwndTrades(true);
 }
 
 export function useAllTrades() {

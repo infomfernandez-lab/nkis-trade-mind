@@ -10,11 +10,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { useTheme } from '@/hooks/use-theme';
-import { BrokerSelector } from '@/components/BrokerSelector';
 
 
+// Cuenta única CWND: el filtro de broker queda fijo en futuros ('darwinex' = 'nkis' = CWND).
 const BrokerContext = createContext<{ broker: BrokerFilter; setBroker: (b: BrokerFilter) => void }>({
-  broker: 'all',
+  broker: 'darwinex',
   setBroker: () => {},
 });
 
@@ -52,7 +52,8 @@ function useRadarBadges() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [broker, setBroker] = useState<BrokerFilter>('all');
+  const broker: BrokerFilter = 'darwinex';
+  const setBroker = (_b: BrokerFilter) => {};
   const [hideHeader, setHideHeader] = useState(false);
   const mainRef = useRef<HTMLElement | null>(null);
   const lastScrollY = useRef(0);
@@ -161,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <button className="lg:hidden mr-2 p-2 -ml-1 text-muted-foreground" onClick={() => setMobileOpen(true)}>
                 <Menu className="w-7 h-7" />
               </button>
-              <BrokerSelector value={broker} onChange={setBroker} compact />
+              <span className="px-2 py-1 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/40 shrink-0">CWND</span>
               <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide flex-1">
                 <MetricPill label="P&L Total" value={formatCurrency(stats.totalPnl)} positive={stats.totalPnl >= 0} />
                 <MetricPill label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} positive={stats.winRate >= 50} />
