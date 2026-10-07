@@ -36,7 +36,7 @@ const fmtDate = (iso: string) => {
 const fmtN = (n: number | null, d = 4) =>
   n != null && Number.isFinite(n) ? Number(n).toFixed(d) : '—';
 const fmtEur = (n: number | null) =>
-  n != null && Number.isFinite(n) ? `€${Math.round(Number(n)).toLocaleString('es-ES')}` : '—';
+  n != null && Number.isFinite(n) ? `$${Math.round(Number(n)).toLocaleString('es-ES')}` : '—';
 
 type Props = {
   onRecover: (r: CalcRecord) => void;
