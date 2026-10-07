@@ -471,7 +471,7 @@ function StatisticsPage() {
         <EquityCurveSection
           closedTrades={closedTrades}
           initialNk={startingNk}
-          initialOx={broker === 'darwinex' ? 0 : startingOx}
+          initialOx={0}
           broker={broker}
         />
 
