@@ -102,7 +102,7 @@ function InlineNotes({ trade }: { trade: Trade }) {
 function PositionsPage() {
   const { openTrades: allOpen, isLoading } = useAllTrades();
   const { data: settings } = useSettings();
-  const [tab, setTab] = useState<BrokerFilter>('all');
+  const [tab, setTab] = useState<BrokerFilter>('darwinex');
   const [, setTick] = useState(0);
 
   // Live duration counter — update every minute

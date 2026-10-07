@@ -49,7 +49,7 @@ export function CalculatorHistory({ onRecover }: Props) {
   const [count, setCount] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [brokerFilter, setBrokerFilter] = useState<'all' | 'darwinex' | 'octx'>('all');
+  const brokerFilter = 'darwinex' as 'all' | 'darwinex' | 'octx';
   const [dirFilter, setDirFilter] = useState<'all' | 'BUY' | 'SELL'>('all');
 
   const fetchPage = useCallback(async (offset: number, replace: boolean) => {
@@ -176,15 +176,6 @@ export function CalculatorHistory({ onRecover }: Props) {
         <div className="px-4 pb-4 border-t border-border">
           {/* Filtros */}
           <div className="flex flex-wrap items-center gap-2 py-3">
-            <FilterGroup
-              value={brokerFilter}
-              onChange={setBrokerFilter}
-              options={[
-                { v: 'all', label: 'Todos brokers' },
-                { v: 'darwinex', label: 'NK' },
-                { v: 'octx', label: 'OX' },
-              ]}
-            />
             <FilterGroup
               value={dirFilter}
               onChange={setDirFilter}
