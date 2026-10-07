@@ -60,7 +60,7 @@ export function StatusBar({ brokerFilter }: Props) {
   const octx = sessions ? latestForBroker(sessions, 'octx') : null;
 
   // VIX comes from whichever scanner ran today; prefer the active broker's scan
-  const vixSource = brokerFilter === 'octx' ? octx : (darwinex ?? octx);
+  const vixSource = darwinex;
   const vix = vixSource?.vix ?? null;
 
   const vixColor = vix == null ? 'text-muted-foreground'
@@ -78,8 +78,8 @@ export function StatusBar({ brokerFilter }: Props) {
   const dwStale = darwinex ? isStale(darwinex.created_at) : true;
   const octxStale = octx ? isStale(octx.created_at) : true;
 
-  const showDarwinex = brokerFilter !== 'octx';
-  const showOctx = brokerFilter !== 'darwinex';
+  const showDarwinex = true;
+  const showOctx = false;
 
   return (
     <div className="-mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/85 border-b border-border">
@@ -94,42 +94,18 @@ export function StatusBar({ brokerFilter }: Props) {
 
         <span className="text-muted-foreground/40">|</span>
 
-        {/* Open positions per broker */}
-        {showDarwinex && (
-          <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/40 mr-1">NK</span>
-            <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
-          </span>
-        )}
-        {showOctx && (
-          <span className="text-muted-foreground">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-900/40 text-orange-300 border border-orange-700/50 mr-1">OX</span>
-            <span className="font-data font-bold text-foreground">{fxOpen}</span> pos
-          </span>
-        )}
+        <span className="text-muted-foreground">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/15 text-primary border border-primary/40 mr-1">CWND</span>
+          <span className="font-data font-bold text-foreground">{dwOpen}</span> pos
+        </span>
 
         <span className="text-muted-foreground/40 hidden md:inline">|</span>
 
-        {/* Last scan */}
         <span className="text-muted-foreground hidden md:inline">
-          Último scan:{' '}
-          {showDarwinex && (
-            <>
-              NKIS{' '}
-              {darwinex ? (
-                <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(darwinex.session_date ?? darwinex.created_at)}</span>
-              ) : <span className="text-destructive font-data">—</span>}
-            </>
-          )}
-          {showDarwinex && showOctx && ' · '}
-          {showOctx && (
-            <>
-              OCTX{' '}
-              {octx ? (
-                <span className={`font-data ${octxStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(octx.session_date ?? octx.created_at)}</span>
-              ) : <span className="text-destructive font-data">—</span>}
-            </>
-          )}
+          Último scan CWND:{' '}
+          {darwinex ? (
+            <span className={`font-data ${dwStale ? 'text-destructive' : 'text-foreground'}`}>{dateTimeShort(darwinex.session_date ?? darwinex.created_at)}</span>
+          ) : <span className="text-destructive font-data">—</span>}
         </span>
 
         <span className="text-muted-foreground/40 hidden lg:inline">|</span>

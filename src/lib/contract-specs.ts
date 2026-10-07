@@ -15972,3 +15972,11 @@ export function calcLots(riskEur: number, slDistance: number, symbol: string, eu
   const step = spec.volumeStep;
   return Math.max(spec.volumeMin, Math.floor(lots / step) * step);
 }
+
+// Especificación por raíz (NQ → NQ_M, NQ_U…). Tick y valor del tick son iguales en todos los vencimientos.
+export function getSpecByRoot(symbolOrRoot: string): ContractSpec | undefined {
+  const s = (symbolOrRoot ?? '').toUpperCase();
+  const root = s.includes('_') ? s.split('_')[0] : s;
+  return CONTRACT_SPECS.find((c) => c.symbol === s)
+    ?? CONTRACT_SPECS.find((c) => c.broker === 'nkis' && c.symbol.split('_')[0] === root);
+}

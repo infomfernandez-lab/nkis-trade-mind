@@ -1,6 +1,6 @@
 import type { Tables } from '@/integrations/supabase/types';
 import { raiz } from '@/lib/account';
-import { getContractSpec } from '@/lib/contract-specs';
+import { getSpecByRoot } from '@/lib/contract-specs';
 
 // Re-export the DB row type with a convenient alias
 export type TradeRow = Tables<'trades'>;
@@ -131,7 +131,7 @@ function computeR(row: TradeRow): number | null {
   const sl = row.sl_price != null ? Number(row.sl_price) : 0;
   const lots = Number(row.lot_size ?? 0);
   if (!sl || !entry || !lots) return null;
-  const spec = getContractSpec(row.symbol) ?? getContractSpec(raiz(row.symbol));
+  const spec = getSpecByRoot(row.symbol);
   const dist = Math.abs(entry - sl);
   if (!spec || !(spec.tickSize > 0) || !dist) return null;
   const risk = (dist / spec.tickSize) * spec.tickValue * lots;
