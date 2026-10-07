@@ -45,7 +45,7 @@ function SettingsPage() {
       setSaldoInicial(String(acc.saldoInicial));
       setMoneda(acc.moneda);
       setFechaInicio(acc.fechaInicio);
-      setRiesgoPct(String(acc.riesgoPct));
+      setRiesgoPct(acc.riesgoPct != null ? String(acc.riesgoPct) : '');
       setMaxOpenPositions(String(settings.max_open_positions ?? 8));
       setServerUrl(String((settings as any).backtest_server_url ?? ''));
       setServerKey(String((settings as any).backtest_server_key ?? ''));
@@ -88,7 +88,7 @@ function SettingsPage() {
       saldo_inicial: parseFloat(saldoInicial) || 0,
       moneda,
       fecha_inicio: fechaInicio,
-      riesgo_pct: parseFloat(riesgoPct.replace(',', '.')) || 0.25,
+      riesgo_pct: riesgoPct.trim() === '' || !Number.isFinite(parseFloat(riesgoPct.replace(',', '.'))) ? null : parseFloat(riesgoPct.replace(',', '.')),
       max_open_positions: parseInt(maxOpenPositions) || 8,
       backtest_server_url: serverUrl.trim(),
       backtest_server_key: serverKey.trim(),

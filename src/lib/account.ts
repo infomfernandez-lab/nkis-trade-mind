@@ -8,7 +8,8 @@ export const CWND_DEFAULTS = {
   saldoInicial: 1000000,
   moneda: 'USD',
   fechaInicio: '2026-10-07',
-  riesgoPct: 0.25,
+  /** Sin valor por defecto: el % de riesgo sale solo de Ajustes. */
+  riesgoPct: null as number | null,
 };
 
 export type AccountConfig = typeof CWND_DEFAULTS;
@@ -21,7 +22,7 @@ export function accountFromSettings(s: any): AccountConfig {
     saldoInicial: s?.saldo_inicial != null ? Number(s.saldo_inicial) : CWND_DEFAULTS.saldoInicial,
     moneda: s?.moneda || CWND_DEFAULTS.moneda,
     fechaInicio: (s?.fecha_inicio as string | null)?.slice(0, 10) || CWND_DEFAULTS.fechaInicio,
-    riesgoPct: s?.riesgo_pct != null ? Number(s.riesgo_pct) : CWND_DEFAULTS.riesgoPct,
+    riesgoPct: s?.riesgo_pct != null && s.riesgo_pct !== '' ? Number(s.riesgo_pct) : null,
   };
 }
 
