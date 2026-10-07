@@ -393,7 +393,7 @@ function StatsTab({ stats }: { stats: Stats }) {
 
 /* ────── Info tab ────── */
 
-function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getContractSpec> }) {
+function InfoTab({ asset, spec }: { asset: any; spec: ReturnType<typeof getSpecByRoot> }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
