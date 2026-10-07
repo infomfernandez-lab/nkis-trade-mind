@@ -53,7 +53,7 @@ function useScannerSessions() {
   });
 }
 
-type SortKey = 'num' | 'symbol' | 'name' | 'direction' | 'broker' | 'entryDate' | 'entryPrice' | 'exitPrice' | 'slPrice' | 'tpPrice' | 'lotSize' | 'durationHours' | 'netPnl';
+type SortKey = 'num' | 'symbol' | 'name' | 'direction' | 'broker' | 'r' | 'entryDate' | 'entryPrice' | 'exitPrice' | 'slPrice' | 'tpPrice' | 'lotSize' | 'durationHours' | 'netPnl';
 type SortDir = 'asc' | 'desc';
 
 interface EnrichedTrade {
@@ -124,7 +124,7 @@ function TradeLog() {
       if (filters.sector !== 'all' && e.sector !== filters.sector) return false;
       if (filters.dir === 'ALCISTA' && t.direction !== 'BUY') return false;
       if (filters.dir === 'BAJISTA' && t.direction !== 'SELL') return false;
-      if (q && !t.symbol.toUpperCase().includes(q) && !e.name.toUpperCase().includes(q)) return false;
+      if (q && !t.symbol.toUpperCase().includes(q) && !t.contrato.toUpperCase().includes(q) && !e.name.toUpperCase().includes(q)) return false;
       if (filters.strongTrend && !(Number(t.adxValue ?? 0) >= 25)) return false;
       if (filters.trade === 'open' && t.status !== 'open') return false;
       if (filters.trade === 'recent_closed') {
@@ -151,6 +151,7 @@ function TradeLog() {
           case 'symbol': va = ta.symbol; vb = tb.symbol; break;
           case 'direction': va = ta.direction; vb = tb.direction; break;
           case 'broker': va = ta.broker; vb = tb.broker; break;
+          case 'r': va = ta.rMultiple ?? -Infinity; vb = tb.rMultiple ?? -Infinity; break;
           case 'entryDate': va = ta.entryDate; vb = tb.entryDate; break;
           case 'entryPrice': va = ta.entryPrice; vb = tb.entryPrice; break;
           case 'exitPrice': va = ta.exitPrice ?? 0; vb = tb.exitPrice ?? 0; break;
@@ -254,7 +255,7 @@ function TradeLog() {
     );
   }
 
-  const brokerLabel = broker === 'all' ? '' : ` — ${broker === 'darwinex' ? 'NK' : 'OX'}`;
+  const brokerLabel = ' — CWND';
 
   return (
     <div className="space-y-4">
@@ -283,7 +284,7 @@ function TradeLog() {
               <SortableTh label="Ticker" sortKey="symbol" current={sortKey} dir={sortDir} onClick={toggleSort} />
               <SortableTh label="Nombre" sortKey="name" current={sortKey} dir={sortDir} onClick={toggleSort} />
               <SortableTh label="Dir" sortKey="direction" current={sortKey} dir={sortDir} onClick={toggleSort} />
-              <SortableTh label="Cuenta" sortKey="broker" current={sortKey} dir={sortDir} onClick={toggleSort} />
+              <SortableTh label="R" sortKey="r" current={sortKey} dir={sortDir} onClick={toggleSort} />
               <SortableTh label="Fecha" sortKey="entryDate" current={sortKey} dir={sortDir} onClick={toggleSort} />
               <SortableTh label="Entrada" sortKey="entryPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
               <SortableTh label="Salida" sortKey="exitPrice" current={sortKey} dir={sortDir} onClick={toggleSort} align="right" />
@@ -398,7 +399,6 @@ function TradeRow({ trade, num, fullName }: TradeRowProps) {
     ? 'bg-success/15 hover:bg-success/25'
     : 'bg-destructive/15 hover:bg-destructive/25';
 
-  const brokerLabel = trade.broker === 'darwinex' ? 'NK' : trade.broker === 'octx' ? 'OX' : trade.broker;
   const pnlColor = trade.netPnl >= 0 ? 'text-success' : 'text-destructive';
   const dirBg = trade.direction === 'BUY' ? 'bg-success/30 text-success' : 'bg-destructive/30 text-destructive';
 
@@ -409,12 +409,19 @@ function TradeRow({ trade, num, fullName }: TradeRowProps) {
   return (
     <tr onClick={handleOpen} className={`border-b border-border cursor-pointer transition-colors ${rowBg}`}>
       <td className="px-3 py-3 font-data text-muted-foreground">{num}</td>
-      <td className="px-3 py-3 font-semibold">{trade.symbol}</td>
+      <td className="px-3 py-3 font-semibold">
+        {trade.symbol}
+        {trade.contrato && trade.contrato !== trade.symbol && (
+          <span className="block text-[10px] font-data font-normal text-muted-foreground">{trade.contrato}</span>
+        )}
+      </td>
       <td className="px-3 py-3 text-muted-foreground">{fullName}</td>
       <td className="px-3 py-3">
         <span className={`px-2 py-0.5 rounded text-sm font-data font-bold ${dirBg}`}>{trade.direction}</span>
       </td>
-      <td className="px-3 py-3 font-data">{brokerLabel}</td>
+      <td className={`px-3 py-3 font-data font-bold ${trade.rMultiple == null ? 'text-muted-foreground' : trade.rMultiple >= 0 ? 'text-success' : 'text-destructive'}`}>
+        {trade.rMultiple == null ? '—' : `${trade.rMultiple >= 0 ? '+' : ''}${trade.rMultiple.toFixed(2)}R`}
+      </td>
       <td className="px-3 py-3 font-data">{formatShortDate(trade.entryDate)}</td>
       <td className="px-3 py-3 font-data text-right">{trade.entryPrice}</td>
       <td className="px-3 py-3 font-data text-right">{trade.exitPrice ?? '—'}</td>
@@ -439,14 +446,16 @@ export function TradeDetail({ trade, scannerSessions }: { trade: Trade; scannerS
   const close = detectCloseType(trade);
   const rr = computeRR(trade);
   const scanner = lookupScannerRank(trade, scannerSessions);
-  const brokerLabel = trade.broker === 'darwinex' ? 'NK' : trade.broker === 'octx' ? 'OX' : trade.broker;
+  const brokerLabel = 'CWND';
 
   return (
     <div className="space-y-6 text-sm">
       <Section title="Datos del Trade">
         <Grid>
           <Field label="Ticket" value={`#${trade.ticket}`} />
-          <Field label="Broker" value={brokerLabel} />
+          <Field label="Cuenta" value={brokerLabel} />
+          <Field label="Contrato" value={trade.contrato} mono />
+          <Field label="Resultado (R)" value={trade.rMultiple != null ? `${trade.rMultiple.toFixed(2)}R` : '—'} mono />
           <Field label="Precio Entrada" value={String(trade.entryPrice)} mono />
           <Field label="Precio Salida" value={String(trade.exitPrice ?? '—')} mono />
           <Field label="SL" value={String(trade.slPrice)} mono />
